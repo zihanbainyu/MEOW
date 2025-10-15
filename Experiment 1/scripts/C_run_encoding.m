@@ -24,7 +24,7 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     escape_key = KbName(p.keys.quit);
     same_key = KbName(p.keys.same);
     diff_key = KbName(p.keys.diff);
-    space_key = KbName('space');
+    space_key = KbName('g');
     
     % get current and total block number for instructions
     current_block = results_table.block(1);
@@ -38,8 +38,7 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     %------------------------------------------------------------------
     % 2A: Start of Block Screen
     %------------------------------------------------------------------
-    block_instruction = sprintf('Phase 1: Block %d of %d.\n\nPress SPACE to begin.', current_block, total_blocks);
-    DrawFormattedText(p.window, block_instruction, 'center', 'center', p.colors.black);
+    DrawFormattedText(p.window, sprintf('Phase I: Block %d of %d.\n\nWhen you are ready, press g to begin', current_block, total_blocks), 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     
     % wait for space
@@ -59,7 +58,7 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     %------------------------------------------------------------------
     % 2B: Trial loop for the current block
     %------------------------------------------------------------------
-  
+    
     for i = 1:height(results_table)
         
         if p.eyetracking == 1, Eyelink('Message', 'TRIALID %d', i); end
@@ -130,7 +129,6 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
         block_filename = sprintf('sub%03d_enc_b%d.mat', p.subj_id, current_block);
         block_filepath = fullfile(p.results_dir, block_filename);
         
-        % The 'results_table' variable contains this block's data.
         save(block_filepath, 'results_table');
         fprintf('Encoding block %d data saved.\n', current_block);
     catch ME

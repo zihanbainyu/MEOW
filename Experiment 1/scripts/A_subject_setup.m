@@ -14,13 +14,12 @@ if isempty(subj_id_str)
     error('subject ID cannot be empty.');
 end
 subj_id = str2double(subj_id_str);
+p.subj_id = subj_id;
 
 % directory
 base_dir = '..';
 p.stim_dir = fullfile(base_dir, 'stimulus/stim_selected/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
-p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
-if ~exist(p.results_dir, 'dir'), mkdir(p.results_dir); end
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
 
 %% ========================================================================

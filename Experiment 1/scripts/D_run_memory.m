@@ -9,7 +9,7 @@ function [results_table] = D_run_memory(p, test_schedule_block)
     %  SECTION 1: SET UP
     %  ========================================================================
     
-    % receives a schedule for only one block.
+    % receives a schedule for only one block.26
     results_table = test_schedule_block;
       
     % add new columns to this table to store participant responses
@@ -24,7 +24,7 @@ function [results_table] = D_run_memory(p, test_schedule_block)
     escape_key = KbName(p.keys.quit);
     same_key = KbName(p.keys.same);
     diff_key = KbName(p.keys.diff);
-    space_key = KbName('space');
+    space_key = KbName('g');
     
     % get current and total block number for instructions
     current_block = results_table.block(1);
@@ -37,8 +37,7 @@ function [results_table] = D_run_memory(p, test_schedule_block)
     %------------------------------------------------------------------
     % 2A: Start of Block Screen
     %------------------------------------------------------------------
-    block_instruction = sprintf('Phase 2: Block %d of %d.\n\nPress SPACE to begin.', current_block, total_blocks);
-    DrawFormattedText(p.window, block_instruction, 'center', 'center', p.colors.black);
+    DrawFormattedText(p.window, sprintf('Phase II: Block %d of %d.\n\nWhen you are ready, press g to begin.', current_block, total_blocks), 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     
     while true
