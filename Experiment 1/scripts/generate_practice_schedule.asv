@@ -65,6 +65,9 @@ end
 
 % Save
 save(fullfile(out_dir,'practice_encoding_schedule.mat'),'practice_schedule');
+fprintf('Practice encoding schedule saved: %d trials.\n', height(practice_schedule));
+
+
 
 %==================================================================
 % Practice memory schedule
@@ -106,12 +109,12 @@ seq = { ...
     foil_names(11), "similar", "foil", "none"; ...
     lure_names(5), "similar", "lure", "k"; ...
     % new
+    foil_names(11), "new", "foil", "none"; ...
     foil_names(12), "new", "foil", "none"; ...
     foil_names(13), "new", "foil", "none"; ...
-    foil_names(14), "new", "foil", "none"; ...
     % repeat
     targ_names(6), "repeat", "target", "none"; ...
-    foil_names(15), "repeat", "foil", "none"; ...
+    foil_names(14), "repeat", "foil", "none"; ...
     targ_names(6), "repeat", "target", "j"; ...
 };
 
@@ -129,12 +132,12 @@ for i = 1:size(seq,1)
     correct_resp = seq{i,4};
     
     if i <= 2
-        nback = "";
+        nback = "NA";   % no valid 2-back for first two trials
     else
         nback = seq{i-2,1};  % two trials ago
     end
     
-    % jittered fixation 0.5–1.0 s
+    % jittered fixation 0.5–1.0 s (same logic as before)
     fix_dur = 0.75 + (rand * 0.5 - 0.25);
     
     % append row to schedule
@@ -147,3 +150,5 @@ end
 
 % Save
 save(fullfile(out_dir,'practice_memory_schedule.mat'),'practice_schedule');
+fprintf('Practice memory schedule saved: %d trials.\n', height(practice_schedule));
+

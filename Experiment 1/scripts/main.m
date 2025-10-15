@@ -10,8 +10,8 @@ function main()
     sca;        
     
     %% ========================================================================
-    %  SECTION 1: INITIAL SETUP & SUBJECT INFO
-    %  =============     ===========================================================
+    %  SET UP
+    %  ========================================================================
     rng('shuffle');
     Screen('Preference', 'SkipSyncTests', 1);
     
@@ -43,7 +43,7 @@ function main()
     end                                      
 
     %% ========================================================================
-    %  SECTION 2: PSYCHTOOLBOX & EYELINK SETUP
+    %  PSYCHTOOLBOX & EYELINK SETUP
     %  ========================================================================
     try
         % --- PTB Screen Setup ---
@@ -70,14 +70,13 @@ function main()
         end
 
         %% ========================================================================
-        %   SECTION 3: EXPERIMENTAL PROCEDURE
-        %   ========================================================================
+        %   MAIN EXPERIMENT
+        %  ========================================================================
         HideCursor(screen_number);
         
         % --- global instructions ---
-        % instructions(p, 'welcome');
+        instructions(p, 'welcome');
 
-        % --- main experiment ---
         blocks_to_run = [1];  % 'full' / [#] for testing
         if strcmp(blocks_to_run, 'all')
             block_sequence = 1:p.nBlocks;
@@ -88,64 +87,76 @@ function main()
         for b = block_sequence %
             fprintf('\n\n===== STARTING BLOCK %d of %d =====\n', b, p.nBlocks);
 
+            %==================================================================
+            % Encoding
+            %==================================================================
             
-            % % --- 1. ENCODING ---
             if b == 1
-                % instructions(p, 'encoding');
-                % fprintf('--- Running Encoding Practice ---\n');
-                % load(fullfile(p.setup_dir, 'practice_encoding_schedule.mat'), 'practice_schedule');
-                % C_run_encoding_practice(p, practice_schedule);
-                % fprintf('\n\n===== ENCODING PRACTICE ROUND COMPLETE! =====\n');   
+                instructions(p, 'encoding');
+                fprintf('--- Running Encoding Practice ---\n');
+                load(fullfile(p.setup_dir, 'practice_encoding_schedule.mat'), 'practice_schedule');
+                C_run_encoding_practice(p, practice_schedule);
+                fprintf('\n\n===== Completed Encoding Practice =====\n');   
             end
 
-            % fprintf('--- Running Encoding ---\n');
-            % encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
-            % C_run_encoding(p, encoding_schedule_block);
-            % 
-            % % --- 2. REST PERIOD ---
-            % fprintf('--- Starting Rest Period ---\n');
-            % rest(p, b, p.nBlocks);
-            % 
-            % % --- 3. RECALIBRATION (if applicable) ---
-            % if p.eyetracking == 1
-            %     fprintf('--- Checking Calibration ---\n');
-            %     ask_for_recalibration(p, el);
-            % end
+            fprintf('--- Running Encoding ---\n');
+            encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
+            C_run_encoding(p, encoding_schedule_block);
             
-            % --- 4. MEMORY ---
+            %==================================================================
+            % Rest
+            %==================================================================
+            
+            fprintf('--- Starting Rest ---\n');
+            rest(p, b, p.nBlocks);
+
+            %==================================================================
+            % Recalibration (if needed)
+            %==================================================================
+            
+            if p.eyetracking == 1
+                fprintf('--- Checking Calibration ---\n');
+                ask_for_recalibration(p, el);
+            end
+            
+            %==================================================================
+            % Memory
+            %==================================================================
+            
             if b == 1
                 instructions(p, 'memory');
-                % fprintf('--- Running Memory Practice ---\n');
-                % load(fullfile(p.setup_dir, 'practice_memory_schedule.mat'), 'practice_schedule');
-                % C_run_memory_practice(p, practice_schedule);
-                % fprintf('\n\n===== MEMORY PRACTICE ROUND COMPLETE! =====\n');
+                fprintf('--- Running Memory Practice ---\n');
+                load(fullfile(p.setup_dir, 'practice_memory_schedule.mat'), 'practice_schedule');
+                D_run_memory_practice(p, practice_schedule);
+                fprintf('\n\n===== Completed Memory Practice =====\n');
             end
 
-            % fprintf('--- Running Memory ---\n');
-            % test_schedule_block = subject_data.test_schedule(subject_data.test_schedule.block == b, :);
-            % D_run_memory(p, test_schedule_block);
-        end
+            fprintf('--- Running Memory ---\n');
+            test_schedule_block = subject_data.test_schedule(subject_data.test_schedule.block == b, :);
+            D_run_memory(p, test_schedule_block);
+
+        end % blook loop ends
+
         % 
-        % %% ========================================================================
-        % %   SECTION 4: DATA CONSOLIDATION & CLEANUP
-        % %   ========================================================================
-        % 
-        % fprintf('\n\nAll done\n');
-        % encoding_results_all = consolidate_data(p, 'enc');
-        % memory_results_all = consolidate_data(p, 'mem');
-        % 
-        % final_data_output.subj_id = p.subj_id;
-        % final_data_output.parameters = subject_data.parameters;
-        % final_data_output.encoding_results = encoding_results_all;
-        % final_data_output.test_results = memory_results_all;
-        % 
-        % save(final_data_filename, 'final_data_output');
-        % fprintf('All data saved to:\n%s\n', final_data_filename);
-        % 
-        % instructions(p, 'goodbye');
-        % if p.eyetracking == 1, Eyelink('Shutdown'); end
-        % sca; ShowCursor;
-        % fprintf('\nThe End.\n');
+        %% ========================================================================
+        %   SAVE DATA
+        %  ========================================================================
+        encoding_results_all = consolidate_data(p, 'enc');
+        memory_results_all = consolidate_data(p, 'mem');
+
+        final_data_output.subj_id = p.subj_id;
+        final_data_output.parameters = subject_data.parameters;
+        final_data_output.encoding_results = encoding_results_all;
+        final_data_output.test_results = memory_results_all;
+
+        save(final_data_filename, 'final_data_output');
+        fprintf('All data saved to:\n%s\n', final_data_filename);
+
+        instructions(p, 'goodbye');
+        if p.eyetracking == 1, Eyelink('Shutdown'); end
+        sca; ShowCursor;
+        
+        fprintf('\nThe End.\n');
         
     catch ME %
         sca; ShowCursor;
@@ -188,7 +199,7 @@ function rest(p, current_block, total_blocks)
 
     fprintf('Rest period started... (120 seconds)\n');
     Screen('Flip', p.window); %
-    WaitSecs(120);
+    WaitSecs(10);
     fprintf('Rest period finished.\n');
 end
 
