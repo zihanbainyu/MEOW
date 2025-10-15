@@ -49,7 +49,10 @@ function [results_table] = D_run_memory(p, test_schedule_block)
     end
 
     % initial fixation before the first trial of the block
-    DrawFormattedText(p.window, '+', 'center', 'center', p.colors.black);
+    xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
+    yCoords = [0, 0, -p.fix_cross_size, p.fix_cross_size];
+    allCoords = [xCoords; yCoords];
+    Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
     Screen('Flip', p.window);
     WaitSecs(2);
 
@@ -61,7 +64,7 @@ function [results_table] = D_run_memory(p, test_schedule_block)
         if p.eyetracking == 1, Eyelink('Message', 'TRIALID %d', i); end
 
         % ---------fixation------------
-        DrawFormattedText(p.window, '+', 'center', 'center', p.colors.black);
+        Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
         fix_onset_time = Screen('Flip', p.window);
         if p.eyetracking == 1, Eyelink('Message', 'FIXATION_ONSET'); end
 

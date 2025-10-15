@@ -20,14 +20,17 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     space_key  = KbName('g');
     
     %% Instructions
-    Screen('TextSize', p.window, 32);
     DrawFormattedText(p.window, ...
-        ['Practice Round\n\n' ...
+        ['Practice Round: 1-Back Task\n\n' ...
         '\n\n'...
-        'If the object is exactly the same as the previous one, press j (repeat)\n\n' ...
-        'If the object is similar but not identical, press k (similar)\n\n' ...
-        'If the object is new, do not press any key\n\n' ...
+        'You will view a series of items, one after another\n\n' ...
+        'Your task is to compare each item to the one that came right before it\n\n' ...
+        '\n\n'...
+        'Press j (repeat) if the item is exactly the same as the one just before it\n\n' ...
+        'Press k (similar) if the item is similar but not identical as the one just before it\n\n' ...
+        'Do not press any key if the item is completely new\n\n' ...
         '\n\n' ...
+        'You are always comparing the current image to the one just before it'
         'When you are ready, press g to begin'], ...
         'center', 'center', p.colors.black);
     Screen('Flip', p.window);
@@ -41,8 +44,10 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     end
     
     %% Initial fixation
-    Screen('TextSize', p.window, 100);
-    DrawFormattedText(p.window, '+', 'center', 'center', p.colors.black);
+    xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
+    yCoords = [0, 0, -p.fix_cross_size, p.fix_cross_size];
+    allCoords = [xCoords; yCoords];
+    Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
     Screen('Flip', p.window);
     WaitSecs(2);
     
@@ -54,7 +59,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
         end
     
         % Fixation
-        DrawFormattedText(p.window, '+', 'center', 'center', p.colors.black);
+        Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
         fix_onset = Screen('Flip', p.window);
         WaitSecs(practice_results.fix_duration(i));
     
@@ -101,7 +106,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     
     %% Save practice results
     try
-        filename = sprintf('sub%03d_practice.mat', p.subj_id);
+        filename = sprintf('sub%03d_enc_practice.mat', p.subj_id);
         filepath = fullfile(p.results_dir, filename);
         save(filepath, 'practice_results');
         fprintf('Practice data saved: %d trials.\n', nTrials);

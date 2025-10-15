@@ -38,9 +38,7 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     %------------------------------------------------------------------
     % 2A: Start of Block Screen
     %------------------------------------------------------------------
-    DrawFormattedText(p.window, ['Upcoming Task: 1-BACK\n\n', ...
-        sprintf('Block %d of %d.\n\n,', current_block, total_blocks)], 'center', 'center', p.colors.black),
-    'When you are ready, press g to begin';
+    DrawFormattedText(p.window, sprintf('Upcoming Task: 1-Back Block %d of %d.\n\nWhen you are ready, press g to begin', current_block, total_blocks), 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     
     % wait for space
