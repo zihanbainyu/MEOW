@@ -18,7 +18,7 @@ p.subj_id = subj_id;
 
 % directory
 base_dir = '..';
-p.stim_dir = fullfile(base_dir, 'stimulus/stim_selected/');
+p.stim_dir = fullfile(base_dir, 'stimulus/stim_processed/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
 

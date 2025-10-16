@@ -50,7 +50,7 @@ function main()
         PsychDefaultSetup(2);
         screen_number = max(Screen('Screens'));
         [p.window, p.windowRect] = PsychImaging('OpenWindow', screen_number, WhiteIndex(screen_number) / 2);
-                 [p.xCenter, p.yCenter] = RectCenter(p.windowRect);
+        [p.xCenter, p.yCenter] = RectCenter(p.windowRect);
         p.ifi = Screen('GetFlipInterval', p.window);
         p.text_size = 32;
         Screen('TextSize', p.window, p.text_size);
@@ -63,10 +63,56 @@ function main()
         p.stim_dir = subject_data.parameters.stim_dir;
         p.nBlocks = subject_data.parameters.nBlocks;
 
-        % --- Eyelink Setup ---
-        el = []; % initialize empty in case of no eyetracking
+        % --- eyelink setup ---
+        el = []; % in case no eyetracking
         if p.eyetracking == 1
-            el = Eyelink_setup(p);
+            dummymode = 0; % set to 1 for debugging without a tracker
+
+            el=EyelinkInitDefaults(p.window);
+    
+            if ~EyelinkInit(dummymode)
+                fprintf('Eyelink Init aborted.\n');
+                sca; 
+                return;
+            end
+        
+            [v vs]=Eyelink('GetTrackerVersion');
+            fprintf('Running experiment on a ''%s'' tracker.\n', vs );
+        
+            % --- eyelink configuration ---
+            [width, height]=Screen('WindowSize', screenNumber);
+            Eyelink()
+            Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
+            Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);                
+            Eyelink('command', 'calibration_type = HV13'); % use HV9 if you want better stability. in my case, precision is what i need
+            Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
+            Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
+            if sscanf(vs(12:end),'%f') >=4
+                Eyelink('command', 'file_sample_data  = LEFT,RIGHT,GAZE,HREF,AREA,HTARGET,GAZERES,STATUS,INPUT');
+                Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,GAZERES,AREA,HTARGET,STATUS,INPUT');
+            else
+                Eyelink('command', 'file_sample_data  = LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT');
+                Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT');
+            end
+            Eyelink('command', 'button_function 5 "accept_target_fixation"');
+           
+            % make sure we're still connected
+            if Eyelink('IsConnected')~=1 && dummymode == 0
+                fprintf('not connected, clean up\n');
+                Eyelink( 'Shutdown');
+                Screen('CloseAll');
+                return;
+            end
+
+           % --- set up calibration ---
+            el.backgroundcolour = p.colors.white / 2;
+            el.foregroundcolour = p.colors.black;
+            el.calibrationtargetcolour = p.colors.black;
+            EyelinkUpdateDefaults(el);
+
+           % --- initial calibration here ---
+            fprintf(' --- Performing initial calibration ---\n');
+            EyelinkDoTrackerSetup(el);
         end
 
         %% ========================================================================
@@ -101,23 +147,33 @@ function main()
 
             fprintf('--- Running Encoding ---\n');
             encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
-            C_run_encoding(p, encoding_schedule_block);
-            
-            %==================================================================
-            % Rest
-            %==================================================================
-            
-            fprintf('--- Starting Rest ---\n');
-            rest(p, b, p.nBlocks);
 
+            if p.eyetracking == 1
+                edf_filename = sprintf('%d_enc_b%d.edf', p.subj_id, b);
+                fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+                Eyelink('OpenFile', edf_filename);
+                Eyelink('command', 'add_file_preamble_text ''Encoding, Block %d''', b);
+
+                
+                C_run_encoding(p, el, encoding_schedule_block);
+
+                fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+                Eyelink('CloseFile');
+                try
+                    status=Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+                    if status > 0, fprintf('ReceiveFile status %d\n', status); end
+                catch ME
+                    fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+                end
+            else
+                C_run_encoding(p, encoding_schedule_block);
+            end
+            
             %==================================================================
-            % Recalibration (if needed)
+            % Mid rest
             %==================================================================
             
-            if p.eyetracking == 1
-                fprintf('--- Checking Calibration ---\n');
-                ask_for_recalibration(p, el);
-            end
+            mid_rest(p, el, b);
             
             %==================================================================
             % Memory
@@ -133,92 +189,124 @@ function main()
 
             fprintf('--- Running Memory ---\n');
             test_schedule_block = subject_data.test_schedule(subject_data.test_schedule.block == b, :);
-            D_run_memory(p, test_schedule_block);
+
+            if p.eyetracking == 1
+                edf_filename = sprintf('%d_mem_b%d.edf', p.subj_id, b);
+                fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+                Eyelink('OpenFile', edf_filename);
+                Eyelink('command', 'add_file_preamble_text ''Memory, Block %d''', b);
+                
+                D_run_memory(p, el, test_schedule_block);
+
+                fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+                Eyelink('CloseFile');
+                try
+                    status=Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+                    if status > 0, fprintf('ReceiveFile status %d\n', status); end
+                catch ME
+                    fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+                end
+            else 
+                D_run_memory(p, test_schedule_block);
+            end
+
+            %==================================================================
+            % Rest
+            %==================================================================
+            if b < p.nBlocks
+                end_rest(p, b, p.nBlocks);
+            end
+
+        end % blook loop ends
+
+        % 
+        %% ========================================================================
+        %   SAVE DATA
+        %  ========================================================================
+        encoding_results_all = consolidate_data(p, 'enc');
+        memory_results_all = consolidate_data(p, 'mem');
+
+        final_data_output.subj_id = p.subj_id;
+        final_data_output.parameters = subject_data.parameters;
+        final_data_output.encoding_results = encoding_results_all;
+        final_data_output.test_results = memory_results_all;
+
+        save(final_data_filename, 'final_data_output');
+        fprintf('All data saved to:\n%s\n', final_data_filename);
+
+        instructions(p, 'goodbye');
+        if p.eyetracking == 1
+            Eyelink('Shutdown'); 
         end
-        % 
-        % %% ========================================================================
-        % %   SECTION 4: DATA CONSOLIDATION & CLEANUP
-        % %   ========================================================================
-        % 
-        % fprintf('\n\nAll done\n');
-        % encoding_results_all = consolidate_data(p, 'enc');
-        % memory_results_all = consolidate_data(p, 'mem');
-        % 
-        % final_data_output.subj_id = p.subj_id;
-        % final_data_output.parameters = subject_data.parameters;
-        % final_data_output.encoding_results = encoding_results_all;
-        % final_data_output.test_results = memory_results_all;
-        % 
-        % save(final_data_filename, 'final_data_output');
-        % fprintf('All data saved to:\n%s\n', final_data_filename);
-        % 
-        % instructions(p, 'goodbye');
-        % if p.eyetracking == 1, Eyelink('Shutdown'); end
-        % sca; ShowCursor;
-        % fprintf('\nThe End.\n');
+        sca; ShowCursor;
         
-    catch ME %
+        fprintf('\nThe End.\n');
+        
+    catch ME
         sca; ShowCursor;
         if p.eyetracking == 1, Eyelink('Shutdown'); end
         fprintf(2, '\n! AN ERROR OCCURRED !\n'); % Print in red
-        
-        if strcmp(ME.identifier, 'USER_ABORT')
-             fprintf('Experiment gracefully aborted by user.\n');
-        else
-            rethrow(ME); %
-        end
+        rethrow(ME);
     end
 end
 
 %% ========================================================================
-%  HELPER FUNCTIONS FOR MAIN SCRIPT
+%  FUNCTIONS FOR MAIN SCRIPT
 %  ========================================================================
-
-function el = Eyelink_setup(p)
-    dummymode = 0; % set to 1 to run without a tracker connected
-    if Eyelink('Initialize') ~= 0, error('Eyelink initialization failed.'); end
+function ask_for_recalibration(p, el)
+    recal_text = 'Welcome back! recalibrate eye tracker?\n\nPress y for yes, n for skip';
+    DrawFormattedText(p.window, recal_text, 'center', 'center', p.colors.black);
+    Screen('Flip', p.window);
     
-    el = EyelinkInitDefaults(p.window);
-    if ~EyelinkInit(dummymode), error('Eyelink Init aborted.'); end
-    
-    edf_filename = sprintf('s%03d.edf', p.subj_id);
-    Eyelink('OpenFile', edf_filename);
-    
-    EyelinkDoTrackerSetup(el); % Run calibration
-    Eyelink('StartRecording');
+    while true
+        [~, ~, keyCode] = KbCheck();
+        if keyCode(KbName('y'))
+            fprintf('Recalibrating...\n');
+            EyelinkDoTrackerSetup(el);
+            break;
+        elseif keyCode(KbName('n'))
+            fprintf('Skipping recalibration.\n');
+            break;
+        end
+    end
+    Screen('Flip', p.window);
+    WaitSecs(0.5);
 end
 
-function rest(p, current_block, total_blocks)
-    rest_text = sprintf(['Block %d of %d is complete.\n\n' ...
-                         'You may take a 2-minute rest.\n\n' ...
+function mid_rest(p, el, current_block)
+    fprintf('--- Starting Mid Rest ---\n');
+
+    DrawFormattedText(p.window, sprintf(['Wonderful! You have completed part 1 of block %d.\n\n' ...
+                         'Please use the next 1 minute to relax.\n\n' ...
+                         'The screen will go blank shortly'], current_block), 'center', 'center', p.colors.black);
+    Screen('Flip', p.window);
+    WaitSecs(10);
+    fprintf('Mid rest started... (60 seconds)\n');
+    Screen('Flip', p.window);
+    WaitSecs(60); 
+    fprintf('Mid rest finished.\n');
+
+    if p.eyetracking == 1
+        fprintf('--- Checking Calibration ---\n');
+        ask_for_recalibration(p, el);
+    end
+end
+
+function end_rest(p, current_block, total_blocks)
+    rest_text = sprintf(['Great job! You have completed this block.\n\n' ...
+                         'Please use the next 2 minutes to relax.\n\n' ...
                          'The screen will go blank shortly.'], current_block, total_blocks);
     DrawFormattedText(p.window, rest_text, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     WaitSecs(10);
+    fprintf('End Rest started... (120 seconds)\n');
+    Screen('Flip', p.window); 
+    WaitSecs(10); % This is 10s, not 120s. Adjust if needed.
+    fprintf('End Rest finished.\n');
 
-    fprintf('Rest period started... (120 seconds)\n');
-    Screen('Flip', p.window); %
-    WaitSecs(10);
-    fprintf('Rest period finished.\n');
-end
-
-function ask_for_recalibration(p, el)
-    recal_text = ['The experimenter may now check eye tracker calibration.\n\n' ...
-                  'Press ''C'' to re-calibrate, or SPACE to continue.'];
-    DrawFormattedText(p.window, recal_text, 'center', 'center', p.colors.black);
-    Screen('Flip', p.window);
-
-    KbName('UnifyKeyNames');
-    while true
-        [~, ~, keyCode] = KbCheck;
-        if keyCode(KbName('space')), break; end
-        if keyCode(KbName('c'))
-            Eyelink('StopRecording');
-            EyelinkDoTrackerSetup(el);
-            Eyelink('StartRecording');
-            DrawFormattedText(p.window, recal_text, 'center', 'center', p.colors.black);
-            Screen('Flip', p.window);
-        end
+    if p.eyetracking == 1
+        fprintf('--- Checking Calibration ---\n');
+        ask_for_recalibration(p, el);
     end
 end
 

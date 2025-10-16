@@ -23,9 +23,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     DrawFormattedText(p.window, ...
         ['Practice Round: 1-Back Task\n\n' ...
         '\n\n' ...
-        'You will view a series of items, one after another.\n\n' ...
-        'Your task is to compare each item to the one that came right before it.\n\n' ...
-        '\n\n' ...
+        'Remember:\n\n' ...
         'Press j (repeat) if the item is exactly the same as the one just before it.\n\n' ...
         'Press k (similar) if the item is similar but not identical as the one just before it.\n\n' ...
         'Do not press any key if the item is completely new.\n\n' ...
@@ -36,7 +34,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     Screen('Flip', p.window);
     
     while true
-        [keyIsDown, ~, keyCode] = KbCheck;
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
             if keyCode(space_key), break;
             elseif keyCode(escape_key), error('USER_ABORT'); end
@@ -74,7 +72,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
         rt = NaN;
         responded = false;
         while GetSecs < stim_onset + p.timing.image_dur
-            [keyIsDown, t, keyCode] = KbCheck;
+            [keyIsDown, t, keyCode] = KbCheck(p.keys.device);
             if keyIsDown && ~responded
                 responded = true;
                 rt = t - stim_onset;
@@ -114,7 +112,6 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
         warning('Could not save practice data: %s', ME.message);
     end
     
-    Screen('TextSize', p.window, 32);
     DrawFormattedText(p.window, ...
         ['Great! You have completed the practice round.\n\n' ...
          'If you have any questions, please find the experimenter.'], ...
@@ -123,7 +120,7 @@ function [practice_results] = C_run_encoding_practice(p, practice_schedule)
     
     wait_for_end = true;
     while wait_for_end
-        [keyIsDown, ~, keyCode] = KbCheck;
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
             if keyCode(space_key)
                 wait_for_end = false; % exit loop

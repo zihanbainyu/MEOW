@@ -29,7 +29,7 @@ function instructions(p, instruction_type)
             'When you are ready, please let the experimenter know.\n'], ...
             'center', 'center', p.colors.black, [], [], [], line_spacing);
         Screen('Flip', p.window);
-        waitForKeyPress(space_key, escape_key);
+        waitForKeyPress(p, space_key, escape_key);
         
         %==================================================================
         % case 1: encoding
@@ -55,7 +55,7 @@ function instructions(p, instruction_type)
                 'Your task is to compare each image to the one that came right before it.\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
             DrawFormattedText(p.window, ['You have three possible responses:\n\n' ...
                 '\n\n' ...
@@ -66,18 +66,17 @@ function instructions(p, instruction_type)
                 'You are always comparing the current image to the one just before it.'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
             % demonstration
             DrawFormattedText(p.window, 'Before you begin, we will show you a brief demonstration to give you a feel for the task.', 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
-
+            waitForKeyPress(p, space_key, escape_key);
 
             % Example 1: REPEAT
-            DrawFormattedText(p.window, 'Previous Image', p.xCenter - 450, p.yCenter - 400, p.colors.black);
+            DrawFormattedText(p.window, 'Previous Image', p.xCenter - 450, p.yCenter - 425, p.colors.black);
             Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 300 300], p.xCenter - 350, p.yCenter - 200));
-            DrawFormattedText(p.window, 'Current Image', p.xCenter + 250, p.yCenter - 400, p.colors.black);
+            DrawFormattedText(p.window, 'Current Image', p.xCenter + 250, p.yCenter - 425, p.colors.black);
             Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 300 300], p.xCenter + 350, p.yCenter - 200));
             DrawFormattedText(p.window, 'You would press  j  because it is exactly the same.', 'center', p.yCenter + 25, p.colors.black);
         
@@ -86,10 +85,10 @@ function instructions(p, instruction_type)
             Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 300 300], p.xCenter - 350, p.yCenter + 300));
             DrawFormattedText(p.window, 'Current Image', p.xCenter + 250, p.yCenter + 100, p.colors.black);
             Screen('DrawTexture', p.window, tex_similar, [], CenterRectOnPointd([0 0 300 300], p.xCenter + 350, p.yCenter + 300));
-            DrawFormattedText(p.window, 'You would press  k  because it is similar but not identical.', 'center', p.yCenter + 550, p.colors.black);
+            DrawFormattedText(p.window, 'You would press  k  because it is similar but not identical.', 'center', p.yCenter + 500, p.colors.black);
             
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
             % fixation crosss
             DrawFormattedText(p.window, ['Before each image, you will see a fixation cross.\n\n' ...
@@ -100,7 +99,7 @@ function instructions(p, instruction_type)
             Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
 
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
                     
          
             % quesitons
@@ -113,7 +112,11 @@ function instructions(p, instruction_type)
                 'When you are ready, press g to begin.'], ...
             'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
+
+            if exist('tex_repeat', 'var'),  Screen('Close', tex_repeat);  end
+            if exist('tex_similar', 'var'), Screen('Close', tex_similar); end
+            if exist('tex_new', 'var'),     Screen('Close', tex_new);     end
 
         %==================================================================
         % case 2: memory
@@ -140,8 +143,8 @@ function instructions(p, instruction_type)
                 'Your task is now to compare each image to the one from two trials ago.\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
-    
+            waitForKeyPress(p, space_key, escape_key);
+
             DrawFormattedText(p.window, ['Therefore, the response rules now are:\n\n' ...
                 '\n\n' ...
                 'Press  j  (repeat) if the image is exactly the same as the one from two trials ago.\n\n' ...
@@ -152,12 +155,12 @@ function instructions(p, instruction_type)
                 'You are only comparing the current image to the one from two trials ago.\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
             % demonstration
             DrawFormattedText(p.window, 'Before you begin, we will show you a brief demonstration to give you a feel for the task.', 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
 
             % ========================================================================
@@ -165,9 +168,9 @@ function instructions(p, instruction_type)
             % ========================================================================
             
             % --- Labels ---
-            DrawFormattedText(p.window, 'Two Trials Ago', p.xCenter - 700, p.yCenter - 400, p.colors.black);
-            DrawFormattedText(p.window, 'Previous Image', p.xCenter, p.yCenter - 400, p.colors.black);
-            DrawFormattedText(p.window, 'Current Image', p.xCenter + 700, p.yCenter - 400, p.colors.black);
+            DrawFormattedText(p.window, 'Two Trials Ago', p.xCenter - 800, p.yCenter - 400, p.colors.black);
+            DrawFormattedText(p.window, 'Previous Image', p.xCenter - 100, p.yCenter - 400, p.colors.black);
+            DrawFormattedText(p.window, 'Current Image', p.xCenter + 600, p.yCenter - 400, p.colors.black);
             
             % --- Images ---
             Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 300 300], p.xCenter - 700, p.yCenter - 200));  % two trials ago
@@ -175,8 +178,8 @@ function instructions(p, instruction_type)
             Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 300 300], p.xCenter + 700, p.yCenter - 200));  % current
             
             % --- Instruction text ---
-            DrawFormattedText(p.window, 'You would press  j  because it matches the image two trials ago.', ...
-                'center', p.yCenter + 100, p.colors.black);
+            DrawFormattedText(p.window, 'You would press  j  because it is exactly the same as the image two trials ago.', ...
+                'center', p.yCenter + 25, p.colors.black);
             
             
             % ========================================================================
@@ -184,9 +187,9 @@ function instructions(p, instruction_type)
             % ========================================================================
             
             % --- Labels ---
-            DrawFormattedText(p.window, 'Two Trials Ago', p.xCenter - 700, p.yCenter + 200, p.colors.black);
-            DrawFormattedText(p.window, 'Previous Image', p.xCenter, p.yCenter + 200, p.colors.black);
-            DrawFormattedText(p.window, 'Current Image', p.xCenter + 700, p.yCenter + 200, p.colors.black);
+            DrawFormattedText(p.window, 'Two Trials Ago', p.xCenter - 800, p.yCenter + 200, p.colors.black);
+            DrawFormattedText(p.window, 'Previous Image', p.xCenter - 100, p.yCenter + 200, p.colors.black);
+            DrawFormattedText(p.window, 'Current Image', p.xCenter + 600, p.yCenter + 200, p.colors.black);
             
             % --- Images ---
             Screen('DrawTexture', p.window, tex_repeat,  [], CenterRectOnPointd([0 0 300 300], p.xCenter - 700, p.yCenter + 400)); % two trials ago
@@ -195,11 +198,11 @@ function instructions(p, instruction_type)
             
             % --- Instruction text ---
             DrawFormattedText(p.window, 'You would press  k  because it is similar to the image two trials ago, but not identical.', ...
-                'center', p.yCenter + 750, p.colors.black);
+                'center', p.yCenter + 625, p.colors.black);
             
             % --- Flip screen and wait ---
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
 
         
             DrawFormattedText(p.window, ['Please respond as quickly and accurately as you can.\n\n' ...
@@ -211,11 +214,11 @@ function instructions(p, instruction_type)
                 'When you are ready, press g to begin.'], ...
             'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
-            waitForKeyPress(space_key, escape_key);
+            waitForKeyPress(p, space_key, escape_key);
             
-            % --- Close textures to free up memory ---
-            Screen('Close', [tex_targ, tex_lure, tex_new]);
-
+            if exist('tex_repeat', 'var'),  Screen('Close', tex_repeat);  end
+            if exist('tex_similar', 'var'), Screen('Close', tex_similar); end
+            if exist('tex_new', 'var'),     Screen('Close', tex_new);     end
 
 
         case 'goodbye'
@@ -228,7 +231,7 @@ function instructions(p, instruction_type)
             
             % Wait for 5 seconds before allowing an exit, to prevent accidental closure
             WaitSecs(5);
-            KbWait([], 2);
+            KbWait(p.keys.device, 2);
 
         otherwise
             error('Invalid instruction_type provided to instructions function: %s', instruction_type);
@@ -241,23 +244,22 @@ end % function
 %==========================================================================
 %                  HELPER FUNCTION
 %==========================================================================
-function waitForKeyPress(space_key, escape_key)
-    % Flush any previous keypresses
-    KbReleaseWait; % Wait until all keys are released
-    KbQueueCreate();
-    KbQueueStart();
+function waitForKeyPress(p, continue_key, escape_key)
+   
+    KbReleaseWait(p.keys.device); % Wait until all keys on the specified keyboard are released
+    
     while true
-        [pressed, firstPress] = KbQueueCheck();
-        if pressed
-            if firstPress(space_key)
-                break;
-            elseif firstPress(escape_key)
-                sca; % exit screen
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device); % Check ONLY the specified keyboard
+        
+        if keyIsDown
+            if keyCode(continue_key)
+                break; % Exit the loop if the continue key is pressed
+            elseif keyCode(escape_key)
+                sca; % Clean up screen
                 error('Experiment terminated by user.');
             end
         end
     end
-    KbQueueStop();
-    KbQueueRelease();
-    KbReleaseWait; % Wait again for key release before next screen
+    
+    KbReleaseWait(p.keys.device); % Wait for the key to be released before proceeding
 end

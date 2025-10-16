@@ -4,15 +4,14 @@
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
 %==========================================================================
 
-function [results_table] = C_run_encoding(p, encoding_schedule_block)
+function [results_table] = C_run_encoding(p, el, encoding_schedule_block)
     %% ========================================================================
     %  SECTION 1: SET UP
     %  ========================================================================
     
-    % The function now receives a schedule for only one block.
+    % define parameters
+    is_eyetracking = p.eyetracking == 1;
     results_table = encoding_schedule_block;
-
-    % add new columns to this table to store participant responses
     num_trials_in_block = height(results_table);
     results_table.response_key = strings(num_trials_in_block, 1);
     results_table.response_key(:) = "NA";
@@ -26,10 +25,8 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     diff_key = KbName(p.keys.diff);
     space_key = KbName('g');
     
-    % get current and total block number for instructions
     current_block = results_table.block(1);
     total_blocks = p.nBlocks;
-
 
     %% ========================================================================
     %  SECTION 2: BLOCK & TRIAL EXECUTION
@@ -39,13 +36,13 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     % 2A: Start of Block Screen
     %------------------------------------------------------------------
     DrawFormattedText(p.window, ['Upcoming Task: 1-BACK\n\n', ...
-        sprintf('Block %d of %d.\n\n,', current_block, total_blocks)], 'center', 'center', p.colors.black),
+        sprintf('Block %d of %d.\n\n', current_block, total_blocks) ...
+        'Remember, you are comparing the current image to the one that came just before it.\n\n'], 'center', 'center', p.colors.black),
     'When you are ready, press g to begin';
     Screen('Flip', p.window);
     
-    % wait for space
     while true
-        [keyIsDown, ~, keyCode] = KbCheck;
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
             if keyCode(space_key), break;
             elseif keyCode(escape_key), error('USER_ABORT'); end
@@ -65,13 +62,28 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     %------------------------------------------------------------------
     
     for i = 1:height(results_table)
+
+        trial_info = results_table(i,:);
         
-        if p.eyetracking == 1, Eyelink('Message', 'TRIALID %d', i); end
+        % Eyelink: mark trial start and perform drift check
+        if is_eyetracking
+            Eyelink('Message', 'TRIALID %d', i);
+            Eyelink('command', 'record_status_message "Block %d, Trial %d"', current_block, i);
+            EyelinkDoDriftCorrection(el);
+        end
+        
+        % Eyelink: start recording eye movements
+        if is_eyetracking
+            Eyelink('StartRecording');
+            WaitSecs(0.1);
+        end
 
         % ---------fixation------------
         Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
         fix_onset_time = Screen('Flip', p.window);
-        if p.eyetracking == 1, Eyelink('Message', 'FIXATION_ONSET'); end
+        if is_eyetracking
+            Eyelink('Message', 'FIXATION_ONSET'); 
+        end
 
         % ---------stimulus------------
         img_path = fullfile(p.stim_dir, results_table.stimulus_id(i));
@@ -81,50 +93,66 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
         Screen('DrawTexture', p.window, img_texture, [], [], 0);
 
         % --- present image and collect response ---
-        stim_onset_time = Screen('Flip', p.window, fix_onset_time + results_table.fix_duration(i) - 0.5 * p.ifi);
-        if p.eyetracking == 1, Eyelink('Message', 'STIM_ONSET %s', results_table.stimulus_id{i}); end
+        stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi); 
+        
+        %   Eyelink: send messages exactly at stimulus onset
+        if is_eyetracking
+            Eyelink('Message', 'SYNCTIME'); % Critical for aligning eye data with stimulus
+            Eyelink('Message', 'STIM_ONSET %s', trial_info.stimulus_id{1});
+            Eyelink('Message', '!V IMGLOAD CENTER %s %d %d', img_path, p.xCenter, p.yCenter);
+        end
 
         key_pressed = "NA";
         response_time = NaN;
         responded = false;
-
         while GetSecs < stim_onset_time + p.timing.image_dur
-            [keyIsDown, secs, keyCode] = KbCheck;
+            [keyIsDown, secs, keyCode] = KbCheck(p.keys.device);
             if keyIsDown && ~responded
                 responded = true;
                 response_time = secs - stim_onset_time;
-
-                if keyCode(escape_key)
-                    error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
+                if keyCode(escape_key), error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
                 elseif keyCode(same_key), key_pressed = string(p.keys.same);
                 elseif keyCode(diff_key), key_pressed = string(p.keys.diff);
-                else, key_pressed = "invalid";
-                end
-                
-                if p.eyetracking == 1
-                    Eyelink('Message', 'RESPONSE KEY %s RT %.0f', key_pressed, response_time * 1000); 
-                end
+                else, key_pressed = "invalid"; end
+                if is_eyetracking, Eyelink('Message', 'RESPONSE KEY %s RT %.0f', key_pressed, response_time * 1000); end
             end
         end
         Screen('Close', img_texture);
 
+        %   Eyelink: stop recording and log trial variables
+        if is_eyetracking
+            Screen('Flip', p.window);
+            Eyelink('Message', 'BLANK_SCREEN');
+            WaitSecs(0.1); % Record a bit more data
+            Eyelink('StopRecording');
+            
+            % send variables to Data Viewer for analysis
+            Eyelink('Message', '!V TRIAL_VAR block %d', trial_info.block);
+            Eyelink('Message', '!V TRIAL_VAR stimulus %s', trial_info.stimulus_id{1});
+            Eyelink('Message', '!V TRIAL_VAR condition %s', trial_info.condition{1});
+            Eyelink('Message', '!V TRIAL_VAR role %s', trial_info.role{1});
+            Eyelink('Message', '!V TRIAL_VAR trial_type %s', trial_info.trial_type_final{1});
+            Eyelink('Message', '!V TRIAL_VAR correct_resp %s', trial_info.correct_response{1});
+            
+            % also log the participant's actual response and accuracy for this trial
+            Eyelink('Message', '!V TRIAL_VAR response %s', key_pressed);
+            Eyelink('Message', '!V TRIAL_VAR correct %d', results_table.correct(i));
+            
+            % mark the end of the trial for Data Viewer
+            Eyelink('Message', 'TRIAL_RESULT 0');
+        end
+        
         %------------------------------------------------------------------
         % 2C: Record trial data
         %------------------------------------------------------------------
         results_table.response_key(i) = key_pressed;
         results_table.rt(i) = response_time;
-        
-        correct_resp = string(results_table.correct_response(i));
+        correct_resp = string(trial_info.correct_response);
         if (key_pressed == "NA" && correct_resp == "none") || (key_pressed == correct_resp)
             results_table.correct(i) = 1;
         else
             results_table.correct(i) = 0;
         end
-
-        if p.eyetracking == 1
-            Eyelink('Message', 'TRIAL_END %d', i);
-        end
-
     end % end of the trial loop
 
     %% ========================================================================
@@ -133,11 +161,9 @@ function [results_table] = C_run_encoding(p, encoding_schedule_block)
     try
         block_filename = sprintf('sub%03d_enc_b%d.mat', p.subj_id, current_block);
         block_filepath = fullfile(p.results_dir, block_filename);
-        
         save(block_filepath, 'results_table');
         fprintf('Encoding block %d data saved.\n', current_block);
     catch ME
         warning('SAVE_FAILED: Could not save encoding data for block %d. Reason: %s', current_block, ME.message);
     end
-
-end % end of the function
+end
