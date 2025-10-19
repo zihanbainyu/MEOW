@@ -200,8 +200,8 @@ function main()
                 C_run_encoding_practice(p, practice_schedule);
                 fprintf('\n\n===== Completed Encoding Practice =====\n');   
             end
-            
-            
+
+
             fprintf('--- Running Encoding ---\n');
             encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
 
@@ -223,11 +223,11 @@ function main()
             else
                 C_run_encoding(p, el, encoding_schedule_block);
             end
-
-            %==================================================================
-            % Mid rest
-            %==================================================================
-            mid_rest(p, el, b);
+            % 
+            % %==================================================================
+            % % Mid rest
+            % %==================================================================
+            % mid_rest(p, el, b);
 
             % ==================================================================
             % Memory

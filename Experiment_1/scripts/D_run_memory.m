@@ -48,11 +48,18 @@ function [results_table] = D_run_memory(p, el, test_schedule_block)
 
     block_start_text = ['Upcoming: Part B (2-Back)\n\n', ...
         sprintf('Block %d of %d.\n\n', current_block, total_blocks), ...
+        '\n\n', ...
         'Remember, you are comparing the current image to the one from TWO TRIALS AGO.\n\n\n', ...
+        'Press  ' p.keys.same '  (SAME) if the image is exactly the same as the one from two trials ago.\n\n' ...
+         'Press  ' p.keys.diff '  (SIMILAR) if the image is similar but not identical to the one from two trials ago.\n\n' ...
+         'Do not press any key if the image is completely new (NEW).\n\n' ...
+        '\n\n' ...
         'When you are ready, press g to begin'];
         
     DrawFormattedText(p.window, block_start_text, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
+
+    KbReleaseWait(p.keys.device);
     
     % Wait for 'g' key press on the specified device to start
     while true
@@ -63,6 +70,8 @@ function [results_table] = D_run_memory(p, el, test_schedule_block)
         end
         WaitSecs(0.001); % Yield CPU for a millisecond
     end
+
+    KbReleaseWait(p.keys.device);
     
     % Initial fixation before the first trial of the block
     xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
