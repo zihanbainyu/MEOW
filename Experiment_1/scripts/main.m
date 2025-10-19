@@ -33,7 +33,7 @@ function main()
         p.setup_dir = fullfile(base_dir, 'subj_setup');
         p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
         if ~exist(p.results_dir, 'dir'), mkdir(p.results_dir); end
-        
+       
         % --- load pre-generated schedule ---
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         if ~exist(setup_filename, 'file')
@@ -168,8 +168,6 @@ function main()
         %% ========================================================================
         %   MAIN EXPERIMENT LOOP
         %  ========================================================================
-        
-        p = F_run_survey(p);
 
         % --- global instructions ---
         instructions(p, 'welcome');
@@ -329,7 +327,7 @@ end
 
 function mid_rest(p, el, current_block)
     fprintf('--- Starting Mid Rest ---\n');
-    DrawFormattedText(p.window, sprintf(['Wonderful! You have completed Part A of Block %d.\n\n' ...
+    DrawFormattedText(p.window, sprintf(['You have completed Part A of Block %d.\n\n' ...
                          'Please use the next 1 minute to relax.\n\n' ...
                          'The screen will go blank shortly'], current_block), 'center', 'center', p.colors.black);
     Screen('Flip', p.window);

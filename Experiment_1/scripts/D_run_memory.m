@@ -9,7 +9,6 @@ function [results_table] = D_run_memory(p, el, test_schedule_block)
     %  ========================================================================
     
     is_eyetracking = p.eyetracking == 1;
-    
     results_table = test_schedule_block;
     num_trials_in_block = height(results_table);
     results_table.response_key = strings(num_trials_in_block, 1);
@@ -47,20 +46,22 @@ function [results_table] = D_run_memory(p, el, test_schedule_block)
     % 2A: Start of Block Screen
     %------------------------------------------------------------------
 
-    DrawFormattedText(p.window, ['Upcoming: Part B (2-Back)\n\n', ...
+    block_start_text = ['Upcoming: Part B (2-Back)\n\n', ...
         sprintf('Block %d of %d.\n\n', current_block, total_blocks), ...
-        'You are comparing the current image only to the one from TWO TRIALS AGO.\n\n', ...
-        'When you are ready, press g to begin'], 'center', 'center', p.colors.black);
+        'Remember, you are comparing the current image to the one from TWO TRIALS AGO.\n\n\n', ...
+        'When you are ready, press g to begin'];
+        
+    DrawFormattedText(p.window, block_start_text, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     
     % Wait for 'g' key press on the specified device to start
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
-            if keyCode(start_key), break; % Use start_key instead of space_key for clarity
+            if keyCode(start_key), break;
             elseif keyCode(escape_key), error('USER_ABORT'); end
         end
-        WaitSecs(0.001); % Yield CPU
+        WaitSecs(0.001); % Yield CPU for a millisecond
     end
     
     % Initial fixation before the first trial of the block
