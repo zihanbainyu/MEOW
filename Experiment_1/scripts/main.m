@@ -90,37 +90,49 @@ function main()
         p.fix_cross_size = 30;
         p.fix_cross_width = 4;
         
-        % --- Interactive Keyboard Identification ---
+        % % --- Interactive Keyboard Identification ---
+        % KbName('UnifyKeyNames');
+        % 
+        % fprintf('press g to identify the keyboard\n');
+        % [keyboardIndices, productNames] = GetKeyboardIndices;
+        % targetKey = KbName('g');
+        % foundIndex = [];
+        % pressedKeyName = '';
+        % 
+        % FlushEvents('keyDown');
+        % while isempty(foundIndex)
+        %     for i = 1:length(keyboardIndices)
+        %         deviceIndex = keyboardIndices(i);
+        % 
+        %         [keyIsDown, ~, keyCode] = KbCheck(deviceIndex);
+        % 
+        %         if keyIsDown && keyCode(targetKey)
+        %             foundIndex = deviceIndex;
+        %             pressedKeyName = productNames{i};
+        %             break; 
+        %         end
+        %     end
+        %     WaitSecs(0.01); 
+        % end
+        % p.keys.device = foundIndex;
+        % KbReleaseWait(p.keys.device); 
+        % 
+        % fprintf('SUCCESS: Connected to keyboard at index: %d (%s)\n', p.keys.device, pressedKeyName);
+        % disp(' ');
+        % 
+
+        % --- Keyboard Identification ---
         KbName('UnifyKeyNames');
         
-        fprintf('press g to identify the keyboard\n');
-        [keyboardIndices, productNames] = GetKeyboardIndices;
-        targetKey = KbName('g');
-        foundIndex = [];
-        pressedKeyName = '';
+        % By setting the device index to -3, Psychtoolbox will listen to ALL
+        % connected keyboard devices simultaneously. This is the simplest way
+        % to allow both the experimenter and participant keyboards to work.
+        p.keys.device = -3; 
         
-        FlushEvents('keyDown');
-        while isempty(foundIndex)
-            for i = 1:length(keyboardIndices)
-                deviceIndex = keyboardIndices(i);
-                
-                [keyIsDown, ~, keyCode] = KbCheck(deviceIndex);
-                
-                if keyIsDown && keyCode(targetKey)
-                    foundIndex = deviceIndex;
-                    pressedKeyName = productNames{i};
-                    break; 
-                end
-            end
-            WaitSecs(0.01); 
-        end
-        p.keys.device = foundIndex;
-        KbReleaseWait(p.keys.device); 
-        
-        fprintf('SUCCESS: Connected to keyboard at index: %d (%s)\n', p.keys.device, pressedKeyName);
+        fprintf('SUCCESS: Listening to ALL keyboards (device index -3)\n');
         disp(' ');
-        
-       
+        KbReleaseWait(p.keys.device); % This line is optional but good practice to wait for key release
+               
         % --- eyelink setup ---
         el = []; % in case no eyetracking
         if p.eyetracking == 1
