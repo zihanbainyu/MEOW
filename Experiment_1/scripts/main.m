@@ -89,37 +89,6 @@ function main()
         
         p.fix_cross_size = 30;
         p.fix_cross_width = 4;
-        
-        % % --- Interactive Keyboard Identification ---
-        % KbName('UnifyKeyNames');
-        % 
-        % fprintf('press g to identify the keyboard\n');
-        % [keyboardIndices, productNames] = GetKeyboardIndices;
-        % targetKey = KbName('g');
-        % foundIndex = [];
-        % pressedKeyName = '';
-        % 
-        % FlushEvents('keyDown');
-        % while isempty(foundIndex)
-        %     for i = 1:length(keyboardIndices)
-        %         deviceIndex = keyboardIndices(i);
-        % 
-        %         [keyIsDown, ~, keyCode] = KbCheck(deviceIndex);
-        % 
-        %         if keyIsDown && keyCode(targetKey)
-        %             foundIndex = deviceIndex;
-        %             pressedKeyName = productNames{i};
-        %             break; 
-        %         end
-        %     end
-        %     WaitSecs(0.01); 
-        % end
-        % p.keys.device = foundIndex;
-        % KbReleaseWait(p.keys.device); 
-        % 
-        % fprintf('SUCCESS: Connected to keyboard at index: %d (%s)\n', p.keys.device, pressedKeyName);
-        % disp(' ');
-        % 
 
         % --- Keyboard Identification ---
         KbName('UnifyKeyNames');
@@ -199,12 +168,12 @@ function main()
             
         end
         
-        blocks_to_run = [1];  % 'full' / [#] for testing
+        blocks_to_run = 'all';  % 'full' / [#] for testing
         if strcmp(blocks_to_run, 'all')
             block_sequence = 1:p.nBlocks;
         else
             block_sequence = blocks_to_run;
-        end
+        end 
         
         for b = block_sequence 
             fprintf('\n\n===== STARTING BLOCK %d of %d =====\n', b, p.nBlocks);
@@ -223,9 +192,9 @@ function main()
             encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
 
             if p.eyetracking == 1
-                edf_filename = sprintf('%d_enc_b%d.edf', p.subj_id, b);
-                fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+                edf_filename = sprintf('%d_e_%d.edf', p.subj_id, b);
                 Eyelink('OpenFile', edf_filename);
+                fprintf('EYELINK: opened edf file: %s\n', edf_filename);
                 Eyelink('command', 'add_file_preamble_text ''Encoding, Block %d''', b);
 
                 C_run_encoding(p, el, encoding_schedule_block);
@@ -240,11 +209,11 @@ function main()
             else
                 C_run_encoding(p, el, encoding_schedule_block);
             end
-            % 
-            % %==================================================================
-            % % Mid rest
-            % %==================================================================
-            % mid_rest(p, el, b);
+
+            %==================================================================
+            % Mid rest
+            %==================================================================
+            mid_rest(p, el, b);
 
             % ==================================================================
             % Memory
@@ -262,7 +231,7 @@ function main()
             test_schedule_block = subject_data.test_schedule(subject_data.test_schedule.block == b, :);
             
             if p.eyetracking == 1
-                edf_filename = sprintf('%d_mem_b%d.edf', p.subj_id, b);
+                edf_filename = sprintf('%d_m_%d.edf', p.subj_id, b);
                 fprintf('EYELINK: opening edf file: %s\n', edf_filename);
                 Eyelink('OpenFile', edf_filename);
                 Eyelink('command', 'add_file_preamble_text ''Memory, Block %d''', b);
@@ -324,6 +293,8 @@ function ask_for_recalibration(p, el)
     recal_text = 'Welcome back! Recalibrate eye tracker?\n\nPress y for yes, n for skip';
     DrawFormattedText(p.window, recal_text, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
+
+    KbReleaseWait(p.keys.device);
     
     while true
         % Use KbCheck with the specific device index
