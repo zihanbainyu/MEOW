@@ -161,7 +161,20 @@ function [results_table] = D_run_memory(p, el, test_schedule_block)
                     key_pressed = "invalid";
                 end
 
-                if is_eyetracking, Eyelink('Message', 'RESPONSE KEY %s RT %.0f', char(key_pressed), response_time * 1000); end
+                if is_eyetracking
+                    % Calculate RT in milliseconds
+                    rt_ms = response_time * 1000;
+                    
+                    % Check if RT is a valid finite number. If not, set a safe placeholder (e.g., -1).
+                    if ~isfinite(rt_ms) || rt_ms < 0 
+                        rt_log_value = -999; % Log a clearly invalid number
+                    else
+                        rt_log_value = round(rt_ms); % Use the rounded value
+                    end
+                
+                    % Log the message using the safe integer value
+                    Eyelink('Message', 'RESPONSE KEY %s RT %d', char(key_pressed), rt_log_value); 
+                end
             end
         end
         Screen('Close', img_texture);

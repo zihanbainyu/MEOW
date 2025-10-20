@@ -81,13 +81,15 @@ allCoords = [xCoords; yCoords];
 Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
 Screen('Flip', p.window);
 WaitSecs(2);
+
+KbQueueStart(p.keys.device);
+
 for i = 1:height(results_table)
     trial_info = results_table(i,:);
     %------------------------------------------------------------------
     % 2B: Trial loop for the current block
     %------------------------------------------------------------------
-    % Start the KbQueue to collect responses during the trial loop
-    KbQueueStart(p.keys.device);
+
     % Eyelink: mark trial start and perform drift check
     if is_eyetracking
         Eyelink('Message', 'TRIALID %d', i);
@@ -116,6 +118,7 @@ for i = 1:height(results_table)
         Eyelink('Message', 'STIM_ONSET %s', char(trial_info.stimulus_id));
         Eyelink('Message', '!V IMGLOAD CENTER %s %d %d', char(img_path), p.xCenter, p.yCenter);
     end
+
     key_pressed = "NA";
     response_time = NaN;
     responded = false;
@@ -137,7 +140,21 @@ for i = 1:height(results_table)
             else
                 key_pressed = "invalid";
             end
-            if is_eyetracking, Eyelink('Message', 'RESPONSE KEY %s RT %.0f', key_pressed, response_time * 1000); end
+            
+            if is_eyetracking
+                % Calculate RT in milliseconds
+                rt_ms = response_time * 1000;
+                
+                % Check if RT is a valid finite number. If not, set a safe placeholder (e.g., -1).
+                if ~isfinite(rt_ms) || rt_ms < 0 
+                    rt_log_value = -999; % Log a clearly invalid number
+                else
+                    rt_log_value = round(rt_ms); % Use the rounded value
+                end
+            
+                % Log the message using the safe integer value
+                Eyelink('Message', 'RESPONSE KEY %s RT %d', char(key_pressed), rt_log_value); 
+            end
         end
     end
     Screen('Close', img_texture);
