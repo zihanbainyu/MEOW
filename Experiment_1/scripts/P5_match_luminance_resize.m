@@ -13,7 +13,7 @@ base_dir   = '..';
 shine_path = fullfile(base_dir, 'scripts/functions/SHINE_toolbox');
 in_dir     = fullfile(base_dir, 'stimulus/stim_selected'); 
 out_dir    = fullfile(base_dir, 'stimulus/stim_processed');
-p.target_size      = [600, 600];
+p.target_size      = [500, 500];
 %--------------------------------------------------------------------------
 addpath(shine_path);
 if ~exist(out_dir, 'dir'), mkdir(out_dir); end

@@ -148,22 +148,29 @@ function main()
             fprintf('Running experiment on a ''%s'' tracker.\n', vs );
         
             % --- eyelink configuration ---
-            Eyelink('commmand', 'sample_rate = 1000');
+            Eyelink('command', 'sample_rate = 1000');
             Eyelink('command', 'pupil_model = ELLIPSE');
-            Eyelink('command', 'pupil_size_diameter = YES');
-            [width, height]=Screen('WindowSize', screen_number);
+            Eyelink('command', 'pupil_size_diameter = YES'); % Set mode to Diameter
+            
+            [width, height] = Screen('WindowSize', screen_number);
             Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);                
+            
             Eyelink('command', 'calibration_type = HV13'); 
             Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
             Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
-            if sscanf(vs(12:end),'%f') >=4
-                Eyelink('command', 'file_sample_data  = LEFT,RIGHT,GAZE,HREF,AREA,HTARGET,GAZERES,STATUS,INPUT');
-                Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,GAZERES,AREA,HTARGET,STATUS,INPUT');
+
+            % Check tracker version and set data fields accordingly
+            if sscanf(vs(12:end),'%f') >= 4
+                % Request PUPIL for diameter, GAZE, VELOCITY and other useful measures
+                Eyelink('command', 'file_sample_data = LEFT,RIGHT,GAZE,PUPIL,HREF,VELOCITY,HTARGET,GAZERES,STATUS,INPUT');
+                Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,PUPIL,VELOCITY,GAZERES,HTARGET,STATUS,INPUT');
             else
-                Eyelink('command', 'file_sample_data  = LEFT,RIGHT,GAZE,HREF,AREA,GAZERES,STATUS,INPUT');
-                Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT');
+                % Request PUPIL for diameter, GAZE, VELOCITY and other useful measures
+                Eyelink('command', 'file_sample_data = LEFT,RIGHT,GAZE,PUPIL,HREF,VELOCITY,GAZERES,STATUS,INPUT');
+                Eyelink('command', 'link_sample_data = LEFT,RIGHT,GAZE,PUPIL,VELOCITY,GAZERES,STATUS,INPUT');
             end
+            
             Eyelink('command', 'button_function 5 "accept_target_fixation"');
            
             % make sure we're still connected
@@ -203,16 +210,14 @@ function main()
             fprintf('\n\n===== STARTING BLOCK %d of %d =====\n', b, p.nBlocks);
             
             %==================================================================
-            % Encoding
+            % Part A: Encoding
             %==================================================================
             if b == 1
                 instructions(p, 'encoding');
                 fprintf('--- Running Encoding Practice ---\n');
                 load(fullfile(p.setup_dir, 'practice_encoding_schedule.mat'), 'practice_schedule');
                 C_run_encoding_practice(p, practice_schedule);
-                fprintf('\n\n===== Completed Encoding Practice =====\n');   
             end
-
 
             fprintf('--- Running Encoding ---\n');
             encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
