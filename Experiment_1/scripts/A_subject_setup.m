@@ -63,8 +63,8 @@ end
 
 fprintf('loading stimuli...\n');
 
-all_targ_files = dir(fullfile(p.stim_dir, 'mst_*_targ_l2.png'));
-all_lure_files = dir(fullfile(p.stim_dir, 'mst_*_lure_l2.png'));
+all_targ_files = dir(fullfile(p.stim_dir, 'mst_*_targ_l1.png'));
+all_lure_files = dir(fullfile(p.stim_dir, 'mst_*_lure_l1.png'));
 
 assert(numel(all_targ_files) == 120, 'expected 120 target files!');
 

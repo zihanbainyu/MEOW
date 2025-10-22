@@ -15,8 +15,8 @@ practice_dir = fullfile('..','stimulus','stim_selected','practice');
 out_dir = fullfile('..','subj_setup');
 
 % Load practice targets, lures, and foils
-targ_files = dir(fullfile(practice_dir,'prac_*_targ_l2.png'));
-lure_files = dir(fullfile(practice_dir,'prac_*_lure_l2.png'));
+targ_files = dir(fullfile(practice_dir,'prac_*_targ_l1.png'));
+lure_files = dir(fullfile(practice_dir,'prac_*_lure_l1.png'));
 foil_files = dir(fullfile(practice_dir,'prac_foil_*.png'));
 
 % Convert names to strings
@@ -75,8 +75,8 @@ practice_dir = fullfile('..','stimulus','stim_selected','practice');
 out_dir = fullfile('..','subj_setup');
 
 % Load practice targets, lures, and foils
-targ_files = dir(fullfile(practice_dir,'prac_*_targ_l2.png'));
-lure_files = dir(fullfile(practice_dir,'prac_*_lure_l2.png'));
+targ_files = dir(fullfile(practice_dir,'prac_*_targ_l1.png'));
+lure_files = dir(fullfile(practice_dir,'prac_*_lure_l1.png'));
 foil_files = dir(fullfile(practice_dir,'prac_foil_*.png'));
 
 % Convert names to strings

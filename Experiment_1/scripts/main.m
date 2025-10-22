@@ -158,13 +158,13 @@ function main()
         %  ========================================================================
 
         % --- global instructions ---
-        % instructions(p, 'welcome');
+        instructions(p, 'welcome');
         
         % --- initial calibration here ---
         if p.eyetracking == 1
-            % instructions(p, 'calibration');
-            % fprintf(' --- Performing initial calibration ---\n');
-            % EyelinkDoTrackerSetup(el);
+            instructions(p, 'calibration');
+            fprintf(' --- Performing initial calibration ---\n');
+            EyelinkDoTrackerSetup(el);
             
         end
         
@@ -181,12 +181,12 @@ function main()
             %==================================================================
             % Part A: Encoding
             %==================================================================
-            % if b == 1
-            %     instructions(p, 'encoding');
-            %     fprintf('--- Running Encoding Practice ---\n');
-            %     load(fullfile(p.setup_dir, 'practice_encoding_schedule.mat'), 'practice_schedule');
-            %     C_run_encoding_practice(p, practice_schedule);
-            % end
+            if b == 1
+                instructions(p, 'encoding');
+                fprintf('--- Running Encoding Practice ---\n');
+                load(fullfile(p.setup_dir, 'practice_encoding_schedule.mat'), 'practice_schedule');
+                C_run_encoding_practice(p, practice_schedule);
+            end
 
             fprintf('--- Running Encoding ---\n');
             encoding_schedule_block = subject_data.encoding_schedule(subject_data.encoding_schedule.block == b, :);
@@ -224,7 +224,6 @@ function main()
                 fprintf('--- Running Memory Practice ---\n');
                 load(fullfile(p.setup_dir, 'practice_memory_schedule.mat'), 'practice_schedule');
                 D_run_memory_practice(p, practice_schedule);
-                fprintf('\n\n===== Completed Memory Practice =====\n');
             end
             
             fprintf('--- Running Memory ---\n');
@@ -252,9 +251,9 @@ function main()
             %==================================================================
             % Rest
             %==================================================================
-            if b < p.nBlocks
-                end_rest(p, b, p.nBlocks);
-            end
+            % if b < p.nBlocks
+            %     end_rest(p, b, p.nBlocks);
+            % end
         end % block loop ends
         
         %% ========================================================================
@@ -330,7 +329,7 @@ function mid_rest(p, el, current_block)
     end
 end
 
-function end_rest(p, el, current_block, total_blocks)
+function end_rest(p, el, current_block)
     rest_text = sprintf(['Great job! You have completed block %d of %d.\n\n' ...
                          'Please use the next 2 minutes to relax.\n\n' ...
                          'The screen will go blank shortly.'], current_block, total_blocks);
