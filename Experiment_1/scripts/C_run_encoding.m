@@ -179,6 +179,7 @@ for i = 1:height(results_table)
         results_table.correct(i) = calculate_accuracy(key_pressed, string(trial_info.correct_response));
     end
 end % end of the trial loop
+
 if is_eyetracking
     WaitSecs(0.1);
     Eyelink('StopRecording');
