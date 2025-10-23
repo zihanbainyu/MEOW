@@ -213,7 +213,7 @@ function main()
             %==================================================================
             % Mid rest
             %==================================================================
-            mid_rest(p, el, b);
+            rest(p, el, b);
 
             % ==================================================================
             % Memory
@@ -252,7 +252,7 @@ function main()
             % Rest
             %==================================================================
             % if b < p.nBlocks
-            %     end_rest(p, b, p.nBlocks);
+            %     rest(p, el, b);
             % end
         end % block loop ends
         
@@ -312,34 +312,17 @@ function ask_for_recalibration(p, el)
     WaitSecs(0.5);
 end
 
-function mid_rest(p, el, current_block)
-    fprintf('--- Starting Mid Rest ---\n');
-    DrawFormattedText(p.window, sprintf(['You have completed Part A of Block %d.\n\n' ...
+function rest(p, el, b)
+    fprintf('--- Starting Rest ---\n');
+    DrawFormattedText(p.window, sprintf(['You have completed Part A .\n\n' ...
                          'Please use the next 1 minute to relax.\n\n' ...
-                         'The screen will go blank shortly'], current_block), 'center', 'center', p.colors.black);
+                         'The screen will go blank shortly']), 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     WaitSecs(10);
-    fprintf('Mid rest started... (60 seconds)\n');
+    fprintf('Rest started... (60 seconds)\n');
     Screen('Flip', p.window);
     WaitSecs(60); 
-    fprintf('Mid rest finished.\n');
-    if p.eyetracking == 1
-        fprintf('--- Checking Calibration ---\n');
-        ask_for_recalibration(p, el);
-    end
-end
-
-function end_rest(p, el, current_blockg)
-    rest_text = sprintf(['Great job! You have completed block %d of %d.\n\n' ...
-                         'Please use the next 2 minutes to relax.\n\n' ...
-                         'The screen will go blank shortly.'], current_block, total_blocks);
-    DrawFormattedText(p.window, rest_text, 'center', 'center', p.colors.black);
-    Screen('Flip', p.window);
-    WaitSecs(10);
-    fprintf('End Rest started... (120 seconds)\n');
-    Screen('Flip', p.window); 
-    WaitSecs(10); % NOTE: This is 10s. Change to WaitSecs(120); for 2 minutes.
-    fprintf('End Rest finished.\n');
+    fprintf('Rest finished.\n');
     if p.eyetracking == 1
         fprintf('--- Checking Calibration ---\n');
         ask_for_recalibration(p, el);

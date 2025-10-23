@@ -213,7 +213,7 @@ function main()
             %==================================================================
             % Mid rest
             %==================================================================
-            rest(p, el, b);
+            post_enc_rest(p, el, b);
 
             % ==================================================================
             % Memory
@@ -249,16 +249,18 @@ function main()
             end
             
             %==================================================================
-            % Rest
+            % Post Memory Rest
             %==================================================================
-            % if b < p.nBlocks
-            %     rest(p, el, b);
-            % end
+            if b < p.nBlocks
+                post_mem_rest(p, el, b);
+            end
         end % block loop ends
         
         %% ========================================================================
         %   SAVE DATA & FINAL CLEANUP
         %  ========================================================================
+        instructions(p, 'goodbye');
+
         encoding_results_all = consolidate_data(p, 'enc');
         memory_results_all = consolidate_data(p, 'mem');
         final_data_output.subj_id = p.subj_id;
@@ -267,7 +269,6 @@ function main()
         final_data_output.test_results = memory_results_all;
         save(final_data_filename, 'final_data_output');
         fprintf('All data saved to:\n%s\n', final_data_filename);
-        instructions(p, 'goodbye');
 
     % --- Cleanup outside the try block ---
     catch ME
@@ -312,11 +313,10 @@ function ask_for_recalibration(p, el)
     WaitSecs(0.5);
 end
 
-function rest(p, el)
-    fprintf('--- Starting Rest ---\n');
-    DrawFormattedText(p.window, sprintf(['You have completed this part.\n\n' ...
-                         'Please use the next 1 minute to relax.\n\n' ...
-                         'The screen will go blank shortly']), 'center', 'center', p.colors.black);
+function post_enc_rest(p, el, b)
+    fprintf('--- Starting Mid Rest ---\n');
+    message = sprintf('You have completed Part A of Block %d.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly', b);
+    DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     WaitSecs(10);
     fprintf('Rest started... (60 seconds)\n');
@@ -328,6 +328,23 @@ function rest(p, el)
         ask_for_recalibration(p, el);
     end
 end
+
+function post_mem_rest(p, el, b)
+    fprintf('--- Starting Rest ---\n');
+    message = sprintf('You have completed Part B of Block %d.\n\nPlease use the next 2 minutes to relax.\n\nThe screen will go blank shortly', b);
+    DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+    Screen('Flip', p.window);
+    WaitSecs(10);
+    fprintf('Rest started... (120 seconds)\n');
+    Screen('Flip', p.window);
+    WaitSecs(120); 
+    fprintf('Rest finished.\n');
+    if p.eyetracking == 1
+        fprintf('--- Checking Calibration ---\n');
+        ask_for_recalibration(p, el);
+    end
+end
+
 
 function [full_data_table] = consolidate_data(p, task_name)
     full_data_table = table();

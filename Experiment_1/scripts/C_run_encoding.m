@@ -160,7 +160,6 @@ for i = 1:height(results_table)
     Screen('Close', img_texture);
     % Eyelink: log trial variables
     if is_eyetracking
-        Eyelink('Message', 'BLANK_SCREEN_ONSET');
         % send variables to Data Viewer for analysis
         Eyelink('Message', '!V TRIAL_VAR block %d', trial_info.block);
         Eyelink('Message', '!V TRIAL_VAR stimulus %s', char(trial_info.stimulus_id));
@@ -179,6 +178,11 @@ for i = 1:height(results_table)
         results_table.correct(i) = calculate_accuracy(key_pressed, string(trial_info.correct_response));
     end
 end % end of the trial loop
+
+% --- Clear screen before stopping recording ---
+Screen('FillRect', p.window, p.colors.bgcolor);
+Screen('Flip', p.window);
+WaitSecs(0.05);
 
 if is_eyetracking
     WaitSecs(0.1);
