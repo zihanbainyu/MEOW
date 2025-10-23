@@ -109,7 +109,7 @@ function main()
             el=EyelinkInitDefaults(p.window);
     
             if ~EyelinkInit(dummymode)
-                fprintf('Eyelink Init aborted.\n');
+                fprintf('Eyelink Ignit aborted.\n');
                 error('EYELINK_INIT_FAILED'); % Throw error to trigger cleanup
             end
         
