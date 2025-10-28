@@ -1,0 +1,623 @@
+%==========================================================================
+%         Generate Subject-Specific Task Variables
+%==========================================================================
+% Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
+% note: you must run this for each subject before running the task
+%
+% MODIFIED: 2025-10-28 to implement state-based 2-back test generator
+%==========================================================================
+
+clear;
+clc;
+rng('shuffle');
+
+subj_id_str = input('please enter subject ID (e.g., 101): ', 's');
+if isempty(subj_id_str)
+    error('subject ID cannot be empty.');
+end
+subj_id = str2double(subj_id_str);
+p.subj_id = subj_id;
+
+% directory
+base_dir = '..';
+p.stim_dir = fullfile(base_dir, 'stimulus/stim_processed/');
+p.setup_dir = fullfile(base_dir, 'subj_setup/');
+if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
+
+%% ========================================================================
+%  SECTION 1: SUBJECT ID AND PARAMETERS
+%  ========================================================================
+% # of stimulus pairs per condition (total across all blocks)
+% NOTE: We need 120 pairs *per condition* to balance 40 lure, 40 same, 40 new
+p.nComparison = 120;
+p.nIsolated_Both = 120;
+p.nNovel = 120;
+p.nTotalPairs = p.nComparison + p.nIsolated_Both + p.nNovel; % 360 total pairs
+
+% # of blocks in experiment
+p.nBlocks = 4; % 90 pairs per block
+
+% keyboard mappings
+p.keys.same = 'j';
+p.keys.diff = 'k';
+p.keys.quit = 'escape';
+
+% timing parameters in seconds
+p.timing.image_dur = 1.5;           % stimulus presentation
+p.timing.fix_dur = 0.75;            % base fixation
+p.timing.fix_jitter = 0.25;         % jitter range: ±0.25s (so 0.5 to 1.0s total)
+
+%% ========================================================================
+%  SECTION 2: LOAD STIMULI
+%  ========================================================================
+
+output_filename = fullfile(p.setup_dir, sprintf('sub%03d_setup_pred.mat', subj_id));
+
+if exist(output_filename, 'file')
+    overwrite = input(sprintf('setup for subject %03d exists. overwrite? (y/n): ', subj_id), 's');
+    if ~strcmpi(overwrite, 'y')
+        fprintf('aborted.\n');
+        return;
+    end
+end
+
+fprintf('loading stimuli...\n');
+
+all_targ_files = dir(fullfile(p.stim_dir, 'mst_*_targ_l1.png'));
+all_lure_files = dir(fullfile(p.stim_dir, 'mst_*_lure_l1.png'));
+
+% We need 360 pairs for the 120/120/120 balanced design
+assert(numel(all_targ_files) == 360, 'expected 360 target files for balanced design!');
+assert(numel(all_lure_files) == 360, 'expected 360 lure files for balanced design!');
+
+
+targ_names = string({all_targ_files.name}');
+lure_names = string({all_lure_files.name}');
+
+master_pair_list = table(sort(targ_names), sort(lure_names), ...
+                         'VariableNames', {'Img_A', 'Img_B'});
+
+all_foil_files = dir(fullfile(p.stim_dir, 'mst_*_foil.png'));
+all_foils = string({all_foil_files.name}');
+all_foils = all_foils(randperm(numel(all_foils))); % Shuffle foil stack
+
+fprintf('Found %d experimental pairs and %d foils.\n', ...
+        height(master_pair_list), numel(all_foils));
+
+% --- Helper function to get new foils from the stack ---
+% This avoids reusing foils and manages the stack
+get_new_foil = @() ...
+    {
+        if isempty(all_foils)
+            error('Ran out of foils!')
+        end
+        foil_to_return = all_foils(1);
+        all_foils(1) = [];
+        char(foil_to_return)
+    };
+% --- Helper function to check if an item is a foil ---
+is_filler = @(stim_id) ...
+    startsWith(stim_id, "mst_") && endsWith(stim_id, "_foil.png");
+
+
+%% ========================================================================
+%  SECTION 3: COUNTERBALANCE TARGET-LURE ASSIGNMENT
+%  ========================================================================
+
+shuffled_pairs = master_pair_list(randperm(height(master_pair_list)), :);
+
+final_pairs = table('Size', size(shuffled_pairs), ...
+                    'VariableTypes', {'string', 'string'}, ...
+                    'VariableNames', {'Target', 'Lure'});
+
+% randomly assign which image is target vs lure for each pair
+for i = 1:height(shuffled_pairs)
+    if rand() > 0.5
+        final_pairs(i, :) = shuffled_pairs(i, :);
+    else
+        final_pairs(i, :) = [shuffled_pairs(i, 2), shuffled_pairs(i, 1)];
+    end
+end
+
+% split pairs into three conditions (120 pairs each)
+idx_start = 1;
+idx_end = p.nComparison;
+comparison_pairs = final_pairs(idx_start:idx_end, :);
+
+idx_start = idx_end + 1;
+idx_end = idx_start + p.nIsolated_Both - 1;
+iso_both_pairs = final_pairs(idx_start:idx_end, :);
+
+idx_start = idx_end + 1;
+idx_end = idx_start + p.nNovel - 1;
+novel_pairs = final_pairs(idx_start:idx_end, :);
+
+% store condition assignments
+p.stim.comparison = comparison_pairs;
+p.stim.iso_both = iso_both_pairs;
+p.stim.novel = novel_pairs;
+
+
+%% ========================================================================
+%  SECTION 4: PARTITION STIMULI INTO BLOCKS
+%  ========================================================================
+% divide each condition's stimuli evenly across the 4 blocks
+
+% helper function: split N items into nblocks approximately equal chunks
+partition_idx = @(N, nblocks) arrayfun(@(k) ...
+    ((floor((k-1)*N/nblocks)+1):floor(k*N/nblocks)), ...
+    1:nblocks, 'UniformOutput', false);
+
+% get index ranges for each block
+comp_idx_blocks = partition_idx(p.nComparison, p.nBlocks);
+iso_idx_blocks = partition_idx(p.nIsolated_Both, p.nBlocks);
+nov_idx_blocks = partition_idx(p.nNovel, p.nBlocks);
+
+
+%% ========================================================================
+%  SECTION 5: BUILD EACH BLOCK
+%  ========================================================================
+
+fprintf('Building %d blocks...\n', p.nBlocks);
+
+% tables to accumulate all trials across blocks
+encoding_schedule_all = table();
+test_schedule_all = table();
+
+% response counters
+p.counts.encoding = struct('j_presses', 0, 'k_presses', 0, 'no_response', 0);
+p.counts.test = struct('j_presses', 0, 'k_presses', 0, 'no_response', 0);
+
+for b = 1:p.nBlocks
+    fprintf('--- Block %d ---\n', b);
+    
+    % =====================================================================
+    % 5A: SELECT BLOCK-SPECIFIC PAIRS
+    % =====================================================================
+    
+    comparison_pairs_b = p.stim.comparison(comp_idx_blocks{b}, :);
+    iso_both_pairs_b = p.stim.iso_both(iso_idx_blocks{b}, :);
+    novel_pairs_b = p.stim.novel(nov_idx_blocks{b}, :);
+    
+    nComp_b = height(comparison_pairs_b); % 30
+    nIso_b = height(iso_both_pairs_b); % 30
+    nNov_b = height(novel_pairs_b); % 30
+    
+    % =====================================================================
+    % 5B: BUILD ENCODING PHASE FOR THIS BLOCK
+    % =====================================================================
+    
+    encoding_blocks = {};  % experimental trial blocks
+    spacer_blocks = {};    % filler trial blocks
+    
+    % --- comparison condition encoding ---
+    % OK, I'll stick to *my* logic (N=120) because it's the only way
+    % to prevent the bias. This means we ENCODE 120 Comp, 120 Iso.
+    
+    % --- comparison condition encoding ---
+    % 30 pairs encoded as (O -> O')
+    for i = 1:nComp_b
+        encoding_blocks{end+1} = { ...
+            comparison_pairs_b.Target(i), "comparison", "target", "new", "none"; ...
+            comparison_pairs_b.Lure(i), "comparison", "lure", "lure", "k"};
+    end
+    
+    % --- isolated-both condition encoding ---
+    % 30 pairs encoded as (O ... O')
+    iso_event_foils = all_foils(1:2*nIso_b);
+    all_foils(1:2*nIso_b) = [];
+    
+    for i = 1:nIso_b
+        % target block
+        encoding_blocks{end+1} = { ...
+            iso_event_foils(1), "iso_both", "filler", "new", "none"; ...
+            iso_both_pairs_b.Target(i), "iso_both", "target", "new", "none"};
+        iso_event_foils(1) = [];
+        
+        % lure block
+        encoding_blocks{end+1} = { ...
+            iso_event_foils(1), "iso_both", "filler", "new", "none"; ...
+            iso_both_pairs_b.Lure(i), "iso_both", "lure", "new", "none"};
+        iso_event_foils(1) = [];
+    end
+    
+    % --- spacer blocks: foil repeats (provide 'j' responses) ---
+    n_foil_repeats = nComp_b; % 30 'j' presses
+    repeat_foils = all_foils(1:n_foil_repeats);
+    all_foils(1:n_foil_repeats) = [];
+    
+    for i = 1:n_foil_repeats
+        spacer_blocks{end+1} = { ...
+            repeat_foils(i), "foil_repeat", "filler", "new", "none"; ...
+            repeat_foils(i), "foil_repeat", "filler", "repeat", "j"};
+    end
+    
+    % --- spacer blocks: new foils (fill remaining slots) ---
+    n_new_spacers = numel(encoding_blocks) - numel(spacer_blocks);
+    
+    new_spacer_foils_1 = all_foils(1:n_new_spacers);
+    all_foils(1:n_new_spacers) = [];
+    
+    new_spacer_foils_2 = all_foils(1:n_new_spacers);
+    all_foils(1:n_new_spacers) = [];
+    
+    for i = 1:n_new_spacers
+        spacer_blocks{end+1} = { ...
+            new_spacer_foils_1(i), "foil_new", "filler", "new", "none"; ...
+            new_spacer_foils_2(i), "foil_new", "filler", "new", "none"};
+    end
+    
+    % --- interleave encoding and spacer blocks ---
+    shuffled_encoding = encoding_blocks(randperm(numel(encoding_blocks)));
+    shuffled_spacers = spacer_blocks(randperm(numel(spacer_blocks)));
+    
+    final_ordered_blocks = reshape([shuffled_spacers; shuffled_encoding], 1, []);
+    final_encoding_list = vertcat(final_ordered_blocks{:});
+    
+    % convert to table
+    encoding_schedule_block = cell2table(final_encoding_list, ...
+        'VariableNames', {'stimulus_id', 'condition', 'role', ...
+                          'trial_type_designed', 'correct_response'});
+    
+    % add block number column
+    encoding_schedule_block.block = repmat(b, height(encoding_schedule_block), 1);
+    
+    % aadd n-back verification columns
+    encoding_schedule_block.nback_target_id = strings(height(encoding_schedule_block), 1);
+    encoding_schedule_block.trial_type_final = encoding_schedule_block.trial_type_designed;
+    
+    % check for 1-back repeats
+    for i = 2:height(encoding_schedule_block)
+        encoding_schedule_block.nback_target_id(i) = ...
+            encoding_schedule_block.stimulus_id(i-1);
+        
+        if string(encoding_schedule_block.stimulus_id(i)) == ...
+           string(encoding_schedule_block.nback_target_id(i))
+            encoding_schedule_block.trial_type_final(i) = "repeat";
+            encoding_schedule_block.correct_response(i) = "j";
+        end
+    end
+    
+    % =====================================================================
+    % 5C: ENSURE TARGET ENCODED BEFORE LURE (ISOLATED CONDITION ONLY)
+    % =====================================================================
+    
+    all_iso_pairs_block = iso_both_pairs_b;
+    
+    for i = 1:height(all_iso_pairs_block)
+        tgt = all_iso_pairs_block.Target(i);
+        lur = all_iso_pairs_block.Lure(i);
+        
+        idx_tgt = find(encoding_schedule_block.stimulus_id == tgt, 1);
+        idx_lur = find(encoding_schedule_block.stimulus_id == lur, 1);
+        
+        % swap if lure appears before target
+        if ~isempty(idx_tgt) && ~isempty(idx_lur) && idx_lur < idx_tgt
+            tmp = encoding_schedule_block(idx_tgt, :);
+            encoding_schedule_block(idx_tgt, :) = encoding_schedule_block(idx_lur, :);
+            encoding_schedule_block(idx_lur, :) = tmp;
+        end
+    end
+    
+    % append into full schedule
+    encoding_schedule_all = [encoding_schedule_all; encoding_schedule_block];
+    
+    % update response counts
+    p.counts.encoding.j_presses = p.counts.encoding.j_presses + ...
+        sum(strcmp(encoding_schedule_block.correct_response, 'j'));
+    p.counts.encoding.k_presses = p.counts.encoding.k_presses + ...
+        sum(strcmp(encoding_schedule_block.correct_response, 'k'));
+    p.counts.encoding.no_response = p.counts.encoding.no_response + ...
+        sum(strcmp(encoding_schedule_block.correct_response, 'none'));
+    
+    
+    % =====================================================================
+    % =====================================================================
+    %
+    % 5D: BUILD TEST PHASE FOR THIS BLOCK (STATE-BASED GENERATOR)
+    %
+    % =====================================================================
+    % =====================================================================
+    
+    fprintf('... building state-based test sequence for block %d ...\n', b);
+    
+    % --- 5D-1: Build the balanced "To-Do List" (Goal Table) ---
+    goal_list = table();
+    
+    % Function to split block pairs into 1/3 lure, 1/3 same, 1/3 new
+    create_goals = @(pairs, cond_name) ...
+        {
+            n = height(pairs);
+            idx_shuf = randperm(n);
+            n_lure = floor(n/3);
+            n_same = floor(n/3);
+            n_new = n - n_lure - n_same;
+            
+            idx_lure = idx_shuf(1:n_lure);
+            idx_same = idx_shuf(n_lure+1 : n_lure+n_same);
+            idx_new = idx_shuf(n_lure+n_same+1 : end);
+            
+            % Lure goals
+            goals_lure = table(pairs.Target(idx_lure), pairs.Lure(idx_lure), ...
+                repmat(string(cond_name), n_lure, 1), repmat("lure", n_lure, 1), ...
+                repmat("k", n_lure, 1), ...
+                'VariableNames', {'O_item', 'X_item', 'condition', 'goal_type', 'correct_response'});
+            
+            % Same goals
+            goals_same = table(pairs.Target(idx_same), pairs.Target(idx_same), ...
+                repmat(string(cond_name), n_same, 1), repmat("same", n_same, 1), ...
+                repmat("j", n_same, 1), ...
+                'VariableNames', {'O_item', 'X_item', 'condition', 'goal_type', 'correct_response'});
+            
+            % New goals
+            goals_new = table(pairs.Target(idx_new), repmat("F_NEW", n_new, 1), ...
+                repmat(string(cond_name), n_new, 1), repmat("new", n_new, 1), ...
+                repmat("none", n_new, 1), ...
+                'VariableNames', {'O_item', 'X_item', 'condition', 'goal_type', 'correct_response'});
+            
+            vertcat(goals_lure, goals_same, goals_new)
+        };
+    
+    % Create goals for all 3 experimental conditions
+    comp_goals = create_goals(comparison_pairs_b, "comparison");
+    iso_goals = create_goals(iso_both_pairs_b, "isolated_both");
+    nov_goals = create_goals(novel_pairs_b, "novel");
+    
+    % Also create filler goals to balance stream
+    % We need filler-same and filler-new
+    n_exp_goals = height(comp_goals) + height(iso_goals) + height(nov_goals);
+    n_filler_goals_j = floor(n_exp_goals / 2); % ~45
+    n_filler_goals_new = floor(n_exp_goals / 2); % ~45
+    
+    filler_O_j = string(get_new_foil());
+    filler_O_new = string(get_new_foil());
+    
+    filler_goals_j = table(repmat(filler_O_j, n_filler_goals_j, 1), repmat(filler_O_j, n_filler_goals_j, 1), ...
+        repmat("foil_repeat", n_filler_goals_j, 1), repmat("same", n_filler_goals_j, 1), repmat("j", n_filler_goals_j, 1), ...
+        'VariableNames', {'O_item', 'X_item', 'condition', 'goal_type', 'correct_response'});
+    
+    filler_goals_new = table(repmat(filler_O_new, n_filler_goals_new, 1), repmat("F_NEW", n_filler_goals_new, 1), ...
+        repmat("foil_new", n_filler_goals_new, 1), repmat("new", n_filler_goals_new, 1), repmat("none", n_filler_goals_new, 1), ...
+        'VariableNames', {'O_item', 'X_item', 'condition', 'goal_type', 'correct_response'});
+
+    % Combine all goals into one master list and shuffle
+    goal_list = [comp_goals; iso_goals; nov_goals; filler_goals_j; filler_goals_new];
+    goal_list = goal_list(randperm(height(goal_list)), :);
+    
+    % --- 5D-2: Initialize Generator State ---
+    
+    % This will be the final cell array of trials
+    final_test_list = {}; 
+    
+    % These track the state for the generator
+    stream_items = {get_new_foil(), get_new_foil()}; % Start with 2 junk foils
+    stream_responses = {"none", "none"};             % Designed responses
+    
+    % Add junk trials to the final list (to be converted to table later)
+    final_test_list(1,:) = {stream_items{1}, "init_junk", "filler", "new", "none"};
+    final_test_list(2,:) = {stream_items{2}, "init_junk", "filler", "new", "none"};
+    
+    probe_this_filler_next = ""; % Rule 1: Flag to probe a filler
+    current_goal = [];           % Rules 2/4: Struct for in-progress goal
+    goal_idx = 1;                % Index for pulling from goal_list
+    
+    % --- 5D-3: The Generator Loop ---
+    
+    while goal_idx <= height(goal_list) || ~isempty(current_goal) || probe_this_filler_next ~= ""
+        
+        % Get current state
+        N1_item = stream_items{end};
+        N2_item = stream_items{end-1};
+        N1_resp = stream_responses{end};
+        N2_resp = stream_responses{end-1};
+        
+        % Rule 3: Check for response streaks to avoid
+        avoid_resp = "none";
+        if N1_resp == "j" && N2_resp == "j"
+            avoid_resp = "j";
+        elseif N1_resp == "k" && N2_resp == "k"
+            avoid_resp = "k";
+        end
+        
+        % Initialize trial info
+        next_item = "";
+        next_condition = "filler_stream";
+        next_role = "filler";
+        next_trial_type = "new";
+        next_response = "none";
+        
+        
+        % --- APPLY RULES IN ORDER OF PRIORITY ---
+        
+        % --- Rule 1: Probe Filler (Highest Priority) ---
+        if probe_this_filler_next ~= ""
+            F_to_probe = probe_this_filler_next;
+            probe_this_filler_next = ""; % Reset flag
+            
+            % Decide to probe with 'j' or 'new'
+            % If we must avoid 'j', force 'new'
+            if rand() > 0.5 && avoid_resp ~= "j"
+                % Force 'j' response
+                next_item = F_to_probe;
+                next_condition = "filler_probe";
+                next_role = "filler";
+                next_trial_type = "repeat";
+                next_response = "j";
+            else
+                % Force 'new' response
+                next_item = get_new_foil();
+                next_condition = "filler_probe";
+                next_role = "filler";
+                next_trial_type = "new";
+                next_response = "none";
+            end
+            
+        % --- Rule 2: Complete Triplet (State is O-F) ---
+        elseif ~isempty(current_goal) && string(N2_item) == string(current_goal.O_item) && is_filler(N1_item)
+            
+            % Check if Rule 3 (Streak) blocks completion
+            if string(current_goal.correct_response) == avoid_resp
+                % DELAY GOAL: We can't complete it. Insert a filler trial.
+                next_item = get_new_foil();
+                next_condition = "filler_delay";
+                next_role = "filler";
+                next_trial_type = "new";
+                next_response = "none";
+                % We *do not* clear current_goal. We try again next trial.
+            else
+                % COMPLETE GOAL: Append the X item
+                next_item = current_goal.X_item;
+                if string(next_item) == "F_NEW"
+                    next_item = get_new_foil();
+                end
+                
+                next_condition = current_goal.condition;
+                next_role = "lure"; % or 'target' if same
+                if current_goal.goal_type == "same", next_role = "target"; end
+                
+                next_trial_type = current_goal.goal_type;
+                next_response = current_goal.correct_response;
+                
+                % Set Rule 1 flag for *next* trial
+                probe_this_filler_next = N1_item; 
+                current_goal = []; % Clear sub-goal
+            end
+            
+        % --- Rule 4a: Continue Triplet (State is ...O) ---
+        elseif ~isempty(current_goal)
+            % We just placed 'O', now we MUST place 'F'
+            next_item = get_new_foil();
+            next_condition = "triplet_filler";
+            next_role = "filler";
+            next_trial_type = "new";
+            next_response = "none";
+            % current_goal remains active
+            
+        % --- Rule 4b: Start New Triplet (Neutral State) ---
+        else
+            if goal_idx > height(goal_list)
+                % We finished all goals, but are in a neutral state
+                % (e.g., after a probe). Add one last filler.
+                if probe_this_filler_next ~= "", continue; end % Wait for probe
+                break; % Generator is done
+            end
+            
+            % Get next goal from the list
+            next_goal = goal_list(goal_idx, :);
+            goal_idx = goal_idx + 1;
+            
+            % Check Rule 3: Can we start this goal?
+            % (Only matters if goal *itself* is a 'j' or 'k' response,
+            % which only happens on 1st trial if O=N-2, which we prevent)
+            % So, we just start the goal.
+            
+            next_item = next_goal.O_item;
+            next_condition = next_goal.condition;
+            next_role = "target";
+            next_trial_type = "new"; % Always 'new' against N-2 junk
+            next_response = "none";
+            
+            current_goal = next_goal; % Set sub-goal
+        end
+        
+        % --- Append the chosen trial to stream and list ---
+        stream_items{end+1} = next_item;
+        stream_responses{end+1} = next_response;
+        
+        final_test_list(end+1,:) = {next_item, next_condition, next_role, ...
+                                    next_trial_type, next_response};
+    end
+    
+    % --- 5D-4: Convert to Table and Final Verification ---
+    
+    % Convert cell array to table (skipping the first 2 junk trials)
+    test_schedule_block = cell2table(final_test_list(3:end,:), ...
+        'VariableNames', {'stimulus_id', 'condition', 'role', ...
+                          'trial_type_designed', 'correct_response'});
+    
+    % add block number column
+    test_schedule_block.block = repmat(b, height(test_schedule_block), 1);
+    
+    % add n-back verification columns
+    test_schedule_block.nback_target_id = strings(height(test_schedule_block), 1);
+    test_schedule_block.trial_type_final = test_schedule_block.trial_type_designed;
+    
+    % --- FINAL N-BACK VERIFICATION PASS ---
+    % This overrides our 'designed' responses with the *actual* task,
+    % catching any accidental repeats.
+    
+    % Re-build the full stream including the 2 junk items for N-back
+    full_stream_stims = [string(final_test_list(1,1)); 
+                         string(final_test_list(2,1)); 
+                         test_schedule_block.stimulus_id];
+                     
+    for i = 1:height(test_schedule_block)
+        current_trial_idx = i + 2; % Offset by 2 junk trials
+        n2_target_idx = current_trial_idx - 2;
+        
+        n2_target_stim = full_stream_stims(n2_target_idx);
+        current_stim = full_stream_stims(current_trial_idx);
+        
+        test_schedule_block.nback_target_id(i) = n2_target_stim;
+        
+        if current_stim == n2_target_stim
+            % It's a 'j' press, regardless of what we designed
+            test_schedule_block.trial_type_final(i) = "repeat";
+            test_schedule_block.correct_response(i) = "j";
+        elseif test_schedule_block.trial_type_designed(i) == "lure"
+            % It's a 'k' press (we trust the design)
+            test_schedule_block.trial_type_final(i) = "lure";
+            test_schedule_block.correct_response(i) = "k";
+        else
+            % It's a 'new' trial
+            test_schedule_block.trial_type_final(i) = "new";
+            test_schedule_block.correct_response(i) = "none";
+        end
+    end
+    
+    % append into full schedule
+    test_schedule_all = [test_schedule_all; test_schedule_block]; %#ok<AGROW>
+    
+    % update response counts
+    p.counts.test.j_presses = p.counts.test.j_presses + ...
+        sum(strcmp(test_schedule_block.correct_response, 'j'));
+    p.counts.test.k_presses = p.counts.test.k_presses + ...
+        sum(strcmp(test_schedule_block.correct_response, 'k'));
+    p.counts.test.no_response = p.counts.test.no_response + ...
+        sum(strcmp(test_schedule_block.correct_response, 'none'));
+end % --- END OF BLOCK LOOP ---
+
+%% ========================================================================
+%  SECTION 6: GENERATE JITTERED FIXATION DURATIONS
+%  ========================================================================
+% create random fixation durations for each trial
+% base duration ± jitter: 0.75 ± 0.25 = [0.5, 1.0] seconds
+
+n_enc_trials = height(encoding_schedule_all);
+n_test_trials = height(test_schedule_all);
+
+% generate jittered durations using uniform distribution
+encoding_schedule_all.fix_duration = ...
+    p.timing.fix_dur + (rand(n_enc_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+
+test_schedule_all.fix_duration = ...
+    p.timing.fix_dur + (rand(n_test_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+
+%% ========================================================================
+%  SECTION 7: SAVE OUTPUT
+%  ========================================================================
+
+p.stim.all_foils_remaining = all_foils; % Save unused foils
+p.encoding_schedule = encoding_schedule_all;
+p.test_schedule = test_schedule_all;
+
+save(output_filename, 'p');
+
+fprintf('========================================\n');
+fprintf('Setup for subject %03d complete.\n', subj_id);
+fprintf('Saved to: %s\n', output_filename);
+fprintf('========================================\n');
+fprintf('Encoding task: %d trials total (%d j, %d k, %d new)\n', ...
+    n_enc_trials, p.counts.encoding.j_presses, p.counts.encoding.k_presses, p.counts.encoding.no_response);
+fprintf('Test task: %d trials total (%d j, %d k, %d new)\n', ...
+    n_test_trials, p.counts.test.j_presses, p.counts.test.k_presses, p.counts.test.no_response);
