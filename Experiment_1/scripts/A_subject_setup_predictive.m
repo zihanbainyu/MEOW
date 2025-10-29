@@ -1295,3 +1295,630 @@ for i = 1:min(20, height(final_test_list))
 end
 
 fprintf('\n=== END SANITY CHECK ===\n\n');
+
+
+
+%% ----- version 2
+
+% =====================================================================
+% 5D: BUILD TEST PHASE (PROPER 2-BACK WITH GOAL REMOVAL)
+% =====================================================================
+
+fprintf('... building 2-back test sequence for block %d ...\n', b);
+
+% --- 5D-1: Prepare Goal List ---
+
+block_pairs = [comparison_pairs_b; iso_both_pairs_b; novel_pairs_b];
+block_conditions = [repmat("comparison", nComp_b, 1); ...
+                    repmat("isolated_both", nIso_b, 1); ...
+                    repmat("novel", nNov_b, 1)];
+
+goal_list = table('Size', [90, 5], ...
+    'VariableTypes', {'string', 'string', 'string', 'string', 'string'}, ...
+    'VariableNames', {'O_item', 'O_lure', 'condition', 'goal_type', 'X_item'});
+    
+goal_list.O_item = block_pairs.Target;
+goal_list.O_lure = block_pairs.Lure;
+goal_list.condition = block_conditions;
+
+% Assign goal types (1/3 each)
+idx_shuf = randperm(90);
+goal_list.goal_type(idx_shuf(1:30)) = "lure";
+goal_list.goal_type(idx_shuf(31:60)) = "same";
+goal_list.goal_type(idx_shuf(61:90)) = "new";
+
+% Assign X_item based on goal_type
+% For "new" goals, we need to carefully select X_items from OTHER goals
+% that won't cause conflicts
+
+% First, assign X for same/lure (these are deterministic)
+for i = 1:90
+    if goal_list.goal_type(i) == "lure"
+        goal_list.X_item(i) = goal_list.O_lure(i);
+    elseif goal_list.goal_type(i) == "same"
+        goal_list.X_item(i) = goal_list.O_item(i);
+    else
+        goal_list.X_item(i) = ""; % Placeholder for "new" goals
+    end
+end
+
+% Now assign X for "new" goals from a pool of O_items
+% Strategy: Create pairs of "new" goals where each serves as the other's X_item
+new_goal_indices = find(goal_list.goal_type == "new");
+new_goals_shuffled = new_goal_indices(randperm(length(new_goal_indices)));
+
+for i = 1:length(new_goals_shuffled)
+    idx = new_goals_shuffled(i);
+    
+    % Link to next new goal (circular)
+    if i < length(new_goals_shuffled)
+        next_idx = new_goals_shuffled(i+1);
+    else
+        next_idx = new_goals_shuffled(1);
+    end
+    
+    goal_list.X_item(idx) = goal_list.O_item(next_idx);
+end
+
+% Shuffle entire list to randomize processing order
+goal_list = goal_list(randperm(height(goal_list)), :);
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+% --- 5D-2: Build Sequence with Goal Tracking ---
+
+sequence = cell(300, 5);
+row_idx = 1;
+
+% Init with 2 junk
+if height(all_foils_remain) < 2
+    error('Need foils for init');
+end
+junk1 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+junk2 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+
+sequence(row_idx,:) = {junk1.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+sequence(row_idx,:) = {junk2.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+
+% Track active goals (goals that have started but not completed)
+% Each entry: [goal_index, position_where_O_appeared]
+active_goals = [];
+
+% Track which goals have already been started
+goals_started = false(height(goal_list), 1);
+
+goal_pointer = 1; % Which goal to start next
+
+while goal_pointer <= height(goal_list) || ~isempty(active_goals)
+    
+    % Check if any goal at position N-2 needs completion
+    goals_to_complete = [];
+    for k = 1:size(active_goals, 1)
+        goal_idx = active_goals(k, 1);
+        goal_pos = active_goals(k, 2);
+        
+        % If this goal's O appeared 2 trials ago, complete it now
+        if row_idx - goal_pos == 2
+            goals_to_complete(end+1) = k;
+        end
+    end
+    
+    if ~isempty(goals_to_complete)
+        % Complete the first goal that's ready
+        k = goals_to_complete(1);
+        goal_idx = active_goals(k, 1);
+        goal = goal_list(goal_idx, :);
+        
+        % Determine X_item
+        X_type = goal.goal_type;
+        
+        if strcmp(X_type, "new")
+            % For "new" goals, X_item is the NEXT AVAILABLE goal's O_item!
+            % Find next unstarted goal
+            next_unstarted = find(~goals_started, 1);
+            if ~isempty(next_unstarted)
+                X_item = goal_list.O_item(next_unstarted);
+            else
+                % Fallback: use a random O_item (shouldn't happen)
+                X_item = goal_list.O_item(randi(height(goal_list)));
+            end
+            X_resp = "none";
+            X_role = "target";
+        else
+            % For "same" and "lure", X_item is predetermined
+            X_item = goal.X_item;
+            if strcmp(X_type, "lure")
+                X_resp = "k";
+                X_role = "lure";
+            else % "same"
+                X_resp = "j";
+                X_role = "target";
+            end
+        end
+        
+        sequence(row_idx,:) = {X_item, goal.condition, X_role, X_type, X_resp};
+        row_idx = row_idx + 1;
+        
+        % Remove this goal from active list (it's completed!)
+        active_goals(k, :) = [];
+        
+        % CRITICAL: If this was a "new" goal, X_item can start its own goal!
+        if strcmp(X_type, "new")
+            % Find which goal has O_item == X_item
+            X_goal_idx = find(strcmp(goal_list.O_item, X_item), 1);
+            if ~isempty(X_goal_idx) && ~goals_started(X_goal_idx)
+                % This X_item IS an O_item of another goal - mark it as started!
+                goals_started(X_goal_idx) = true;
+                active_goals(end+1, :) = [X_goal_idx, row_idx - 1]; % Started 1 position ago
+            end
+        end
+        
+    else
+        % Start a new goal (skip if already started)
+        while goal_pointer <= height(goal_list) && goals_started(goal_pointer)
+            goal_pointer = goal_pointer + 1; % Skip already-started goals
+        end
+        
+        if goal_pointer <= height(goal_list)
+            goal = goal_list(goal_pointer, :);
+            
+            % Append O_item
+            sequence(row_idx,:) = {goal.O_item, goal.condition, "target", "new", "none"};
+            
+            % Mark as started and track as active
+            goals_started(goal_pointer) = true;
+            active_goals(end+1, :) = [goal_pointer, row_idx];
+            
+            row_idx = row_idx + 1;
+            goal_pointer = goal_pointer + 1;
+        else
+            % No more goals to start
+            break;
+        end
+    end
+end
+
+% End junk
+if height(all_foils_remain) >= 5
+    for jj = 1:5
+        sequence(row_idx,:) = {all_foils_remain.foil(jj), "end_junk", "filler", "new", "none"};
+        row_idx = row_idx + 1;
+    end
+    all_foils_remain(1:5,:) = [];
+end
+
+% Convert to table and trim
+final_test_list = cell2table(sequence(1:row_idx-1, :), ...
+    'VariableNames', {'stimulus_id', 'condition', 'role', 'trial_type', 'correct_response'});
+
+fprintf('... Generated %d test trials\n', height(final_test_list));
+fprintf('... All 90 goals tested\n');
+
+
+
+%% ------- version 3
+% =====================================================================
+% 5D: BUILD TEST PHASE (PROPER 2-BACK WITH GOAL REMOVAL)
+% =====================================================================
+
+fprintf('... building 2-back test sequence for block %d ...\n', b);
+
+% --- 5D-1: Prepare Goal List ---
+
+block_pairs = [comparison_pairs_b; iso_both_pairs_b; novel_pairs_b];
+block_conditions = [repmat("comparison", nComp_b, 1); ...
+                    repmat("isolated_both", nIso_b, 1); ...
+                    repmat("novel", nNov_b, 1)];
+
+goal_list = table('Size', [90, 5], ...
+    'VariableTypes', {'string', 'string', 'string', 'string', 'string'}, ...
+    'VariableNames', {'O_item', 'O_lure', 'condition', 'goal_type', 'X_item'});
+    
+goal_list.O_item = block_pairs.Target;
+goal_list.O_lure = block_pairs.Lure;
+goal_list.condition = block_conditions;
+
+% Assign goal types (1/3 each)
+idx_shuf = randperm(90);
+goal_list.goal_type(idx_shuf(1:30)) = "lure";
+goal_list.goal_type(idx_shuf(31:60)) = "same";
+goal_list.goal_type(idx_shuf(61:90)) = "new";
+
+% Assign X_item based on goal_type
+% For "new" goals, we need to carefully select X_items from OTHER goals
+% that won't cause conflicts
+
+% First, assign X for same/lure (these are deterministic)
+for i = 1:90
+    if goal_list.goal_type(i) == "lure"
+        goal_list.X_item(i) = goal_list.O_lure(i);
+    elseif goal_list.goal_type(i) == "same"
+        goal_list.X_item(i) = goal_list.O_item(i);
+    else
+        goal_list.X_item(i) = ""; % Placeholder for "new" goals
+    end
+end
+
+% Now assign X for "new" goals from a pool of O_items
+% Strategy: Create pairs of "new" goals where each serves as the other's X_item
+new_goal_indices = find(goal_list.goal_type == "new");
+new_goals_shuffled = new_goal_indices(randperm(length(new_goal_indices)));
+
+for i = 1:length(new_goals_shuffled)
+    idx = new_goals_shuffled(i);
+    
+    % Link to next new goal (circular)
+    if i < length(new_goals_shuffled)
+        next_idx = new_goals_shuffled(i+1);
+    else
+        next_idx = new_goals_shuffled(1);
+    end
+    
+    goal_list.X_item(idx) = goal_list.O_item(next_idx);
+end
+
+% Shuffle entire list to randomize processing order
+goal_list = goal_list(randperm(height(goal_list)), :);
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+% --- 5D-2: Build Sequence with Goal Tracking ---
+
+sequence = cell(300, 5);
+row_idx = 1;
+
+% Init with 2 junk
+if height(all_foils_remain) < 2
+    error('Need foils for init');
+end
+junk1 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+junk2 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+
+sequence(row_idx,:) = {junk1.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+sequence(row_idx,:) = {junk2.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+
+% Track active goals (goals that have started but not completed)
+% Each entry: [goal_index, position_where_O_appeared]
+active_goals = [];
+
+% Track which goals have already been started
+goals_started = false(height(goal_list), 1);
+
+goal_pointer = 1; % Which goal to start next
+
+while goal_pointer <= height(goal_list) || ~isempty(active_goals)
+    
+    % Check if any goal at position N-2 needs completion
+    goals_to_complete = [];
+    for k = 1:size(active_goals, 1)
+        goal_idx = active_goals(k, 1);
+        goal_pos = active_goals(k, 2);
+        
+        % If this goal's O appeared 2 trials ago, complete it now
+        if row_idx - goal_pos == 2
+            goals_to_complete(end+1) = k;
+        end
+    end
+    
+    if ~isempty(goals_to_complete)
+        % Complete the first goal that's ready
+        k = goals_to_complete(1);
+        goal_idx = active_goals(k, 1);
+        goal = goal_list(goal_idx, :);
+        
+        % Determine X_item
+        X_type = goal.goal_type;
+        
+        if strcmp(X_type, "new")
+            % For "new" goals, X_item is the NEXT AVAILABLE goal's O_item!
+            % Find next unstarted goal (skip goals already in active_goals)
+            active_goal_indices = active_goals(:, 1);
+            
+            next_unstarted = [];
+            for check_idx = 1:height(goal_list)
+                if ~goals_started(check_idx) && ...
+                   ~ismember(check_idx, active_goal_indices)
+                    next_unstarted = check_idx;
+                    break;
+                end
+            end
+            
+            if ~isempty(next_unstarted)
+                X_item = goal_list.O_item(next_unstarted);
+            else
+                % Fallback: use a random lure (shouldn't happen)
+                X_item = goal_list.O_lure(randi(height(goal_list)));
+            end
+            X_resp = "none";
+            X_role = "target";
+        else
+            % For "same" and "lure", X_item is predetermined
+            X_item = goal.X_item;
+            if strcmp(X_type, "lure")
+                X_resp = "k";
+                X_role = "lure";
+            else % "same"
+                X_resp = "j";
+                X_role = "target";
+            end
+        end
+        
+        sequence(row_idx,:) = {X_item, goal.condition, X_role, X_type, X_resp};
+        row_idx = row_idx + 1;
+        
+        % Remove this goal from active list (it's completed!)
+        active_goals(k, :) = [];
+        
+        % CRITICAL: If this was a "new" goal, X_item can start its own goal!
+        if strcmp(X_type, "new")
+            % Find which goal has O_item == X_item
+            X_goal_idx = find(strcmp(goal_list.O_item, X_item), 1);
+            if ~isempty(X_goal_idx) && ~goals_started(X_goal_idx)
+                % This X_item IS an O_item of another goal - mark it as started!
+                goals_started(X_goal_idx) = true;
+                active_goals(end+1, :) = [X_goal_idx, row_idx - 1]; % Started 1 position ago
+            end
+        end
+        
+    else
+        % Start a new goal (skip if already started)
+        while goal_pointer <= height(goal_list) && goals_started(goal_pointer)
+            goal_pointer = goal_pointer + 1; % Skip already-started goals
+        end
+        
+        if goal_pointer <= height(goal_list)
+            goal = goal_list(goal_pointer, :);
+            
+            % Append O_item
+            sequence(row_idx,:) = {goal.O_item, goal.condition, "target", "new", "none"};
+            
+            % Mark as started and track as active
+            goals_started(goal_pointer) = true;
+            active_goals(end+1, :) = [goal_pointer, row_idx];
+            
+            row_idx = row_idx + 1;
+            goal_pointer = goal_pointer + 1;
+        else
+            % No more goals to start
+            break;
+        end
+    end
+end
+
+% End junk
+if height(all_foils_remain) >= 5
+    for jj = 1:5
+        sequence(row_idx,:) = {all_foils_remain.foil(jj), "end_junk", "filler", "new", "none"};
+        row_idx = row_idx + 1;
+    end
+    all_foils_remain(1:5,:) = [];
+end
+
+% Convert to table and trim
+final_test_list = cell2table(sequence(1:row_idx-1, :), ...
+    'VariableNames', {'stimulus_id', 'condition', 'role', 'trial_type', 'correct_response'});
+
+fprintf('... Generated %d test trials\n', height(final_test_list));
+fprintf('... All 90 goals tested\n');
+
+
+
+
+
+%% -----version 4
+% =====================================================================
+% 5D: BUILD TEST PHASE (PROPER 2-BACK WITH GOAL REMOVAL)
+% =====================================================================
+
+fprintf('... building 2-back test sequence for block %d ...\n', b);
+
+% --- 5D-1: Prepare Goal List ---
+
+block_pairs = [comparison_pairs_b; iso_both_pairs_b; novel_pairs_b];
+block_conditions = [repmat("comparison", nComp_b, 1); ...
+                    repmat("iso_both", nIso_b, 1); ...
+                    repmat("novel", nNov_b, 1)];
+
+goal_list = table('Size', [90, 5], ...
+    'VariableTypes', {'string', 'string', 'string', 'string', 'string'}, ...
+    'VariableNames', {'O_item', 'O_lure', 'condition', 'goal_type', 'X_item'});
+    
+goal_list.O_item = block_pairs.Target;
+goal_list.O_lure = block_pairs.Lure;
+goal_list.condition = block_conditions;
+
+% Assign goal types (1/3 each)
+idx_shuf = randperm(90);
+goal_list.goal_type(idx_shuf(1:30)) = "lure";
+goal_list.goal_type(idx_shuf(31:60)) = "same";
+goal_list.goal_type(idx_shuf(61:90)) = "new";
+
+% Assign X_item based on goal_type
+% For "new" goals, we need to carefully select X_items from OTHER goals
+% that won't cause conflicts
+
+% First, assign X for same/lure (these are deterministic)
+for i = 1:90
+    if goal_list.goal_type(i) == "lure"
+        goal_list.X_item(i) = goal_list.O_lure(i);
+    elseif goal_list.goal_type(i) == "same"
+        goal_list.X_item(i) = goal_list.O_item(i);
+    else
+        goal_list.X_item(i) = ""; % Placeholder for "new" goals
+    end
+end
+
+% Now assign X for "new" goals from a pool of O_items
+% Strategy: Create pairs of "new" goals where each serves as the other's X_item
+new_goal_indices = find(goal_list.goal_type == "new");
+new_goals_shuffled = new_goal_indices(randperm(length(new_goal_indices)));
+
+for i = 1:length(new_goals_shuffled)
+    idx = new_goals_shuffled(i);
+    
+    % Link to next new goal (circular)
+    if i < length(new_goals_shuffled)
+        next_idx = new_goals_shuffled(i+1);
+    else
+        next_idx = new_goals_shuffled(1);
+    end
+    
+    goal_list.X_item(idx) = goal_list.O_item(next_idx);
+end
+
+% Shuffle entire list to randomize processing order
+goal_list = goal_list(randperm(height(goal_list)), :);
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+fprintf('  -> Testing %d goals\n', height(goal_list));
+
+% --- 5D-2: Build Sequence with Goal Tracking ---
+
+sequence = cell(300, 5);
+row_idx = 1;
+
+% Init with 2 junk
+if height(all_foils_remain) < 2
+    error('Need foils for init');
+end
+junk1 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+junk2 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+
+sequence(row_idx,:) = {junk1.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+sequence(row_idx,:) = {junk2.foil, "init_junk", "filler", "new", "none"};
+row_idx = row_idx + 1;
+
+% Track active goals (goals that have started but not completed)
+% Each entry: [goal_index, position_where_O_appeared]
+active_goals = [];
+
+% Track which goals have already been started
+goals_started = false(height(goal_list), 1);
+
+goal_pointer = 1; % Which goal to start next
+
+while goal_pointer <= height(goal_list) || ~isempty(active_goals)
+    
+    % Check if any goal at position N-2 needs completion
+    goals_to_complete = [];
+    for k = 1:size(active_goals, 1)
+        goal_idx = active_goals(k, 1);
+        goal_pos = active_goals(k, 2);
+        
+        % If this goal's O appeared 2 trials ago, complete it now
+        if row_idx - goal_pos == 2
+            goals_to_complete(end+1) = k;
+        end
+    end
+    
+    if ~isempty(goals_to_complete)
+        % Complete the first goal that's ready
+        k = goals_to_complete(1);
+        goal_idx = active_goals(k, 1);
+        goal = goal_list(goal_idx, :);
+        
+        % Determine X_item
+        X_type = goal.goal_type;
+        
+        if strcmp(X_type, "new")
+            % For "new" goals, X_item is the NEXT AVAILABLE goal's O_item!
+            % Find next unstarted goal (skip goals already in active_goals)
+            active_goal_indices = active_goals(:, 1);
+            
+            next_unstarted = [];
+            for check_idx = 1:height(goal_list)
+                if ~goals_started(check_idx) && ...
+                   ~ismember(check_idx, active_goal_indices)
+                    next_unstarted = check_idx;
+                    break;
+                end
+            end
+            
+            if ~isempty(next_unstarted)
+                X_item = goal_list.O_item(next_unstarted);
+            else
+                % Fallback: use a random lure (shouldn't happen)
+                X_item = goal_list.O_lure(randi(height(goal_list)));
+            end
+            X_resp = "none";
+            X_role = "target";
+        else
+            % For "same" and "lure", X_item is predetermined
+            X_item = goal.X_item;
+            if strcmp(X_type, "lure")
+                X_resp = "k";
+                X_role = "lure";
+            else % "same"
+                X_resp = "j";
+                X_role = "target";
+            end
+        end
+        
+        sequence(row_idx,:) = {X_item, goal.condition, X_role, X_type, X_resp};
+        row_idx = row_idx + 1;
+        
+        % Remove this goal from active list (it's completed!)
+        active_goals(k, :) = [];
+        
+        % CRITICAL: If this was a "new" goal, X_item can start its own goal!
+        if strcmp(X_type, "new")
+            % Find which goal has O_item == X_item
+            X_goal_idx = find(strcmp(goal_list.O_item, X_item), 1);
+            if ~isempty(X_goal_idx) && ~goals_started(X_goal_idx)
+                % This X_item IS an O_item of another goal - mark it as started!
+                goals_started(X_goal_idx) = true;
+                active_goals(end+1, :) = [X_goal_idx, row_idx - 1]; % Started 1 position ago
+            end
+        end
+        
+    else
+        % Start a new goal (skip if already started)
+        while goal_pointer <= height(goal_list) && goals_started(goal_pointer)
+            goal_pointer = goal_pointer + 1; % Skip already-started goals
+        end
+        
+        if goal_pointer <= height(goal_list)
+            goal = goal_list(goal_pointer, :);
+            
+            % Append O_item (this is the original item that will be tested)
+            sequence(row_idx,:) = {goal.O_item, goal.condition, "target", "original", "none"};
+            
+            % Mark as started and track as active
+            goals_started(goal_pointer) = true;
+            active_goals(end+1, :) = [goal_pointer, row_idx];
+            
+            row_idx = row_idx + 1;
+            goal_pointer = goal_pointer + 1;
+        else
+            % No more goals to start
+            break;
+        end
+    end
+end
+
+% End junk
+if height(all_foils_remain) >= 5
+    for jj = 1:5
+        sequence(row_idx,:) = {all_foils_remain.foil(jj), "end_junk", "filler", "new", "none"};
+        row_idx = row_idx + 1;
+    end
+    all_foils_remain(1:5,:) = [];
+end
+
+% Convert to table and trim
+final_test_list = cell2table(sequence(1:row_idx-1, :), ...
+    'VariableNames', {'stimulus_id', 'condition', 'role', 'trial_type', 'correct_response'});
+
+fprintf('... Generated %d test trials\n', height(final_test_list));
+fprintf('... All 90 goals tested\n');
+
