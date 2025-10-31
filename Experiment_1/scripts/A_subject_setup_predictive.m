@@ -584,21 +584,94 @@ for b = 1:p.nBlocks
     fprintf('  === END SANITY CHECK ===\n\n');
 end
 
-%% ========================================================================
-%  SECTION 6: SAVE OUTPUT
-%  ========================================================================
 
+
+%% ========================================================================
+%  SECTION 6: BUILD FINAL RECOGNITION TASK
+%  ========================================================================
+fprintf('\nBuilding final recognition task...\n');
+
+% --- 1. Get all 360 'Old' Target (O) items ---
+% We test the 'O' (Target) items, as these are the "anchors"
+% that were encoded and held in memory.
+old_comp = table(p.stim.comparison.Target, repmat("comparison", p.nComparison, 1), ...
+    'VariableNames', {'stimulus_id', 'condition'});
+old_iso = table(p.stim.iso_both.Target, repmat("isolated_both", p.nIsolated_Both, 1), ...
+    'VariableNames', {'stimulus_id', 'condition'});
+old_nov = table(p.stim.novel.Target, repmat("novel", p.nNovel, 1), ...
+    'VariableNames', {'stimulus_id', 'condition'});
+
+all_old_items = [old_comp; old_iso; old_nov];
+all_old_items.trial_type = repmat("old", p.nTotalPairs, 1);
+% Use 'j' for OLD (same) and 'k' for NEW (diff)
+all_old_items.correct_response = repmat(p.keys.same, p.nTotalPairs, 1); 
+
+% --- 2. Get 360 'New' Foil items ---
+n_rec_foils = p.nTotalPairs; % 360
+assert(height(all_foils_remain) >= n_rec_foils, ...
+    'Not enough remaining foils for recognition task! Need %d, have %d', ...
+    n_rec_foils, height(all_foils_remain));
+    
+% Grab 360 'a' images from the remaining foil stack
+new_foils_list = all_foils_remain.foil(1:n_rec_foils);
+all_foils_remain(1:n_rec_foils, :) = []; % Remove them from the persistent stack
+
+all_new_items = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
+    repmat("new", n_rec_foils, 1), repmat(p.keys.diff, n_rec_foils, 1), ... 
+    'VariableNames', {'stimulus_id', 'condition', 'trial_type', 'correct_response'});
+    
+% --- 3. Combine, shuffle, and add to 'p' struct ---
+recognition_schedule = [all_old_items; all_new_items];
+recognition_schedule = recognition_schedule(randperm(height(recognition_schedule)), :);
+
+fprintf('  Generated %d recognition trials (360 old, 360 new).\n', height(recognition_schedule));
+
+% Add to 'p' struct
+p.recognition_schedule = recognition_schedule;
+
+
+%% ========================================================================
+%  SECTION 7: ADD JITTER & SAVE OUTPUT
+%  ========================================================================
+fprintf('\nAdding jittered fixations and saving all schedules...\n');
+
+% --- Add jittered fixation durations ---
+n_enc_trials = height(encoding_schedule_all);
+n_test_trials = height(test_schedule_all);
+n_rec_trials = height(p.recognition_schedule);
+
+encoding_schedule_all.fix_duration = ...
+    p.timing.fix_dur + (rand(n_enc_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+
+test_schedule_all.fix_duration = ...
+    p.timing.fix_dur + (rand(n_test_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+    
+p.recognition_schedule.fix_duration = ...
+    p.timing.fix_dur + (rand(n_rec_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+
+% --- Add subj_id to all schedules ---
+encoding_schedule_all.subj_id = repmat(subj_id, n_enc_trials, 1);
+test_schedule_all.subj_id = repmat(subj_id, n_test_trials, 1);
+p.recognition_schedule.subj_id = repmat(subj_id, n_rec_trials, 1);
+
+% --- Save all schedules to 'p' struct ---
 p.encoding_schedule = encoding_schedule_all;
 p.test_schedule = test_schedule_all;
+p.stim.all_foils_remaining = all_foils_remain; % Save the final unused stack
 
+% --- Final Summary ---
 fprintf('\n=== FINAL SUMMARY ===\n');
-fprintf('Total encoding trials: %d\n', height(encoding_schedule_all));
+fprintf('Total encoding trials: %d\n', n_enc_trials);
 fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
         p.counts.encoding.j_presses, p.counts.encoding.k_presses, p.counts.encoding.no_response);
-fprintf('Total test trials: %d\n', height(test_schedule_all));
+fprintf('Total test trials: %d\n', n_test_trials);
 fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
         p.counts.test.j_presses, p.counts.test.k_presses, p.counts.test.no_response);
+fprintf('Total recognition trials: %d\n', n_rec_trials);
+fprintf('  Old: %d, New: %d\n', sum(p.recognition_schedule.trial_type == "old"), ...
+        sum(p.recognition_schedule.trial_type == "new"));
+fprintf('Foils remaining in stack: %d\n', height(all_foils_remain));
 
+% --- Save the file ---
 save(output_filename, 'p');
 fprintf('\nSetup saved to: %s\n', output_filename);
-fprintf('Done!\n');
