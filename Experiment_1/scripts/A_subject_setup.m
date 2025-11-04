@@ -346,6 +346,7 @@ for b = 1:p.nBlocks
                 if ~isempty(next_unstarted)
                     X = goal_list.A(next_unstarted); % This is the new 'A' item
                 else
+                    
                     X = all_foils_remain.A_foil(1); % Grab a foil
                     all_foils_remain(1,:) = [];     % Consume the foil
                 end
@@ -354,10 +355,9 @@ for b = 1:p.nBlocks
                 % Find the properties of the NEW item 'X'
                 X_props = goal_list(strcmp(goal_list.A, X), :);
                 if isempty(X_props)
-                    % This is a failsafe, e.g., we grabbed a 'B' item
                     log_condition = "junk_foil";
                     log_goal_type = "JUNK"; 
-                    X_identity = "J";
+                    X_identity = "J"; % 'J' for Junk
                 else
                     % Log the NEW item's OWN properties
                     log_condition = X_props.condition(1);
@@ -396,22 +396,35 @@ for b = 1:p.nBlocks
             end
         else
             % start new goal
+            % Can we start a new goal?
             while goal_pointer <= height(goal_list) && goals_started(goal_pointer)
-                goal_pointer = goal_pointer + 1;
+                goal_pointer = goal_pointer + 1; % find next unstarted
             end
             
             if goal_pointer <= height(goal_list)
+                % YES: Start the next goal
                 goal = goal_list(goal_pointer, :);
-                
-                % --- THIS IS THE FIX FOR THE UNDEFINED VARIABLE ---
                 sequence(row_idx,:) = {goal.A, goal.condition, "A", goal.goal_type, "none"};
-                
                 goals_started(goal_pointer) = true;
                 active_goals(end+1, :) = [goal_pointer, row_idx];
                 row_idx = row_idx + 1;
                 goal_pointer = goal_pointer + 1;
             else
-                break; % All goals started
+                % NO: All goals are started, but buffer is not empty.
+                % We MUST add a junk trial to advance time.
+                if isempty(active_goals)
+                    % This should only be hit if goal_pointer > 90 AND
+                    % the buffer is empty. We are done.
+                    break; 
+                end
+                
+                % Add a junk trial to pad
+                if height(all_foils_remain) < 1
+                    error('Out of foils for junk padding in block %d', b);
+                end
+                junk = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+                sequence(row_idx,:) = {junk.A_foil, "padding_junk", "J", "JUNK", "none"};
+                row_idx = row_idx + 1; % Advance time
             end
         end
     end
@@ -448,20 +461,18 @@ for b = 1:p.nBlocks
 end
 
 
-%% P6: Build recognition task
+%% ========================================================================
+%  P6: Build recognition task
+%  ========================================================================
 fprintf('\nBuilding final recognition task...\n');
-
 % --- 1. Get 'Old' items (N=240) from 'compared' and 'isolated' only ---
 % For each of the 240 pairs, randomly select A or B
 n_old_items = p.nComparison + p.nIsolated_Both;
-
 all_study_pairs = [p.stim.compared; p.stim.isolated];
 all_study_conds = [repmat("compared", p.nComparison, 1); ...
                    repmat("isolated", p.nIsolated_Both, 1)];
-
 selected_old_items = strings(n_old_items, 1);
 selected_identity = strings(n_old_items, 1);
-
 fprintf('  Sampling 240 old items (random A/B) from compared/isolated...\n');
 for i = 1:n_old_items
     if rand() > 0.5
@@ -474,13 +485,11 @@ for i = 1:n_old_items
         selected_identity(i) = "B";
     end
 end
-
 % Build the final 'Old' items table
 all_old_items = table(selected_old_items, all_study_conds, selected_identity, ...
     'VariableNames', {'stim_id', 'condition', 'identity'});
 all_old_items.trial_type = repmat("old", n_old_items, 1);
 all_old_items.correct_response = repmat(p.keys.same, n_old_items, 1); 
-
 % --- 2. Get 240 'New' Foil items ---
 n_rec_foils = n_old_items; % 240
 assert(height(all_foils_remain) >= n_rec_foils, ...
@@ -490,7 +499,6 @@ assert(height(all_foils_remain) >= n_rec_foils, ...
 % Grab 240 'A_foil' images 
 new_foils_list = all_foils_remain.A_foil(1:n_rec_foils);
 all_foils_remain(1:n_rec_foils, :) = []; % Remove them
-
 all_new_items = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
     repmat("N/A", n_rec_foils, 1), repmat("new", n_rec_foils, 1), ...
     repmat(p.keys.diff, n_rec_foils, 1), ... 
@@ -499,9 +507,7 @@ all_new_items = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
 % --- 3. Combine, shuffle, and add to 'p' struct ---
 sequence_recognition = [all_old_items; all_new_items];
 sequence_recognition = sequence_recognition(randperm(height(sequence_recognition)), :);
-
 fprintf('  Generated %d recognition trials (240 old, 240 new).\n', height(sequence_recognition));
-
 % Add to 'p' struct
 p.sequence_recognition = sequence_recognition;
 
@@ -511,22 +517,22 @@ p.sequence_recognition = sequence_recognition;
 fprintf('\nAdding jittered fixations and saving all schedules...\n');
 
 % --- Add jittered fixation durations ---
-n_enc_trials = height(sequence_1_back);
-n_test_trials = height(sequence_2_back);
+n_1_back_trials = height(sequence_1_back);
+n_2_back_trials = height(sequence_2_back);
 n_rec_trials = height(p.sequence_recognition);
 
 sequence_1_back.fix_duration = ...
-    p.timing.fix_dur + (rand(n_enc_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+    p.timing.fix_dur + (rand(n_1_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
 sequence_2_back.fix_duration = ...
-    p.timing.fix_dur + (rand(n_test_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+    p.timing.fix_dur + (rand(n_2_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
     
 p.sequence_recognition.fix_duration = ...
     p.timing.fix_dur + (rand(n_rec_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
 % --- Add subj_id to all schedules ---
-sequence_1_back.subj_id = repmat(subj_id, n_enc_trials, 1);
-sequence_2_back.subj_id = repmat(subj_id, n_test_trials, 1);
+sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);
+sequence_2_back.subj_id = repmat(subj_id, n_2_back_trials, 1);
 p.sequence_recognition.subj_id = repmat(subj_id, n_rec_trials, 1);
 
 % --- Save all schedules to 'p' struct ---
@@ -536,10 +542,10 @@ p.stim.all_foils_remaining = all_foils_remain; % Save the final unused stack
 
 % --- Final Summary ---
 fprintf('\n=== FINAL SUMMARY ===\n');
-fprintf('Total 1-back trials: %d\n', n_enc_trials);
+fprintf('Total 1-back trials: %d\n', n_1_back_trials);
 fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
         p.counts.oneback.resp_same, p.counts.oneback.resp_similar, p.counts.oneback.resp_new);
-fprintf('Total 2-back trials: %d\n', n_test_trials);
+fprintf('Total 2-back trials: %d\n', n_2_back_trials);
 fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
         p.counts.twoback.resp_same, p.counts.twoback.resp_similar, p.counts.twoback.resp_new);
 fprintf('Total recognition trials: %d\n', n_rec_trials);

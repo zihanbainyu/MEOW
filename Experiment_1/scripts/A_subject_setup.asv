@@ -357,7 +357,7 @@ for b = 1:p.nBlocks
                     % This is a failsafe, e.g., we grabbed a 'B' item
                     log_condition = "junk_foil";
                     log_goal_type = "JUNK"; 
-                    X_identity = "B";
+                    X_identity = "";
                 else
                     % Log the NEW item's OWN properties
                     log_condition = X_props.condition(1);
