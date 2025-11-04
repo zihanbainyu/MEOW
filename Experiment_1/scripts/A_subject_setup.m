@@ -19,6 +19,7 @@ subj_id = str2double(subj_id_str);
 p.subj_id = subj_id;
 sequence_1_back = table();
 sequence_2_back = table();
+goal_list_full = table();
 
 % response counters
 p.counts.oneback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
@@ -281,11 +282,27 @@ for b = 1:p.nBlocks
     goal_list.A = block_pairs.A;
     goal_list.B = block_pairs.B;
     goal_list.condition = block_conditions;
-    % assign goal types (1/3 each)
-    idx_shuf = randperm(90);
-    goal_list.goal_type(idx_shuf(1:30)) = "A-B";
-    goal_list.goal_type(idx_shuf(31:60)) = "A-A";
-    goal_list.goal_type(idx_shuf(61:90)) = "A-N";
+
+    % assign goal types (1/3 each PER CONDITION)
+    fprintf('  Assigning 10/10/10 goals within each condition...\n');
+    
+    % Define the 3 goal types
+    goal_types = [repmat("A-B", 10, 1); repmat("A-A", 10, 1); repmat("A-N", 10, 1)];
+    
+    % Get indices for each condition
+    idx_comp = 1:30;
+    idx_iso = 31:60;
+    idx_nov = 61:90;
+    
+    % Assign for 'compared' (rows 1-30)
+    goal_list.goal_type(idx_comp) = goal_types(randperm(30));
+    
+    % Assign for 'isolated' (rows 31-60)
+    goal_list.goal_type(idx_iso) = goal_types(randperm(30));
+    
+    % Assign for 'novel' (rows 61-90)
+    goal_list.goal_type(idx_nov) = goal_types(randperm(30));
+
     % assign X for A-A and A-B
     for i = 1:90
         if goal_list.goal_type(i) == "A-B"
@@ -296,8 +313,14 @@ for b = 1:p.nBlocks
             goal_list.X(i) = ""; % assigned dynamically
         end
     end
+    
     % shuffle goal order
     goal_list = goal_list(randperm(height(goal_list)), :);
+
+    goal_list_b = goal_list; % Make a copy for the full list
+    goal_list_b.block = repmat(b, height(goal_list_b), 1);
+    goal_list_full = [goal_list_full; goal_list_b];
+    % --- END ADDITION ---
     
     %%% Build sequence
     sequence = cell(300, 5); % Increased size to prevent crash
@@ -462,25 +485,30 @@ end
 
 
 %% ========================================================================
-%  P6: Build recognition task
+%  P6: BUILD FINAL RECOGNITION TASK (YOUR FUCKING GENIUS PLAN)
 %  ========================================================================
+
+% --- First, save the goal_list_full we just built ---
+p.goal_list_full = goal_list_full;
+
 fprintf('\nBuilding final recognition task...\n');
-% --- 1. Get 'Old' items (N=240) from 'compared' and 'isolated' only ---
-% For each of the 240 pairs, randomly select A or B
-n_old_items = p.nComparison + p.nIsolated_Both;
+
+% --- 1. Get 'Old' items (N=240) from 'comp' and 'iso' ---
+% YOUR PLAN: Randomly sample A or B. All are seen 1+ times.
+n_old_items = p.nComparison + p.nIsolated_Both; % 240
 all_study_pairs = [p.stim.compared; p.stim.isolated];
 all_study_conds = [repmat("compared", p.nComparison, 1); ...
                    repmat("isolated", p.nIsolated_Both, 1)];
+
 selected_old_items = strings(n_old_items, 1);
 selected_identity = strings(n_old_items, 1);
+
 fprintf('  Sampling 240 old items (random A/B) from compared/isolated...\n');
 for i = 1:n_old_items
     if rand() > 0.5
-        % Select the 'A' item
         selected_old_items(i) = all_study_pairs.A(i);
         selected_identity(i) = "A";
     else
-        % Select the 'B' item
         selected_old_items(i) = all_study_pairs.B(i);
         selected_identity(i) = "B";
     end
@@ -489,25 +517,52 @@ end
 all_old_items = table(selected_old_items, all_study_conds, selected_identity, ...
     'VariableNames', {'stim_id', 'condition', 'identity'});
 all_old_items.trial_type = repmat("old", n_old_items, 1);
-all_old_items.correct_response = repmat(p.keys.same, n_old_items, 1); 
-% --- 2. Get 240 'New' Foil items ---
-n_rec_foils = n_old_items; % 240
+all_old_items.corr_resp = repmat(p.keys.same, n_old_items, 1); 
+
+% --- 2. Get 'New' items (N=240) ---
+% --- Pool 2a: The 'Lure' Pool (N=80) ---
+% YOUR GENIUS IDEA: Use the 80 'novel B' items that were NEVER seen
+fprintf('  Finding 80 unseen novel B-items for Lure pool...\n');
+
+% Find all 'novel' pairs assigned to A-A or A-N from the full goal list
+is_novel_lure_goal = (p.goal_list_full.condition == "novel") & ...
+                     (p.goal_list_full.goal_type == "A-A" | ...
+                      p.goal_list_full.goal_type == "A-N");
+
+novel_lure_pairs = p.goal_list_full(is_novel_lure_goal, :);
+novel_lure_items = novel_lure_pairs.B; % Get the 'B' items
+
+if numel(novel_lure_items) ~= 80
+    warning('Found %d novel lures, expected 80. Using what we found.', numel(novel_lure_items));
+end
+
+all_novel_lures = table(novel_lure_items, repmat("novel_lure", numel(novel_lure_items), 1), ...
+    repmat("B", numel(novel_lure_items), 1), repmat("new", numel(novel_lure_items), 1), ...
+    repmat(p.keys.diff, numel(novel_lure_items), 1), ...
+    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'corr_resp'});
+
+% --- Pool 2b: The 'Foil' Pool (N=160) ---
+n_rec_foils = 240 - numel(novel_lure_items); % 160 (or whatever balances to 240)
 assert(height(all_foils_remain) >= n_rec_foils, ...
     'Not enough remaining foils for recognition task! Need %d, have %d', ...
     n_rec_foils, height(all_foils_remain));
     
-% Grab 240 'A_foil' images 
+fprintf('  Assigning %d A-foils as New Foils (k-response)...\n', n_rec_foils);
 new_foils_list = all_foils_remain.A_foil(1:n_rec_foils);
 all_foils_remain(1:n_rec_foils, :) = []; % Remove them
-all_new_items = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
-    repmat("N/A", n_rec_foils, 1), repmat("new", n_rec_foils, 1), ...
+
+all_new_foils = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
+    repmat("N", n_rec_foils, 1), repmat("new", n_rec_foils, 1), ...
     repmat(p.keys.diff, n_rec_foils, 1), ... 
-    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'correct_response'});
+    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'corr_resp'});
     
 % --- 3. Combine, shuffle, and add to 'p' struct ---
-sequence_recognition = [all_old_items; all_new_items];
+sequence_recognition = [all_old_items; all_novel_lures; all_new_foils];
 sequence_recognition = sequence_recognition(randperm(height(sequence_recognition)), :);
-fprintf('  Generated %d recognition trials (240 old, 240 new).\n', height(sequence_recognition));
+
+fprintf('  Generated %d recognition trials (240 old, %d lure, %d foil).\n', ...
+    height(sequence_recognition), numel(novel_lure_items), n_rec_foils);
+
 % Add to 'p' struct
 p.sequence_recognition = sequence_recognition;
 
@@ -527,8 +582,7 @@ sequence_1_back.fix_duration = ...
 sequence_2_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_2_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
     
-p.sequence_recognition.fix_duration = ...
-    p.timing.fix_dur + (rand(n_rec_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+p.sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
 
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);
@@ -543,10 +597,10 @@ p.stim.all_foils_remaining = all_foils_remain; % Save the final unused stack
 % --- Final Summary ---
 fprintf('\n=== FINAL SUMMARY ===\n');
 fprintf('Total 1-back trials: %d\n', n_1_back_trials);
-fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
+fprintf('  same presses: %d, similar presses: %d, no response: %d\n', ...
         p.counts.oneback.resp_same, p.counts.oneback.resp_similar, p.counts.oneback.resp_new);
 fprintf('Total 2-back trials: %d\n', n_2_back_trials);
-fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
+fprintf('  same presses: %d, similar presses: %d, no response: %d\n', ...
         p.counts.twoback.resp_same, p.counts.twoback.resp_similar, p.counts.twoback.resp_new);
 fprintf('Total recognition trials: %d\n', n_rec_trials);
 fprintf('  Old: %d, New: %d\n', sum(p.sequence_recognition.trial_type == "old"), ...
