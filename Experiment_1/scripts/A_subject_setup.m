@@ -3,6 +3,8 @@
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
 % note: you must run this for each subject before running the task
+%
+% MODIFIED: 2025-10-31 to implement proper 2-back test generator
 %==========================================================================
 
 clear;
@@ -15,27 +17,27 @@ if isempty(subj_id_str)
 end
 subj_id = str2double(subj_id_str);
 p.subj_id = subj_id;
+sequence_1_back = table();
+sequence_2_back = table();
+
+% response counters
+p.counts.oneback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
+p.counts.twoback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
 
 % directory
 base_dir = '..';
-p.stim_dir = fullfile(base_dir, 'stimulus/stim_processed/');
+p.stim_dir = fullfile(base_dir, 'stimulus/stim_final/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
 
-%% ========================================================================
-%  SECTION 1: SUBJECT ID AND PARAMETERS
-%  ========================================================================
-% # of stimulus pairs per condition (total across all blocks)
-p.nComparison = 40;
-p.nIsolated_Both = 40;
-p.nNovel = 40;
-
-% test phase trial counts
-p.nTest_Lure_Events = 120;
-p.nTest_Repeat_Events = 120;
+%% P1: Setup
+p.nComparison = 120;
+p.nIsolated_Both = 120;
+p.nNovel = 120;
+p.nTotalPairs = p.nComparison + p.nIsolated_Both + p.nNovel; % 360 total pairs
 
 % # of blocks in experiment
-p.nBlocks = 4;
+p.nBlocks = 4; % 90 pairs per block
 
 % keyboard mappings
 p.keys.same = 'j';
@@ -47,10 +49,7 @@ p.timing.image_dur = 1.5;           % stimulus presentation
 p.timing.fix_dur = 0.75;            % base fixation
 p.timing.fix_jitter = 0.25;         % jitter range: ±0.25s (so 0.5 to 1.0s total)
 
-%% ========================================================================
-%  SECTION 2: LOAD STIMULI
-%  ========================================================================
-
+%% P2: Load stimuli
 output_filename = fullfile(p.setup_dir, sprintf('sub%03d_setup.mat', subj_id));
 
 if exist(output_filename, 'file')
@@ -63,468 +62,491 @@ end
 
 fprintf('loading stimuli...\n');
 
-all_targ_files = dir(fullfile(p.stim_dir, 'mst_*_targ_l1.png'));
-all_lure_files = dir(fullfile(p.stim_dir, 'mst_*_lure_l1.png'));
+% --- Load L1 Pairs (Bin 1) ---
+all_A_files_l1 = dir(fullfile(p.stim_dir, 'mst_*_A_l1.png'));
+all_B_files_l1 = dir(fullfile(p.stim_dir, 'mst_*_B_l1.png'));
+A_names_l1 = string({all_A_files_l1.name}');
+B_names_l1 = string({all_B_files_l1.name}');
+master_pair_list_l1 = table(sort(A_names_l1), sort(B_names_l1), ...
+    'VariableNames', {'A', 'B'});
 
-assert(numel(all_targ_files) == 120, 'expected 120 target files!');
+% --- Load L2 Pairs (Bin 2) ---
+all_A_files_l2 = dir(fullfile(p.stim_dir, 'mst_*_A_l2.png'));
+all_B_files_l2 = dir(fullfile(p.stim_dir, 'mst_*_B_l2.png'));
+A_names_l2 = string({all_A_files_l2.name}');
+B_names_l2 = string({all_B_files_l2.name}');
+master_pair_list_l2 = table(sort(A_names_l2), sort(B_names_l2), ...
+    'VariableNames', {'A', 'B'});
 
-targ_names = string({all_targ_files.name}');
-lure_names = string({all_lure_files.name}');
+% Load foil pairs
+all_foil_A_files = dir(fullfile(p.stim_dir, 'mst_*_A_foil.png'));
+all_foil_B_files = dir(fullfile(p.stim_dir, 'mst_*_B_foil.png'));
 
-master_pair_list = table(sort(targ_names), sort(lure_names), ...
-                         'VariableNames', {'Img_A', 'Img_B'});
+all_foil_pairs = table('Size', [numel(all_foil_A_files), 2], ...
+    'VariableTypes', {'string', 'string'}, ...
+    'VariableNames', {'A_foil', 'B_foil'});
 
-all_foil_files = dir(fullfile(p.stim_dir, 'mst_*_foil.png'));
-all_foils = string({all_foil_files.name}');
+all_foil_pairs.A_foil = string({all_foil_A_files.name}');
+all_foil_pairs.B_foil = string({all_foil_B_files.name}');
 
-fprintf('Found %d experimental pairs and %d foils.\n', ...
-        height(master_pair_list), numel(all_foils));
+% Shuffle them
+all_foil_pairs = all_foil_pairs(randperm(height(all_foil_pairs)), :);
 
-%% ========================================================================
-%  SECTION 3: COUNTERBALANCE TARGET-LURE ASSIGNMENT
-%  ========================================================================
+fprintf('Found %d L1 pairs, %d L2 pairs, and %d foil pairs.\n', ...
+    height(master_pair_list_l1), height(master_pair_list_l2), height(all_foil_pairs));
 
-shuffled_pairs = master_pair_list(randperm(height(master_pair_list)), :);
+%% P3: Stimuli assignment
+n_cond_l1 = height(master_pair_list_l1) / 3; % 180 / 3 = 60
+n_cond_l2 = height(master_pair_list_l2) / 3; % 180 / 3 = 60
 
-final_pairs = table('Size', size(shuffled_pairs), ...
-                    'VariableTypes', {'string', 'string'}, ...
-                    'VariableNames', {'Target', 'Lure'});
+% --- Split L1 Pool (180 pairs -> 60/60/60) ---
+final_list_l1 = master_pair_list_l1(randperm(height(master_pair_list_l1)), :);
 
-% randomly assign which image is target vs lure for each pair
-for i = 1:height(shuffled_pairs)
-    if rand() > 0.5
-        final_pairs(i, :) = shuffled_pairs(i, :);
-    else
-        final_pairs(i, :) = [shuffled_pairs(i, 2), shuffled_pairs(i, 1)];
-    end
-end
+% Split this pool into 3 equal chunks
+comp_l1 = final_list_l1(1:n_cond_l1, :);
+iso_l1  = final_list_l1(n_cond_l1+1 : 2*n_cond_l1, :);
+nov_l1  = final_list_l1(2*n_cond_l1+1 : end, :);
 
-% split pairs into three conditions
-idx_start = 1;
-idx_end = p.nComparison;
-comparison_pairs = final_pairs(idx_start:idx_end, :);
+% --- Split L2 Pool (180 pairs -> 60/60/60) ---
+final_list_l2 = master_pair_list_l2(randperm(height(master_pair_list_l2)), :);
 
-idx_start = idx_end + 1;
-idx_end = idx_start + p.nIsolated_Both - 1;
-iso_both_pairs = final_pairs(idx_start:idx_end, :);
+% Split this pool into 3 equal chunks
+comp_l2 = final_list_l2(1:n_cond_l2, :);
+iso_l2  = final_list_l2(n_cond_l2+1 : 2*n_cond_l2, :);
+nov_l2  = final_list_l2(2*n_cond_l2+1 : end, :);
 
-idx_start = idx_end + 1;
-idx_end = idx_start + p.nNovel - 1;
-novel_pairs = final_pairs(idx_start:idx_end, :);
+% --- Combine pools to create final 120-pair condition lists ---
+comp_pairs = [comp_l1; comp_l2];
+iso_pairs = [iso_l1; iso_l2];
+novel_pairs = [nov_l1; nov_l2];
 
-% shuffle foils
-all_foils = all_foils(randperm(numel(all_foils)));
+% Shuffle the final lists so L1/L2 pairs are mixed
+comp_pairs = comp_pairs(randperm(height(comp_pairs)), :);
+iso_pairs = iso_pairs(randperm(height(iso_pairs)), :);
+novel_pairs = novel_pairs(randperm(height(novel_pairs)), :);
 
 % store condition assignments
-p.stim.comparison = comparison_pairs;
-p.stim.iso_both = iso_both_pairs;
+p.stim.comp_l1 = comp_l1;
+p.stim.comp_l2 = comp_l2;
+p.stim.iso_l1 = iso_l1;
+p.stim.iso_l2 = iso_l2;
+p.stim.novel_l1 = nov_l1;
+p.stim.novel_l2 = nov_l2;
+
+% Store the final combined lists
+p.stim.compared = comp_pairs;
+p.stim.isolated = iso_pairs;
 p.stim.novel = novel_pairs;
 
+fprintf('  -> Compared: %d L1, %d L2 (Total %d)\n', height(comp_l1), height(comp_l2), height(comp_pairs));
+fprintf('  -> Isolated:   %d L1, %d L2 (Total %d)\n', height(iso_l1), height(iso_l2), height(iso_pairs));
+fprintf('  -> Novel:      %d L1, %d L2 (Total %d)\n', height(nov_l1), height(nov_l2), height(novel_pairs));
 
-%% ========================================================================
-%  SECTION 4: PARTITION STIMULI INTO BLOCKS
-%  ========================================================================
-% divide each condition's stimuli evenly across the 3 blocks
-
-% helper function: split N items into nblocks approximately equal chunks
+%% P4: Split stimuli into blocks
 partition_idx = @(N, nblocks) arrayfun(@(k) ...
     ((floor((k-1)*N/nblocks)+1):floor(k*N/nblocks)), ...
     1:nblocks, 'UniformOutput', false);
 
-% get index ranges for each block
-comp_idx_blocks = partition_idx(p.nComparison, p.nBlocks);
-iso_idx_blocks = partition_idx(p.nIsolated_Both, p.nBlocks);
-nov_idx_blocks = partition_idx(p.nNovel, p.nBlocks);
+n_comp_l1 = height(p.stim.comp_l1); % 60
+n_iso_l1 = height(p.stim.iso_l1);   % 60
+n_nov_l1 = height(p.stim.novel_l1);     % 60
 
+n_comp_l2 = height(p.stim.comp_l2); % 60
+n_iso_l2 = height(p.stim.iso_l2);   % 60
+n_nov_l2 = height(p.stim.novel_l2);     % 60
 
-%% ========================================================================
-%  SECTION 5: BUILD EACH BLOCK
-%  ========================================================================
+% --- Partition L1 pools into 4 blocks (15 pairs each) ---
+p.block_indices.comp_l1 = partition_idx(n_comp_l1, p.nBlocks);
+p.block_indices.iso_l1  = partition_idx(n_iso_l1, p.nBlocks);
+p.block_indices.nov_l1  = partition_idx(n_nov_l1, p.nBlocks);
 
-fprintf('Building %d blocks...\n', p.nBlocks);
+% --- Partition L2 pools into 4 blocks (15 pairs each) ---
+p.block_indices.comp_l2 = partition_idx(n_comp_l2, p.nBlocks);
+p.block_indices.iso_l2  = partition_idx(n_iso_l2, p.nBlocks);
+p.block_indices.nov_l2  = partition_idx(n_nov_l2, p.nBlocks);
 
-% tables to accumulate all trials across blocks
-encoding_schedule_all = table();
-test_schedule_all = table();
+fprintf('  -> Each block gets: 15 L1-Comp, 15 L2-Comp, 15 L1-Iso, etc.\n');
 
-% response counters
-p.counts.encoding = struct('j_presses', 0, 'k_presses', 0, 'no_response', 0);
-p.counts.test = struct('j_presses', 0, 'k_presses', 0, 'no_response', 0);
+%% P5: Build sequence
+all_foils_remain = all_foil_pairs;
 
 for b = 1:p.nBlocks
-    fprintf('--- Block %d ---\n', b);
-    
-    % =====================================================================
-    % 5A: SELECT BLOCK-SPECIFIC PAIRS
-    % =====================================================================
-    
-    comparison_pairs_b = p.stim.comparison(comp_idx_blocks{b}, :);
-    iso_both_pairs_b = p.stim.iso_both(iso_idx_blocks{b}, :);
-    novel_pairs_b = p.stim.novel(nov_idx_blocks{b}, :);
-    
-    nComp_b = height(comparison_pairs_b);
-    nIso_b = height(iso_both_pairs_b);
+    fprintf('\nBlock %d \n', b);
+   
+    %%% Assign block-specific stimuli
+    comp_l1_b = p.stim.comp_l1(p.block_indices.comp_l1{b}, :);
+    comp_l2_b = p.stim.comp_l2(p.block_indices.comp_l2{b}, :);
+    comp_pairs_b = [comp_l1_b; comp_l2_b];
+    comp_pairs_b = comp_pairs_b(randperm(height(comp_pairs_b)), :);
+
+    iso_l1_b = p.stim.iso_l1(p.block_indices.iso_l1{b}, :);
+    iso_l2_b = p.stim.iso_l2(p.block_indices.iso_l2{b}, :);
+    iso_pairs_b = [iso_l1_b; iso_l2_b];
+    iso_pairs_b = iso_pairs_b(randperm(height(iso_pairs_b)), :);
+
+    nov_l1_b = p.stim.novel_l1(p.block_indices.nov_l1{b}, :);
+    nov_l2_b = p.stim.novel_l2(p.block_indices.nov_l2{b}, :);
+    novel_pairs_b = [nov_l1_b; nov_l2_b];
+    novel_pairs_b = novel_pairs_b(randperm(height(novel_pairs_b)), :);
+
+    nComp_b = height(comp_pairs_b);
+    nIso_b = height(iso_pairs_b);
     nNov_b = height(novel_pairs_b);
-    
-    % =====================================================================
-    % 5B: BUILD ENCODING PHASE FOR THIS BLOCK
-    % =====================================================================
-    
-    encoding_blocks = {};  % experimental trial blocks
-    spacer_blocks = {};    % filler trial blocks
-    
-    % --- comparison condition encoding ---
-    % each block: target, then lure (requires 'k' response)
+
+    %% P5A: Build sequence 1-back
+    comp_miniblocks = {};
+    repeat_miniblocks = {};
+    iso_trials = {};
+
+    %%%% compared (C-C')
     for i = 1:nComp_b
-        encoding_blocks{end+1} = { ...
-            comparison_pairs_b.Target(i), "comparison", "target", "new", "none"; ...
-            comparison_pairs_b.Lure(i), "comparison", "lure", "lure", "k"};
+        comp_miniblocks{end+1} = { ...
+            comp_pairs_b.A(i), "compared", "A", "none"; ...
+            comp_pairs_b.B(i), "compared", "B", "k"};
     end
-    
-    % --- isolated-both condition encoding ---
-    % each stimulus appears in separate block with filler
-    iso_event_foils = all_foils(1:2*nIso_b);
-    all_foils(1:2*nIso_b) = [];
-    
-    for i = 1:nIso_b
-        % target block
-        encoding_blocks{end+1} = { ...
-            iso_event_foils(1), "iso_both", "filler", "new", "none"; ...
-            iso_both_pairs_b.Target(i), "iso_both", "target", "new", "none"};
-        iso_event_foils(1) = [];
-        
-        % lure block
-        encoding_blocks{end+1} = { ...
-            iso_event_foils(1), "iso_both", "filler", "new", "none"; ...
-            iso_both_pairs_b.Lure(i), "iso_both", "lure", "new", "none"};
-        iso_event_foils(1) = [];
-    end
-    
-    % --- spacer blocks: foil repeats (provide 'j' responses) ---
+
+    %%%% foil repeats (R-R)
     n_foil_repeats = nComp_b;
-    repeat_foils = all_foils(1:n_foil_repeats);
-    all_foils(1:n_foil_repeats) = [];
     
+    if height(all_foils_remain) < n_foil_repeats
+        error('Not enough foils for 1-back in Block %d', b);
+    end
+    repeat_foil_pairs = all_foils_remain(1:n_foil_repeats, :);
+    all_foils_remain(1:n_foil_repeats, :) = [];
+
     for i = 1:n_foil_repeats
-        spacer_blocks{end+1} = { ...
-            repeat_foils(i), "foil_repeat", "filler", "new", "none"; ...
-            repeat_foils(i), "foil_repeat", "filler", "repeat", "j"};
+        foil_item = repeat_foil_pairs.A_foil(i);
+        repeat_miniblocks{end+1} = { ...
+            foil_item, "repeat", "A", "none"; ...
+            foil_item, "repeat", "A", "j"};
     end
-    
-    % --- spacer blocks: new foils (fill remaining slots) ---
-    n_new_spacers = numel(encoding_blocks) - numel(spacer_blocks);
-    
-    new_spacer_foils_1 = all_foils(1:n_new_spacers);
-    all_foils(1:n_new_spacers) = [];
-    
-    new_spacer_foils_2 = all_foils(1:n_new_spacers);
-    all_foils(1:n_new_spacers) = [];
-    
-    for i = 1:n_new_spacers
-        spacer_blocks{end+1} = { ...
-            new_spacer_foils_1(i), "foil_new", "filler", "new", "none"; ...
-            new_spacer_foils_2(i), "foil_new", "filler", "new", "none"};
-    end
-    
-    % --- interleave encoding and spacer blocks ---
-    shuffled_encoding = encoding_blocks(randperm(numel(encoding_blocks)));
-    shuffled_spacers = spacer_blocks(randperm(numel(spacer_blocks)));
-    
-    final_ordered_blocks = reshape([shuffled_spacers; shuffled_encoding], 1, []);
-    final_encoding_list = vertcat(final_ordered_blocks{:});
-    
-    % convert to table
-    encoding_schedule_block = cell2table(final_encoding_list, ...
-        'VariableNames', {'stimulus_id', 'condition', 'role', ...
-                          'trial_type_designed', 'correct_response'});
-    
-    % add block number column
-    encoding_schedule_block.block = repmat(b, height(encoding_schedule_block), 1);
-    
-    % aadd n-back verification columns
-    encoding_schedule_block.nback_target_id = strings(height(encoding_schedule_block), 1);
-    encoding_schedule_block.trial_type_final = encoding_schedule_block.trial_type_designed;
-    
-    % check for 1-back repeats
-    for i = 2:height(encoding_schedule_block)
-        encoding_schedule_block.nback_target_id(i) = ...
-            encoding_schedule_block.stimulus_id(i-1);
-        
-        if string(encoding_schedule_block.stimulus_id(i)) == ...
-           string(encoding_schedule_block.nback_target_id(i))
-            encoding_schedule_block.trial_type_final(i) = "repeat";
-            encoding_schedule_block.correct_response(i) = "j";
-        end
-    end
-    
-    % =====================================================================
-    % 5C: ENSURE TARGET ENCODED BEFORE LURE (ISOLATED CONDITION ONLY)
-    % =====================================================================
-    
-    all_iso_pairs_block = iso_both_pairs_b;
-    
-    for i = 1:height(all_iso_pairs_block)
-        tgt = all_iso_pairs_block.Target(i);
-        lur = all_iso_pairs_block.Lure(i);
-        
-        idx_tgt = find(encoding_schedule_block.stimulus_id == tgt, 1);
-        idx_lur = find(encoding_schedule_block.stimulus_id == lur, 1);
-        
-        % swap if lure appears before target
-        if ~isempty(idx_tgt) && ~isempty(idx_lur) && idx_lur < idx_tgt
-            tmp = encoding_schedule_block(idx_tgt, :);
-            encoding_schedule_block(idx_tgt, :) = encoding_schedule_block(idx_lur, :);
-            encoding_schedule_block(idx_lur, :) = tmp;
-        end
-    end
-    
-    % append into full schedule
-    encoding_schedule_all = [encoding_schedule_all; encoding_schedule_block];
-    
-    % update response counts
-    p.counts.encoding.j_presses = p.counts.encoding.j_presses + ...
-        sum(strcmp(encoding_schedule_block.correct_response, 'j'));
-    p.counts.encoding.k_presses = p.counts.encoding.k_presses + ...
-        sum(strcmp(encoding_schedule_block.correct_response, 'k'));
-    p.counts.encoding.no_response = p.counts.encoding.no_response + ...
-        sum(strcmp(encoding_schedule_block.correct_response, 'none'));
-    
-    % =====================================================================
-    % 5D: BUILD TEST PHASE FOR THIS BLOCK
-    % =====================================================================
-    
-    phase2_crit_blocks = {};  % Lure triads (require 'k')
-    phase2_safe_blocks = {};  % Repeat triads (require 'j')
-    
-    % --- critical triads: target → filler → lure ---
-    n_crit_expected = nComp_b + nIso_b + nNov_b;
-    
-    assert(numel(all_foils) >= n_crit_expected, ...
-           'not enough foils for critical triads');
-    
-    intervening_foils = all_foils(1:n_crit_expected);
-    all_foils(1:n_crit_expected) = [];
-    
-    % comparison condition
-    for i = 1:nComp_b
-        phase2_crit_blocks{end+1} = { ...
-            comparison_pairs_b.Target(i), "comparison", "target", "new", "none"; ...
-            intervening_foils(1), "unrelated_filler", "filler", "new", "none"; ...
-            comparison_pairs_b.Lure(i), "comparison", "lure", "lure", "k"};
-        intervening_foils(1) = [];
-    end
-    
-    % isolated-both condition
+
+    %%%% isolated items (I-I')
     for i = 1:nIso_b
-        phase2_crit_blocks{end+1} = { ...
-            iso_both_pairs_b.Target(i), "isolated_both", "target", "new", "none"; ...
-            intervening_foils(1), "unrelated_filler", "filler", "new", "none"; ...
-            iso_both_pairs_b.Lure(i), "isolated_both", "lure", "lure", "k"};
-        intervening_foils(1) = [];
+        iso_trials{end+1} = { ...
+            iso_pairs_b.A(i), "isolated", "A", "none"};
+        iso_trials{end+1} = { ...
+            iso_pairs_b.B(i), "isolated", "B", "none"};
     end
-    
-    % novel condition
-    for i = 1:nNov_b
-        phase2_crit_blocks{end+1} = { ...
-            novel_pairs_b.Target(i), "novel", "target", "new", "none"; ...
-            intervening_foils(1), "unrelated_filler", "filler", "new", "none"; ...
-            novel_pairs_b.Lure(i), "novel", "lure", "lure", "k"};
-        intervening_foils(1) = [];
-    end
-    
-    % --- safe triads: foilA → foilB → foilA (2-back repeat) ---
-    % calculate proportional number of repeat triads for this block
-    total_pairs_block = nComp_b + nIso_b + nNov_b;
-    proportion = total_pairs_block / (p.nComparison + p.nIsolated_Both + p.nNovel);
-    n_repeat_triads_block = max(round(p.nTest_Repeat_Events * proportion), 1);
-    
-    n_needed_foils = 2 * n_repeat_triads_block;
-    assert(numel(all_foils) >= n_needed_foils, ...
-           'not enough foils for repeat triads');
-    
-    repeat_foil_A = all_foils(1:n_repeat_triads_block);
-    repeat_foil_B = all_foils(n_repeat_triads_block+1 : 2*n_repeat_triads_block);
-    all_foils(1:2*n_repeat_triads_block) = [];
-    
-    for i = 1:n_repeat_triads_block
-        phase2_safe_blocks{end+1} = { ...
-            repeat_foil_A(i), "foil_repeat", "filler", "new", "none"; ...
-            repeat_foil_B(i), "foil_repeat", "filler", "new", "none"; ...
-            repeat_foil_A(i), "foil_repeat", "filler", "repeat", "j"};
-    end
-    
-    % --- interleave safe and critical triads ---
-    n_crit = numel(phase2_crit_blocks);
-    n_safe = numel(phase2_safe_blocks);
-    
-    shuffled_crit = phase2_crit_blocks(randperm(n_crit));
-    shuffled_safe = phase2_safe_blocks(randperm(n_safe));
-    
-    L = max(n_crit, n_safe);
-    interleaved_blocks = {};
-    
-    for i = 1:L
-        if i <= n_safe
-            interleaved_blocks{end+1} = shuffled_safe{i};
-        end
-        if i <= n_crit
-            interleaved_blocks{end+1} = shuffled_crit{i};
+
+    % Combine and shuffle
+    miniblocks_1_back = [comp_miniblocks, repeat_miniblocks, iso_trials];
+    shuffled_indices = randperm(numel(miniblocks_1_back));
+    final_miniblocks = miniblocks_1_back(shuffled_indices);
+    final_1_back_list = vertcat(final_miniblocks{:});
+
+    % Convert to table
+    sequence_1_back_block = cell2table(final_1_back_list, ...
+        'VariableNames', {'stim_id', 'condition', 'identity', 'corr_resp'});
+
+    sequence_1_back_block.block = repmat(b, height(sequence_1_back_block), 1);
+
+    %%%% Ensure A appears earlier than B for Isolated item
+    for i = 1:height(iso_pairs_b)
+        tgt = iso_pairs_b.A(i);
+        lur = iso_pairs_b.B(i);
+
+        idx_tgt_trial = find(sequence_1_back_block.stim_id == tgt, 1);
+        idx_lur_trial = find(sequence_1_back_block.stim_id == lur, 1);
+
+        if ~isempty(idx_tgt_trial) && ~isempty(idx_lur_trial) && idx_lur_trial < idx_tgt_trial
+            tmp = sequence_1_back_block(idx_tgt_trial, :);
+            sequence_1_back_block(idx_tgt_trial, :) = sequence_1_back_block(idx_lur_trial, :);
+            sequence_1_back_block(idx_lur_trial, :) = tmp;
         end
     end
+
+    % Append to full schedule
+    sequence_1_back = [sequence_1_back; sequence_1_back_block];
+
+    % Update counts
+    p.counts.oneback.resp_same = p.counts.oneback.resp_same + ...
+        sum(strcmp(sequence_1_back_block.corr_resp, 'j'));
+    p.counts.oneback.resp_similar = p.counts.oneback.resp_similar + ...
+        sum(strcmp(sequence_1_back_block.corr_resp, 'k'));
+    p.counts.oneback.resp_new = p.counts.oneback.resp_new + ...
+        sum(strcmp(sequence_1_back_block.corr_resp, 'none'));
+
+    %% P5B: Build sequence 2-back
+    fprintf('  Building 2-back sequence...\n');
+
+    %%% Create goal list
+    block_pairs = [comp_pairs_b; iso_pairs_b; novel_pairs_b];
+    block_conditions = [repmat("compared", nComp_b, 1); ...
+                        repmat("isolated", nIso_b, 1); ...
+                        repmat("novel", nNov_b, 1)];
+    goal_list = table('Size', [90, 5], ...
+        'VariableTypes', {'string', 'string', 'string', 'string', 'string'}, ...
+        'VariableNames', {'A', 'B', 'condition', 'goal_type', 'X'});
+    goal_list.A = block_pairs.A;
+    goal_list.B = block_pairs.B;
+    goal_list.condition = block_conditions;
+    % assign goal types (1/3 each)
+    idx_shuf = randperm(90);
+    goal_list.goal_type(idx_shuf(1:30)) = "A-B";
+    goal_list.goal_type(idx_shuf(31:60)) = "A-A";
+    goal_list.goal_type(idx_shuf(61:90)) = "A-N";
+    % assign X for A-A and A-B
+    for i = 1:90
+        if goal_list.goal_type(i) == "A-B"
+            goal_list.X(i) = goal_list.B(i);
+        elseif goal_list.goal_type(i) == "A-A"
+            goal_list.X(i) = goal_list.A(i);
+        else
+            goal_list.X(i) = ""; % assigned dynamically
+        end
+    end
+    % shuffle goal order
+    goal_list = goal_list(randperm(height(goal_list)), :);
     
-    final_test_list = vertcat(interleaved_blocks{:});
+    %%% Build sequence
+    sequence = cell(300, 5); % Increased size to prevent crash
+    row_idx = 1;
+    % init with 2 junk
+    junk1 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+    junk2 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
+    sequence(row_idx,:) = {junk1.A_foil, "init_junk", "J", "JUNK", "none"};
+    row_idx = row_idx + 1;
+    sequence(row_idx,:) = {junk2.A_foil, "init_junk", "J", "JUNK", "none"};
+    row_idx = row_idx + 1;
+    active_goals = [];
+    goals_started = false(height(goal_list), 1);
+    goal_pointer = 1;
     
-    % convert to table
-    test_schedule_block = cell2table(final_test_list, ...
-        'VariableNames', {'stimulus_id', 'condition', 'role', ...
-                          'trial_type_designed', 'correct_response'});
-    
-    % add block number column
-    test_schedule_block.block = repmat(b, height(test_schedule_block), 1);
-    
-    % add n-back verification columns
-    test_schedule_block.nback_target_id = strings(height(test_schedule_block), 1);
-    test_schedule_block.trial_type_final = test_schedule_block.trial_type_designed;
-    
-    % check for 2-back repeats (starting at trial 3)
-    for i = 3:height(test_schedule_block)
-        test_schedule_block.nback_target_id(i) = ...
-            test_schedule_block.stimulus_id(i-2);
+    while goal_pointer <= height(goal_list) || ~isempty(active_goals)
+        % check if any goal needs completion (at N-2)
+        goals_to_complete = [];
+        for k = 1:size(active_goals, 1)
+            goal_idx = active_goals(k, 1);
+            goal_pos = active_goals(k, 2);
+            if row_idx - goal_pos == 2
+                goals_to_complete(end+1) = k;
+            end
+        end
         
-        if string(test_schedule_block.stimulus_id(i)) == ...
-           string(test_schedule_block.nback_target_id(i))
-            test_schedule_block.trial_type_final(i) = "repeat";
-            test_schedule_block.correct_response(i) = "j";
+        if ~isempty(goals_to_complete)
+            % Complete first ready goal
+            k = goals_to_complete(1);
+            goal_idx = active_goals(k, 1);
+            goal = goal_list(goal_idx, :); % This is the N-2 goal
+            X_type = goal.goal_type;      % This is the N-2 goal_type (e.g., "A-N")
+            
+            if strcmp(X_type, "A-N")
+                % A-N GOAL: 'X' is a NEW 'A' item
+                active_goal_indices = active_goals(:, 1);
+                next_unstarted = [];
+                for check_idx = 1:height(goal_list)
+                    if ~goals_started(check_idx) && ...
+                       ~ismember(check_idx, active_goal_indices)
+                        next_unstarted = check_idx;
+                        break;
+                    end
+                end
+                
+                if ~isempty(next_unstarted)
+                    X = goal_list.A(next_unstarted); % This is the new 'A' item
+                else
+                    X = all_foils_remain.A_foil(1); % Grab a foil
+                    all_foils_remain(1,:) = [];     % Consume the foil
+                end
+                
+                % --- THIS IS THE FUCKING FIX ---
+                % Find the properties of the NEW item 'X'
+                X_props = goal_list(strcmp(goal_list.A, X), :);
+                if isempty(X_props)
+                    % This is a failsafe, e.g., we grabbed a 'B' item
+                    log_condition = "junk_foil";
+                    log_goal_type = "JUNK"; 
+                    X_identity = "J";
+                else
+                    % Log the NEW item's OWN properties
+                    log_condition = X_props.condition(1);
+                    log_goal_type = X_props.goal_type(1); % This logs X's OWN goal
+                    X_identity = "A";
+                end
+                X_resp = "none";
+                % --- END FIX ---
+                
+            else
+                % A-A or A-B GOAL: 'X' is the 'A' or 'B' from the N-2 pair
+                X = goal.X;
+                log_condition = goal.condition; % Log N-2's condition
+                log_goal_type = X_type;       % Log N-2's goal (it's consistent)
+                
+                if strcmp(X_type, "A-B")
+                    X_resp = "k";
+                    X_identity = "B";
+                else
+                    X_resp = "j";
+                    X_identity = "A";
+                end
+            end
+            
+            sequence(row_idx,:) = {X, log_condition, X_identity, log_goal_type, X_resp};
+            row_idx = row_idx + 1;
+            active_goals(k, :) = [];
+            
+            % if "new" goal, X_item can start its own goal
+            if strcmp(X_type, "A-N")
+                X_goal_idx = find(strcmp(goal_list.A, X), 1);
+                if ~isempty(X_goal_idx) && ~goals_started(X_goal_idx)
+                    goals_started(X_goal_idx) = true;
+                    active_goals(end+1, :) = [X_goal_idx, row_idx - 1];
+                end
+            end
+        else
+            % start new goal
+            while goal_pointer <= height(goal_list) && goals_started(goal_pointer)
+                goal_pointer = goal_pointer + 1;
+            end
+            
+            if goal_pointer <= height(goal_list)
+                goal = goal_list(goal_pointer, :);
+                
+                % --- THIS IS THE FIX FOR THE UNDEFINED VARIABLE ---
+                sequence(row_idx,:) = {goal.A, goal.condition, "A", goal.goal_type, "none"};
+                
+                goals_started(goal_pointer) = true;
+                active_goals(end+1, :) = [goal_pointer, row_idx];
+                row_idx = row_idx + 1;
+                goal_pointer = goal_pointer + 1;
+            else
+                break; % All goals started
+            end
         end
     end
     
-    % append into full schedule
-    test_schedule_all = [test_schedule_all; test_schedule_block]; %#ok<AGROW>
+    % end junk
+    if height(all_foils_remain) >= 5
+        for jj = 1:5
+            % --- THIS IS THE FIX FOR THE JUNK LOOP ---
+            sequence(row_idx,:) = {all_foils_remain.A_foil(jj), "end_junk", "J", "JUNK", "none"};
+            row_idx = row_idx + 1;
+        end
+        all_foils_remain(1:5,:) = [];
+    end
     
-    % update response counts
-    p.counts.test.j_presses = p.counts.test.j_presses + ...
-        sum(strcmp(test_schedule_block.correct_response, 'j'));
-    p.counts.test.k_presses = p.counts.test.k_presses + ...
-        sum(strcmp(test_schedule_block.correct_response, 'k'));
-    p.counts.test.no_response = p.counts.test.no_response + ...
-        sum(strcmp(test_schedule_block.correct_response, 'none'));
+    % Convert to table
+    sequence_2_back_block = cell2table(sequence(1:row_idx-1, :), ...
+        'VariableNames', {'stim_id', 'condition', 'identity', 'goal','corr_resp'});
+    
+    sequence_2_back_block.block = repmat(b, height(sequence_2_back_block), 1);
+
+    % Append to full schedule
+    sequence_2_back = [sequence_2_back; sequence_2_back_block];
+
+    % Update counts
+    p.counts.twoback.resp_same = p.counts.twoback.resp_same + ...
+        sum(strcmp(sequence_2_back_block.corr_resp, 'j'));
+    p.counts.twoback.resp_similar = p.counts.twoback.resp_similar + ...
+        sum(strcmp(sequence_2_back_block.corr_resp, 'k'));
+    p.counts.twoback.resp_new = p.counts.twoback.resp_new + ...
+        sum(strcmp(sequence_2_back_block.corr_resp, 'none'));
+
+    fprintf('  Generated %d 1-back trials, %d 2-back trials\n', ...
+            height(sequence_1_back_block), height(sequence_2_back_block));
 end
 
+
+%% P6: Build recognition task
+fprintf('\nBuilding final recognition task...\n');
+
+% --- 1. Get 'Old' items (N=240) from 'compared' and 'isolated' only ---
+% For each of the 240 pairs, randomly select A or B
+n_old_items = p.nComparison + p.nIsolated_Both;
+
+all_study_pairs = [p.stim.compared; p.stim.isolated];
+all_study_conds = [repmat("compared", p.nComparison, 1); ...
+                   repmat("isolated", p.nIsolated_Both, 1)];
+
+selected_old_items = strings(n_old_items, 1);
+selected_identity = strings(n_old_items, 1);
+
+fprintf('  Sampling 240 old items (random A/B) from compared/isolated...\n');
+for i = 1:n_old_items
+    if rand() > 0.5
+        % Select the 'A' item
+        selected_old_items(i) = all_study_pairs.A(i);
+        selected_identity(i) = "A";
+    else
+        % Select the 'B' item
+        selected_old_items(i) = all_study_pairs.B(i);
+        selected_identity(i) = "B";
+    end
+end
+
+% Build the final 'Old' items table
+all_old_items = table(selected_old_items, all_study_conds, selected_identity, ...
+    'VariableNames', {'stim_id', 'condition', 'identity'});
+all_old_items.trial_type = repmat("old", n_old_items, 1);
+all_old_items.correct_response = repmat(p.keys.same, n_old_items, 1); 
+
+% --- 2. Get 240 'New' Foil items ---
+n_rec_foils = n_old_items; % 240
+assert(height(all_foils_remain) >= n_rec_foils, ...
+    'Not enough remaining foils for recognition task! Need %d, have %d', ...
+    n_rec_foils, height(all_foils_remain));
+    
+% Grab 240 'A_foil' images 
+new_foils_list = all_foils_remain.A_foil(1:n_rec_foils);
+all_foils_remain(1:n_rec_foils, :) = []; % Remove them
+
+all_new_items = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
+    repmat("N/A", n_rec_foils, 1), repmat("new", n_rec_foils, 1), ...
+    repmat(p.keys.diff, n_rec_foils, 1), ... 
+    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'correct_response'});
+    
+% --- 3. Combine, shuffle, and add to 'p' struct ---
+sequence_recognition = [all_old_items; all_new_items];
+sequence_recognition = sequence_recognition(randperm(height(sequence_recognition)), :);
+
+fprintf('  Generated %d recognition trials (240 old, 240 new).\n', height(sequence_recognition));
+
+% Add to 'p' struct
+p.sequence_recognition = sequence_recognition;
+
 %% ========================================================================
-%  SECTION 6: GENERATE JITTERED FIXATION DURATIONS
+%  P7: ADD JITTER & SAVE OUTPUT
 %  ========================================================================
-% create random fixation durations for each trial
-% base duration ± jitter: 0.75 ± 0.25 = [0.5, 1.0] seconds
+fprintf('\nAdding jittered fixations and saving all schedules...\n');
 
-n_enc_trials = height(encoding_schedule_all);
-n_test_trials = height(test_schedule_all);
+% --- Add jittered fixation durations ---
+n_enc_trials = height(sequence_1_back);
+n_test_trials = height(sequence_2_back);
+n_rec_trials = height(p.sequence_recognition);
 
-% generate jittered durations using uniform distribution
-encoding_schedule_all.fix_duration = ...
+sequence_1_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_enc_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
-test_schedule_all.fix_duration = ...
+sequence_2_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_test_trials, 1) * 2 - 1) * p.timing.fix_jitter;
-
-%% ========================================================================
-%  SECTION 7: SANITY CHECKS
-%  ========================================================================
-
-fprintf('\n===== FINAL SANITY CHECKS =====\n');
-
-% --- check 1: target precedes lure in encoding (isolated_both only) ---
-violations_enc = [];
-all_iso_pairs = p.stim.iso_both;
-
-for i = 1:height(all_iso_pairs)
-    tgt = all_iso_pairs.Target(i);
-    lur = all_iso_pairs.Lure(i);
     
-    idx_tgt = find(encoding_schedule_all.stimulus_id == tgt, 1);
-    idx_lur = find(encoding_schedule_all.stimulus_id == lur, 1);
-    
-    if isempty(idx_tgt) || isempty(idx_lur)
-        continue;
-    end
-    
-    if idx_lur < idx_tgt
-        violations_enc(end+1, :) = [i, idx_tgt, idx_lur];
-    end
-end
+p.sequence_recognition.fix_duration = ...
+    p.timing.fix_dur + (rand(n_rec_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
-if isempty(violations_enc)
-    fprintf('✓ Encoding schedule OK: All isolated_both targets precede lures.\n');
-else
-    fprintf('✗ Encoding violations found: %d pairs!\n', size(violations_enc, 1));
-    disp(array2table(violations_enc, ...
-                     'VariableNames', {'PairIndex', 'TargetRow', 'LureRow'}));
-end
+% --- Add subj_id to all schedules ---
+sequence_1_back.subj_id = repmat(subj_id, n_enc_trials, 1);
+sequence_2_back.subj_id = repmat(subj_id, n_test_trials, 1);
+p.sequence_recognition.subj_id = repmat(subj_id, n_rec_trials, 1);
 
-% --- check 2: fixation duration range ---
-fprintf('\nFixation Duration Range:\n');
-fprintf('  Encoding: %.3f to %.3f seconds\n', ...
-        min(encoding_schedule_all.fix_duration), ...
-        max(encoding_schedule_all.fix_duration));
-fprintf('  Test:     %.3f to %.3f seconds\n', ...
-        min(test_schedule_all.fix_duration), ...
-        max(test_schedule_all.fix_duration));
+% --- Save all schedules to 'p' struct ---
+p.sequence_1_back = sequence_1_back;
+p.sequence_2_back = sequence_2_back;
+p.stim.all_foils_remaining = all_foils_remain; % Save the final unused stack
 
-% --- check 3: # of experimental conditions and response types ---
-for b = 1:p.nBlocks
-    fprintf('\n--- BLOCK %d ---\n', b);
-    
-    enc_block = encoding_schedule_all(encoding_schedule_all.block == b, :);
-    test_block = test_schedule_all(test_schedule_all.block == b, :);
-    
-    % ENCODING: Count conditions
-    fprintf('Encoding Phase:\n');
-    fprintf('  Comparison:    %d trials\n', sum(strcmp(enc_block.condition, 'comparison')));
-    fprintf('  Isolated-both: %d trials\n', sum(strcmp(enc_block.condition, 'iso_both')));
-    fprintf('  Foil-repeat:   %d trials\n', sum(strcmp(enc_block.condition, 'foil_repeat')));
-    fprintf('  Foil-new:      %d trials\n', sum(strcmp(enc_block.condition, 'foil_new')));
-    
-    % ENCODING: Count responses
-    enc_j = sum(strcmp(enc_block.correct_response, 'j'));
-    enc_k = sum(strcmp(enc_block.correct_response, 'k'));
-    enc_none = sum(strcmp(enc_block.correct_response, 'none'));
-    fprintf('  Responses: j=%d, k=%d, none=%d\n', enc_j, enc_k, enc_none);
-    
-    % TEST: Count conditions
-    fprintf('Test Phase:\n');
-    fprintf('  Comparison:    %d trials\n', sum(strcmp(test_block.condition, 'comparison')));
-    fprintf('  Isolated-both: %d trials\n', sum(strcmp(test_block.condition, 'isolated_both')));
-    fprintf('  Novel:         %d trials\n', sum(strcmp(test_block.condition, 'novel')));
-    fprintf('  Foil-repeat:   %d trials\n', sum(strcmp(test_block.condition, 'foil_repeat')));
-    fprintf('  Unrelated:     %d trials\n', sum(strcmp(test_block.condition, 'unrelated_filler')));
-    
-    % TEST: Count responses
-    test_j = sum(strcmp(test_block.correct_response, 'j'));
-    test_k = sum(strcmp(test_block.correct_response, 'k'));
-    test_none = sum(strcmp(test_block.correct_response, 'none'));
-    fprintf('  Responses: j=%d, k=%d, none=%d\n', test_j, test_k, test_none);
-end
+% --- Final Summary ---
+fprintf('\n=== FINAL SUMMARY ===\n');
+fprintf('Total 1-back trials: %d\n', n_enc_trials);
+fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
+        p.counts.oneback.resp_same, p.counts.oneback.resp_similar, p.counts.oneback.resp_new);
+fprintf('Total 2-back trials: %d\n', n_test_trials);
+fprintf('  j presses: %d, k presses: %d, no response: %d\n', ...
+        p.counts.twoback.resp_same, p.counts.twoback.resp_similar, p.counts.twoback.resp_new);
+fprintf('Total recognition trials: %d\n', n_rec_trials);
+fprintf('  Old: %d, New: %d\n', sum(p.sequence_recognition.trial_type == "old"), ...
+        sum(p.sequence_recognition.trial_type == "new"));
+fprintf('Foils remaining in stack: %d\n', height(all_foils_remain));
 
-fprintf('===== SANITY CHECK COMPLETE =====\n\n');
-
-
-%% ========================================================================
-%  SECTION 8: SAVE SUBJECT DATA
-%  ========================================================================
-
-subject_data.subj_id = subj_id;
-subject_data.parameters = p;
-subject_data.encoding_schedule = encoding_schedule_all;
-subject_data.test_schedule = test_schedule_all;
-
-save(output_filename, 'subject_data');
-
-fprintf('setup saved to:\n%s\n\n', output_filename);
-fprintf('Summary:\n');
-fprintf('  Encoding: j=%d, k=%d, none=%d\n', ...
-        p.counts.encoding.j_presses, ...
-        p.counts.encoding.k_presses, ...
-        p.counts.encoding.no_response);
-fprintf('  Test:     j=%d, k=%d, none=%d\n', ...
-        p.counts.test.j_presses, ...
-        p.counts.test.k_presses, ...
-        p.counts.test.no_response);
+% --- Save the file ---
+save(output_filename, 'p');
+fprintf('\nSetup saved to: %s\n', output_filename);

@@ -5,8 +5,8 @@
 %% 1. SETUP PARAMETERS
 canvas_size = 400;                        % final canvas size
 canvas_color = [255, 255, 255];           % white background
-root_directory = fullfile(pwd, 'Sets1_6'); % parent folder containing Set 1...Set 6
-output_directory = 'norm_stim';           % main output folder
+root_directory = fullfile(pwd, 'stim_Stark_etal'); % parent folder containing Set 1...Set 6
+output_directory = 'stim_norm';           % main output folder
 file_types = {'*.jpg'};                   % file types
 
 %--------------------------------------------------------------------------

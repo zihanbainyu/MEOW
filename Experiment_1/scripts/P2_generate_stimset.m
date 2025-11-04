@@ -1,29 +1,23 @@
 %==========================================================================
 %                  Generate stimulus set
 %==========================================================================
-% author: Zihan Bai
-% note:
-%   load standard MST stimulus sets (Kirwan & Stark, 2007)
-%   randomly, equally select pairs with lure bin = 1 for experimental use
-%   randomly select practice pairs and foils
-%   randomly select experimental foils (MUST EXCLUDE BIN 1 AND BIN 2 PAIRS)
-%   copy and rename into stim_selected folder
-clear; 
+% author: Zihan Bai, Michelmann lab at NYU
+% email: zihan.bai@nyu.edu
+clear;
 clc;
 rng('shuffle');
+
 %% SETUP
 %--------------------------------------------------------------------------
-n_experimental_pairs = 120;   % main experimental pairs
-n_foils = 640;                % total number of unrelated foils
-n_practice_pairs = 10;        % practice experimental pairs
-n_practice_foils = 40;        % practice foils (a images only)
-target_lure_bin = 1;          % select only pairs from this lure bin
+n_experimental_pairs_total = 360; % 180 from Bin 1, 180 from Bin 2
+n_bin1_pairs = 180;
+n_bin2_pairs = 180;
 base_dir = '..';
 in_dir  = fullfile(base_dir, 'stimulus/stim_norm/');
-out_dir = fullfile(base_dir, 'stimulus/stim_selected');
+out_dir = fullfile(base_dir, 'stimulus/stim_final');
 mst_set_folders = {'Set 1','Set 2','Set 3','Set 4','Set 5','Set 6'};
 lure_bin_files  = {'Set1_bins.txt','Set2_bins.txt','Set3_bins.txt',...
-                   'Set4_bins.txt','Set5_bins.txt','Set6_bins.txt'};
+    'Set4_bins.txt','Set5_bins.txt','Set6_bins.txt'};
 if ~exist(out_dir, 'dir')
     mkdir(out_dir);
 end
@@ -49,126 +43,156 @@ for s = 1:numel(mst_set_folders)
 end
 fprintf('Found %d total valid pairs across all sets.\n', size(master_pair_list,1));
 all_bins = cell2mat(master_pair_list(:,3));
-%% REPORT: PAIRS PER LURE BIN PER SET
+%% SELECT EXPERIMENTAL PAIRS (BIN=1 and BIN=2)
 %--------------------------------------------------------------------------
-fprintf('\nPairs per lure bin for each set:\n');
+fprintf('\nSelecting %d total experimental pairs (%d from Bin 1, %d from Bin 2)...\n', ...
+    n_experimental_pairs_total, n_bin1_pairs, n_bin2_pairs);
+% balance by set within each bin
+n_bin1_per_set = floor(n_bin1_pairs / numel(mst_set_folders)); % 180/6 = 30
+n_bin2_per_set = floor(n_bin2_pairs / numel(mst_set_folders)); % 180/6 = 30
+experimental_pairs_l1 = [];
+experimental_pairs_l2 = [];
+% get Bin 1 Pairs, balanced by set
+fprintf('Selecting %d Bin 1 pairs (%d per set)...\n', n_bin1_pairs, n_bin1_per_set);
+all_bin1_pairs = master_pair_list(all_bins==1, :);
 for s = 1:numel(mst_set_folders)
     set_name = mst_set_folders{s};
-    in_set = strcmp(master_pair_list(:,4), set_name);
-    lure_bins = all_bins(in_set);
-    fprintf('\n%s:\n', set_name);
-    for b = 1:5
-        fprintf('  Bin %d: %d pairs\n', b, sum(lure_bins==b));
+    in_set = strcmp(all_bin1_pairs(:,4), set_name);
+    set_bin1_pairs = all_bin1_pairs(in_set, :);
+    if size(set_bin1_pairs,1) < n_bin1_per_set
+        error('%s has insufficient bin-1 pairs (need %d, found %d).', ...
+            set_name, n_bin1_per_set, size(set_bin1_pairs,1));
     end
-    fprintf('  --> Total with lure bin = %d: %d pairs\n', ...
-            target_lure_bin, sum(lure_bins==target_lure_bin));
+    idx = randperm(size(set_bin1_pairs,1), n_bin1_per_set);
+    experimental_pairs_l1 = [experimental_pairs_l1; set_bin1_pairs(idx,:)];
 end
-%% SELECT EXPERIMENTAL PAIRS (BIN=1)
-%--------------------------------------------------------------------------
-fprintf('\nSelecting %d total experimental pairs (≈20 per set)...\n', n_experimental_pairs);
-pairs_per_set = floor(n_experimental_pairs / numel(mst_set_folders));
-experimental_pairs = [];
+% get Bin 2 Pairs, balanced by set
+fprintf('Selecting %d Bin 2 pairs (%d per set)...\n', n_bin2_pairs, n_bin2_per_set);
+all_bin2_pairs = master_pair_list(all_bins==2, :);
 for s = 1:numel(mst_set_folders)
     set_name = mst_set_folders{s};
-    in_set = strcmp(master_pair_list(:,4), set_name);
-    in_bin = all_bins == target_lure_bin;
-    set_bin_pairs = master_pair_list(in_set & in_bin, :);
-    if size(set_bin_pairs,1) < pairs_per_set
-        error('%s has insufficient bin-%d pairs.', set_name, target_lure_bin);
+    in_set = strcmp(all_bin2_pairs(:,4), set_name);
+    set_bin2_pairs = all_bin2_pairs(in_set, :);
+    if size(set_bin2_pairs,1) < n_bin2_per_set
+        error('%s has insufficient bin-2 pairs (need %d, found %d).', ...
+            set_name, n_bin2_per_set, size(set_bin2_pairs,1));
     end
-    idx = randperm(size(set_bin_pairs,1), pairs_per_set);
-    experimental_pairs = [experimental_pairs; set_bin_pairs(idx,:)];
+    idx = randperm(size(set_bin2_pairs,1), n_bin2_per_set);
+    experimental_pairs_l2 = [experimental_pairs_l2; set_bin2_pairs(idx,:)];
 end
-fprintf('Selected %d experimental pairs total.\n', size(experimental_pairs,1));
-%% SELECT PRACTICE PAIRS AND FOILS (ALSO BIN=1)
-%--------------------------------------------------------------------------
-fprintf('\nSelecting %d practice pairs and %d practice foils (from remaining bin-1 pairs)...\n', ...
-        n_practice_pairs, n_practice_foils);
-% remaining bin-1 pairs (exclude experimental)
-bin1_pairs = master_pair_list(all_bins==target_lure_bin, :);
-used_targets = string(experimental_pairs(:,1));
-remaining_bin1 = bin1_pairs(~ismember(string(bin1_pairs(:,1)), used_targets), :);
-% select practice pairs
-prac_idx = randperm(size(remaining_bin1,1), n_practice_pairs);
-practice_pairs = remaining_bin1(prac_idx,:);
-remaining_bin1(prac_idx,:) = [];
-% select practice foils (a images only)
-foil_idx = randperm(size(remaining_bin1,1), n_practice_foils);
-practice_foils = remaining_bin1(foil_idx,:);
-fprintf('Remaining bin-1 pool after practice selection: %d pairs.\n', size(remaining_bin1,1));
-%% SELECT MAIN FOILS (A-IMAGES ONLY, EXCLUDING BIN 1 AND BIN 2)
-%--------------------------------------------------------------------------
-fprintf('\nSelecting %d main foils (balanced across sets, EXCLUDING Bin 1 and Bin 2 pairs)...\n', n_foils);
-foils_per_set = floor(n_foils / numel(mst_set_folders));
-main_foils = [];
-used_all = [experimental_pairs(:,1); practice_pairs(:,1)];
+fprintf('Selected %d Bin 1 pairs and %d Bin 2 pairs.\n', ...
+    size(experimental_pairs_l1,1), size(experimental_pairs_l2,1));
 
-% Identify pairs NOT in Lure Bin 1 or Lure Bin 2 (i.e., Bin 3, 4, or 5)
-not_bin1_or_2 = all_bins > 2; 
-all_available_non_bin1_or_2 = master_pair_list(not_bin1_or_2, :);
-
-% Check if there are enough pairs remaining for the main foils
-if size(all_available_non_bin1_or_2, 1) < n_foils
-    error('INSUFFICIENT_FOILS: Not enough pairs remain in Bins 3, 4, and 5 to select %d foils.', n_foils);
-end
-
-for s = 1:numel(mst_set_folders)
-    set_name = mst_set_folders{s};
-    in_set = strcmp(all_available_non_bin1_or_2(:,4), set_name);
-    
-    % Available set pairs MUST be non-Bin 1/2 AND not already used as a target/lure
-    available = all_available_non_bin1_or_2(in_set & ~ismember(all_available_non_bin1_or_2(:,1), used_all), :);
-    
-    n_this = min(foils_per_set, size(available,1));
-    idx = randperm(size(available,1), n_this);
-    main_foils = [main_foils; available(idx,:)];
-end
-% fill up remainder if needed
-% NOTE: If remainder is needed, it must still be non-Bin 1/2.
-while size(main_foils,1) < n_foils
-    extra_idx = randi(size(all_available_non_bin1_or_2,1));
-    candidate_pair = all_available_non_bin1_or_2(extra_idx,:);
-    
-    % Check if the candidate 'A' image is already used as a target/lure or is already a selected foil
-    if ~ismember(candidate_pair(1), [used_all; main_foils(:,1)])
-        main_foils = [main_foils; candidate_pair];
-    end
-end
-fprintf('Selected %d main foils total.\n', size(main_foils,1));
-%% COPY EXPERIMENTAL PAIRS
+%% SELECT INSTRUCTION PAIR
 %--------------------------------------------------------------------------
-fprintf('\nCopying %d experimental pairs...\n', n_experimental_pairs);
-for i = 1:n_experimental_pairs
-    copyfile(experimental_pairs{i,1}, fullfile(out_dir, sprintf('mst_%03d_targ_l1.png', i)));
-    copyfile(experimental_pairs{i,2}, fullfile(out_dir, sprintf('mst_%03d_lure_l1.png', i)));
-end
-%% COPY MAIN FOILS (ONLY "A" IMAGES)
+fprintf('\nSetting aside 1 L1 pair for instruction...\n');
+% Find all L1 images that were NOT selected for the experiment
+used_l1_imgs = [string(experimental_pairs_l1(:,1)); string(experimental_pairs_l1(:,2))];
+is_l1_avail = ~ismember(string(all_bin1_pairs(:,1)), used_l1_imgs) & ...
+              ~ismember(string(all_bin1_pairs(:,2)), used_l1_imgs);
+remaining_l1_pool = all_bin1_pairs(is_l1_avail, :);
+assert(height(remaining_l1_pool) >= 1, 'No remaining L1 pairs to use for instruction!');
+% Select one
+idx_instr_l1 = randi(height(remaining_l1_pool));
+instr_pair_l1 = remaining_l1_pool(idx_instr_l1, :);
+fprintf('... 1 L1 pair set aside.\n');
+
+%% DEFINE POOL OF ALL REMAINING PAIRS
 %--------------------------------------------------------------------------
-fprintf('Copying %d main foils (a-images only)...\n', n_foils);
+fprintf('\nDefining pool of all remaining available pairs...\n');
+% --- Create a complete list of ALL "used" images so far ---
+used_exp_imgs = [string(experimental_pairs_l1(:,1)); string(experimental_pairs_l1(:,2)); ...
+                 string(experimental_pairs_l2(:,1)); string(experimental_pairs_l2(:,2))];
+instr_l1_imgs = [string(instr_pair_l1(:,1)); string(instr_pair_l1(:,2))];
+used_all_images = unique([used_exp_imgs; instr_l1_imgs]);
+
+% A pair is available ONLY IF neither its 'a' nor 'b' image is in the used list
+is_pair_available = ~ismember(string(master_pair_list(:,1)), used_all_images) & ...
+                    ~ismember(string(master_pair_list(:,2)), used_all_images);
+
+available_pool = master_pair_list(is_pair_available, :);
+fprintf('Found %d total remaining pairs available for foils/practice.\n', height(available_pool));
+
+%% SET ASIDE INSTRUCTION/PRACTICE FOILS
+%--------------------------------------------------------------------------
+n_instr_foil = 1;
+n_prac_pairs = 25; % 15 for lure + 10 for repeat = 25 total pairs
+n_total_setaside = n_instr_foil + n_prac_pairs; % 26 pairs
+
+fprintf('Setting aside %d foil pairs from available pool for instruction/practice...\n', n_total_setaside);
+assert(height(available_pool) >= n_total_setaside, ...
+    'Not enough remaining foils for practice! Need %d, have %d', ...
+    n_total_setaside, height(available_pool));
+
+% Select and REMOVE these pairs from the available_pool
+idx_setaside = randperm(height(available_pool), n_total_setaside);
+setaside_pairs = available_pool(idx_setaside, :);
+available_pool(idx_setaside, :) = []; % This is the critical step
+fprintf('... %d pairs set aside.\n', n_total_setaside);
+
+% Split them into their buckets
+instr_pair_foil = setaside_pairs(1:n_instr_foil, :);
+prac_pairs = setaside_pairs(n_instr_foil+1 : end, :); % One bucket for all 25
+
+%% SELECT MAIN FOILS
+%--------------------------------------------------------------------------
+fprintf('\nAssigning all remaining pairs as main foils...\n');
+% Whatever is left in the available_pool is now the main foil pool
+main_foils = available_pool;
+n_foils = size(main_foils, 1); 
+fprintf('Assigned %d pairs as main foils.\n', n_foils);
+
+%% COPY EXPERIMENTAL PAIRS (L1 and L2)
+%--------------------------------------------------------------------------
+fprintf('\nCopying %d experimental pairs (%d L1, %d L2)...\n', ...
+    n_experimental_pairs_total, n_bin1_pairs, n_bin2_pairs);
+file_idx = 1;
+% --- Copy L1 pairs ---
+for i = 1:size(experimental_pairs_l1, 1)
+    copyfile(experimental_pairs_l1{i,1}, fullfile(out_dir, sprintf('mst_%03d_A_l1.png', file_idx)));
+    copyfile(experimental_pairs_l1{i,2}, fullfile(out_dir, sprintf('mst_%03d_B_l1.png', file_idx)));
+    file_idx = file_idx + 1;
+end
+% --- Copy L2 pairs ---
+for i = 1:size(experimental_pairs_l2, 1)
+    copyfile(experimental_pairs_l2{i,1}, fullfile(out_dir, sprintf('mst_%03d_A_l2.png', file_idx)));
+    copyfile(experimental_pairs_l2{i,2}, fullfile(out_dir, sprintf('mst_%03d_B_l2.png', file_idx)));
+    file_idx = file_idx + 1;
+end
+%% COPY MAIN FOILS
+%--------------------------------------------------------------------------
+fprintf('Copying %d main foil pairs...\n', n_foils);
 for i = 1:n_foils
-    source_foil = main_foils{i,1};
-    copyfile(source_foil, fullfile(out_dir, sprintf('mst_%03d_foil.png', i)));
+    source_foil_a = main_foils{i,1};
+    source_foil_b = main_foils{i,2};
+    copyfile(source_foil_a, fullfile(out_dir, sprintf('mst_%03d_A_foil.png', i)));
+    copyfile(source_foil_b, fullfile(out_dir, sprintf('mst_%03d_B_foil.png', i)));
 end
-%% COPY PRACTICE PAIRS & FOILS
+
+%% COPY INSTRUCTION/PRACTICE STIMULI
 %--------------------------------------------------------------------------
-practice_dir = fullfile(out_dir, 'practice');
-if ~exist(practice_dir, 'dir'), mkdir(practice_dir); end
-fprintf('\nCopying %d practice pairs...\n', n_practice_pairs);
-for i = 1:n_practice_pairs
-    copyfile(practice_pairs{i,1}, fullfile(practice_dir, sprintf('prac_%03d_targ_l1.png', i)));
-    copyfile(practice_pairs{i,2}, fullfile(practice_dir, sprintf('prac_%03d_lure_l1.png', i)));
+fprintf('\nCopying instruction and practice files...\n');
+
+% --- Instruction pairs (1 L1, 1 Foil) ---
+copyfile(instr_pair_l1{1,1}, fullfile(out_dir, 'instr_A.png'));
+copyfile(instr_pair_l1{1,2}, fullfile(out_dir, 'instr_B.png'));
+copyfile(instr_pair_foil{1,1}, fullfile(out_dir, 'instr_A_foil.png'));
+copyfile(instr_pair_foil{1,2}, fullfile(out_dir, 'instr_B_foil.png'));
+
+% --- Practice pairs (25 pairs, indexed 01-25) ---
+for i = 1:height(prac_pairs)
+    copyfile(prac_pairs{i,1}, fullfile(out_dir, sprintf('prac_%02d_A.png', i)));
+    copyfile(prac_pairs{i,2}, fullfile(out_dir, sprintf('prac_%02d_B.png', i)));
 end
-fprintf('Copying %d practice foils (a-images only)...\n', n_practice_foils);
-for i = 1:n_practice_foils
-    source_foil = practice_foils{i,1};
-    copyfile(source_foil, fullfile(practice_dir, sprintf('prac_foil_%03d.png', i)));
-end
+
+fprintf('...copied 2 instruction pairs and %d practice pairs.\n', height(prac_pairs));
+
 %% SUMMARY
 %--------------------------------------------------------------------------
-fprintf('\nDone!\n');
+fprintf('\n------------------------------------------------------------\n');
 fprintf('Final output folder: %s\n', out_dir);
-fprintf('  -> Experimental pairs: %d (bin=%d)\n', n_experimental_pairs, target_lure_bin);
-fprintf('  -> Main foils: %d (a-images only, EXCLUDING Bin 1 & 2)\n', n_foils);
-fprintf('  -> Practice pairs: %d (bin=%d)\n', n_practice_pairs, target_lure_bin);
-fprintf('  -> Practice foils: %d (a-images only)\n', n_practice_foils);
+fprintf('  -> Experimental pairs: %d total\n', n_experimental_pairs_total);
+fprintf('  -> Main foils: %d pairs (all remaining pairs)\n', n_foils);
+fprintf('  -> Instruction pairs: 2 (1 L1, 1 Foil)\n');
+fprintf('  -> Practice pairs: %d\n', height(prac_pairs));
 fprintf('------------------------------------------------------------\n');
