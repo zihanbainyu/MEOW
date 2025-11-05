@@ -174,7 +174,7 @@ try
             save(block_filepath, 'results_table');
             fprintf('1-back block %d data saved.\n', b);
         catch ME
-            warning('SAVE_FAILED: Could not save encoding data for block %d. Reason: %s', b, ME.message);
+            warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
         end
         %% 2-back
         if b == 1
@@ -224,7 +224,7 @@ try
     results_2_back_all = consolidate_data(p, '2_back');
     
     final_data_output.subj_id = p.subj_id;
-    final_data_output.parameters = subject_data.parameters;
+    final_data_output.parameters = p.parameters;
     final_data_output.results_1_back_all = results_1_back_all;
     final_data_output.results_2_back_all = results_2_back_all;
     
@@ -235,11 +235,8 @@ try
     %% ========================================================================
     %   PHASE 2: RECOGNITION TASK
     %  ========================================================================
-    
-    % --- [FIX] Call instructions ---
     instructions(p, 'recognition'); 
     
-    % --- [FIX] Load the recognition sequence ---
     sequence_recognition = subject_data.sequence_recognition;
 
     if p.eyetracking == 1
@@ -331,6 +328,7 @@ if p.eyetracking == 1
     fprintf('--- Checking Calibration ---\n');
     ask_for_recalibration(p, el);
 end
+Screen('Flip', p.window);
 end
 function [full_data_table] = consolidate_data(p, task_name)
 full_data_table = table();

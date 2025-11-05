@@ -17,9 +17,9 @@ if isempty(subj_id_str)
 end
 subj_id = str2double(subj_id_str);
 p.subj_id = subj_id;
-sequence_1_back = table();
-sequence_2_back = table();
-goal_list_full = table();
+sequence_1_back = [];
+sequence_2_back = [];
+goal_list_full = [];
 
 % response counters
 p.counts.oneback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
@@ -489,8 +489,6 @@ end
 %  ========================================================================
 
 % --- First, save the goal_list_full we just built ---
-p.goal_list_full = goal_list_full;
-
 fprintf('\nBuilding final recognition task...\n');
 
 % --- 1. Get 'Old' items (N=240) from 'comp' and 'iso' ---
@@ -519,30 +517,8 @@ all_old_items = table(selected_old_items, all_study_conds, selected_identity, ..
 all_old_items.trial_type = repmat("old", n_old_items, 1);
 all_old_items.corr_resp = repmat(p.keys.same, n_old_items, 1); 
 
-% --- 2. Get 'New' items (N=240) ---
-% --- Pool 2a: The 'Lure' Pool (N=80) ---
-% YOUR GENIUS IDEA: Use the 80 'novel B' items that were NEVER seen
-fprintf('  Finding 80 unseen novel B-items for Lure pool...\n');
-
-% Find all 'novel' pairs assigned to A-A or A-N from the full goal list
-is_novel_lure_goal = (p.goal_list_full.condition == "novel") & ...
-                     (p.goal_list_full.goal_type == "A-A" | ...
-                      p.goal_list_full.goal_type == "A-N");
-
-novel_lure_pairs = p.goal_list_full(is_novel_lure_goal, :);
-novel_lure_items = novel_lure_pairs.B; % Get the 'B' items
-
-if numel(novel_lure_items) ~= 80
-    warning('Found %d novel lures, expected 80. Using what we found.', numel(novel_lure_items));
-end
-
-all_novel_lures = table(novel_lure_items, repmat("novel_lure", numel(novel_lure_items), 1), ...
-    repmat("B", numel(novel_lure_items), 1), repmat("new", numel(novel_lure_items), 1), ...
-    repmat(p.keys.diff, numel(novel_lure_items), 1), ...
-    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'corr_resp'});
-
 % --- Pool 2b: The 'Foil' Pool (N=160) ---
-n_rec_foils = 240 - numel(novel_lure_items); % 160 (or whatever balances to 240)
+n_rec_foils = 240;
 assert(height(all_foils_remain) >= n_rec_foils, ...
     'Not enough remaining foils for recognition task! Need %d, have %d', ...
     n_rec_foils, height(all_foils_remain));
@@ -557,14 +533,9 @@ all_new_foils = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
     'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'corr_resp'});
     
 % --- 3. Combine, shuffle, and add to 'p' struct ---
-sequence_recognition = [all_old_items; all_novel_lures; all_new_foils];
+sequence_recognition = [all_old_items; all_new_foils];
 sequence_recognition = sequence_recognition(randperm(height(sequence_recognition)), :);
 
-fprintf('  Generated %d recognition trials (240 old, %d lure, %d foil).\n', ...
-    height(sequence_recognition), numel(novel_lure_items), n_rec_foils);
-
-% Add to 'p' struct
-p.sequence_recognition = sequence_recognition;
 
 %% ========================================================================
 %  P7: ADD JITTER & SAVE OUTPUT
@@ -574,7 +545,7 @@ fprintf('\nAdding jittered fixations and saving all schedules...\n');
 % --- Add jittered fixation durations ---
 n_1_back_trials = height(sequence_1_back);
 n_2_back_trials = height(sequence_2_back);
-n_rec_trials = height(p.sequence_recognition);
+n_rec_trials = height(sequence_recognition);
 
 sequence_1_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_1_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
@@ -582,31 +553,20 @@ sequence_1_back.fix_duration = ...
 sequence_2_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_2_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
     
-p.sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
+sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
 
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);
 sequence_2_back.subj_id = repmat(subj_id, n_2_back_trials, 1);
-p.sequence_recognition.subj_id = repmat(subj_id, n_rec_trials, 1);
+sequence_recognition.subj_id = repmat(subj_id, n_rec_trials, 1);
 
-% --- Save all schedules to 'p' struct ---
-p.sequence_1_back = sequence_1_back;
-p.sequence_2_back = sequence_2_back;
-p.stim.all_foils_remaining = all_foils_remain; % Save the final unused stack
 
-% --- Final Summary ---
-fprintf('\n=== FINAL SUMMARY ===\n');
-fprintf('Total 1-back trials: %d\n', n_1_back_trials);
-fprintf('  same presses: %d, similar presses: %d, no response: %d\n', ...
-        p.counts.oneback.resp_same, p.counts.oneback.resp_similar, p.counts.oneback.resp_new);
-fprintf('Total 2-back trials: %d\n', n_2_back_trials);
-fprintf('  same presses: %d, similar presses: %d, no response: %d\n', ...
-        p.counts.twoback.resp_same, p.counts.twoback.resp_similar, p.counts.twoback.resp_new);
-fprintf('Total recognition trials: %d\n', n_rec_trials);
-fprintf('  Old: %d, New: %d\n', sum(p.sequence_recognition.trial_type == "old"), ...
-        sum(p.sequence_recognition.trial_type == "new"));
-fprintf('Foils remaining in stack: %d\n', height(all_foils_remain));
+subject_data.subj_id = subj_id;
+subject_data.parameters = p;
+subject_data.sequence_1_back = sequence_1_back;
+subject_data.sequence_2_back = sequence_2_back;
+subject_data.sequence_recognition = sequence_recognition;
 
 % --- Save the file ---
-save(output_filename, 'p');
+save(output_filename, 'subject_data');
 fprintf('\nSetup saved to: %s\n', output_filename);

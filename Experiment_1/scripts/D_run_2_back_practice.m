@@ -10,7 +10,7 @@ function D_run_2_back_practice(p)
     nTrials = height(sequence_2_back_practice);
     
     % Keyboard keys
-    start_key  = KbName('g');
+    start_key  = KbName('f');
     escape_key = KbName(p.keys.quit);
     same_key   = KbName(p.keys.same);
     similar_key   = KbName(p.keys.diff);
@@ -27,7 +27,7 @@ function D_run_2_back_practice(p)
     %% 2. Instructions & Start
     DrawFormattedText(p.window, ['Practice Round: 2-Back' ...
         '\n\n\n' ...
-        'When you are ready, press g to begin.\n\n'], 'center', 'center', p.colors.black);
+        'When you are ready, press f to begin.\n\n'], 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     KbReleaseWait(p.keys.device);
     while true
@@ -54,7 +54,7 @@ function D_run_2_back_practice(p)
         
         KbQueueFlush(p.keys.device); 
         
-        img_path = fullfile(p.stim_dir, sequence_2_back_practice.stimulus_id{i});
+        img_path = fullfile(p.stim_dir, sequence_2_back_practice.stim_id{i});
         if ~exist(img_path, 'file')
             error('Cannot find image: %s', img_path);
         end
@@ -99,7 +99,6 @@ function D_run_2_back_practice(p)
         'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     
-    % Wait for G to exit practice screen
     KbReleaseWait(p.keys.device);
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
@@ -117,7 +116,6 @@ function D_run_2_back_practice(p)
     Screen('FillRect', p.window, p.colors.bgcolor);
     Screen('Flip', p.window);
     
-    % Function must not return practice_results, as it is now a procedure-only function
     return
 end
 

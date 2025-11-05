@@ -129,7 +129,7 @@ for i = 1:height(results_table)
     %   Eyelink: send messages exactly at stimulus onset (Applied char() fix)
     if is_eyetracking
         Eyelink('Message', 'SYNCTIME');
-        Eyelink('Message', 'STIM_ONSET %s', char(trial_info.stim_id));
+        Eyelink('Message', 'STIM_ONSET %s', char(trial_info.st));
         Eyelink('Message', '!V IMGLOAD CENTER %s %d %d', char(img_path), p.xCenter, p.yCenter);
     end
 
