@@ -38,12 +38,13 @@ KbCheck(p.keys.device);
 %------------------------------------------------------------------
 DrawFormattedText(p.window, ...
     ['Phase 2: Final Task\n\n' ...
-    'You will now see a long series of images, one at a time.\n\n' ...
+    'You will now see a long series of everyday items, one at a time.\n\n' ...
     'Your task is simple:\n\n' ...
-    'Have you seen this EXACT image at *any point* in the experiment today?\n\n\n' ...
+    'Have you seen this EXACT item at *any point* in the experiment today?\n\n\n' ...
     'Press  ''' p.keys.same '''  (OLD) if you HAVE seen it.\n\n' ...
     'Press  ''' p.keys.diff '''  (NEW) if you have NOT seen it.\n\n\n' ...
     '\n\n' ...
+    'You will have 1 second for each item. Please '
     'Press f to begin the final task.'], ...
     'center', 'center', p.colors.black, [], [], [], 1.2);
 Screen('Flip', p.window);
@@ -59,7 +60,7 @@ while true
 end
 % Eyelink: start recording eye movements
 if is_eyetracking
-    edf_filename = sprintf('%d_r.edf', p.subj_id); % Single file for recognition
+    edf_filename = sprintf('%d_r.edf', p.subj_id);
     Eyelink('OpenFile', edf_filename);
     fprintf('EYELINK: opened edf file: %s\n', edf_filename);
     Eyelink('command', 'add_file_preamble_text ''Recognition Task''');
@@ -122,9 +123,8 @@ for i = 1:num_trials
     key_pressed = "NA";
     response_time = NaN;
     responded = false;
-    stim_duration = 1.0; % 1.0 SECOND STIMULUS DURATION
+    stim_duration = 1.0; 
     
-    % --- [FIXED] NON-Self-paced response loop ---
     while GetSecs < stim_onset_time + stim_duration
         [pressed, firstPress] = KbQueueCheck(p.keys.device);
         if pressed && ~responded
@@ -174,7 +174,7 @@ for i = 1:num_trials
     results_table.rt(i) = response_time;
     
 end % end of the trial loop
-% --- Clear screen before stopping recording ---
+
 Screen('Flip', p.window);
 WaitSecs(0.05);
 if is_eyetracking
