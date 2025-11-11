@@ -133,134 +133,221 @@ try
 
     %% Run Experiment
     
-    % fprintf('***Experiment begins\n\n\n');
-    % 
-    % % global instructions
-    % instructions(p, 'welcome');
-    % 
-    % % initial eyetracker calibration
-    % if p.eyetracking == 1
-    %     instructions(p, 'calibration');
-    %     fprintf('Performing initial calibration\n');
-    %     EyelinkDoTrackerSetup(el);
-    % end
-    % 
-    % % run all or some?
-    %     % if the task crashes for some reason (although it should not), set to
-    %     % the block you want to run to continue
-    % b_to_run = 0;
-    % if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
-    % 
-    % for b = b_seq
-    %     fprintf('Start Block...%d\n\n', b);
-    % 
-    % 
-    %     %% Phase 1: run 1-back
-    %     fprintf('   Run 1-back\n');
-    %     sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
-    % 
-    %     % instruction and practice: 1-back for only block 1
-    %     if b == 1
-    %         instructions(p, '1_back'); 
-    %         fprintf('   Run practice\n');
-    %         C_run_1_back_practice(p);
-    %     end
-    % 
-    %     if p.eyetracking == 1
-    %         edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
-    %         Eyelink('OpenFile', edf_filename);
-    %         fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-    %         Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
-    % 
-    %         % Eye-tracking version
-    %         results_1_back = C_run_1_back(p, el, sequence_1_back_block);
-    %         fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
-    %         Eyelink('CloseFile');
-    %         WaitSecs(0.1);
-    %         try
-    %             Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
-    %         catch ME
-    %             fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
-    %         end
-    %     else
-    % 
-    %         % Behavior-only version
-    %         results_1_back = C_run_1_back(p, el, sequence_1_back_block);
-    %     end
-    % 
-    %     try
-    %         block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
-    %         block_filepath = fullfile(p.results_dir, block_filename);
-    %         save(block_filepath, 'results_1_back');
-    %         fprintf('1-back block %d data saved.\n', b);
-    %     catch ME
-    %         warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
-    %     end
-    % 
-    %     %% rest
-    %     rest(p, el);
-    %     % % save behavioral data
-    %     % 
-    %     %% Phase 1: run 2-back
-    %     fprintf('   Running 2-back\n\n');
-    %     sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
-    % 
-    %     % instruction and practice: 2-back for only block 1
-    %     if b == 1
-    %         instructions(p, '2_back'); 
-    %         fprintf('   Run practice\n');
-    %         D_run_2_back_practice(p);
-    %     end
-    % 
-    %     if p.eyetracking == 1
-    %         edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
-    %         fprintf('EYELINK: opening edf file: %s\n', edf_filename);
-    %         Eyelink('OpenFile', edf_filename);
-    %         Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
-    % 
-    %         % Eye-tracking version
-    %         results_2_back = D_run_2_back(p, el, sequence_2_back_block);
-    %         fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
-    %         Eyelink('CloseFile');
-    %         WaitSecs(0.1);
-    %         try
-    %             Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
-    %         catch ME
-    %             fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
-    %         end
-    %     else
-    %         % Behavior-only version
-    %         results_2_back = D_run_2_back(p, el, sequence_2_back_block);
-    %     end
-    % 
-    %     % save behavioral data
-    %     try
-    %         block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
-    %         block_filepath = fullfile(p.results_dir, block_filename);
-    %         save(block_filepath, 'results_2_back');
-    %         fprintf('2-back block %d data saved.\n', b);
-    %     catch ME
-    %         warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-    %     end
-    % 
-    %     %% rest
-    %     if b < p.nBlocks
-    %         rest(p, el);
-    %     end
-    % 
-    % end % block loop ends
-    % 
-    % %% Save Phase 1 data
-    % results_1_back_all = consolidate_data(p, '1_back');
-    % results_2_back_all = consolidate_data(p, '2_back');
-    % 
-    % final_data_output.subj_id = p.subj_id;
-    % final_data_output.parameters = p;
-    % final_data_output.results_1_back_all = results_1_back_all;
-    % final_data_output.results_2_back_all = results_2_back_all;
-    % 
-    % save(final_data_filename, 'final_data_output');
-    % fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
+    fprintf('***Experiment begins\n\n\n');
+
+    % global instructions
+    instructions(p, 'welcome');
+
+    % initial eyetracker calibration
+    if p.eyetracking == 1
+        instructions(p, 'calibration');
+        fprintf('Performing initial calibration\n');
+        EyelinkDoTrackerSetup(el);
+    end
+
+    % run all or some?
+        % if the task crashes for some reason (although it should not), set to
+        % the block you want to run to continue
+    b_to_run = 0;
+    if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
+
+    for b = b_seq
+        fprintf('Start Block...%d\n\n', b);
+
+
+        %% Phase 1: run 1-back
+        fprintf('   Run 1-back\n');
+        sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
+
+        % instruction and practice: 1-back for only block 1
+        if b == 1
+            instructions(p, '1_back'); 
+            fprintf('   Run practice\n');
+            C_run_1_back_practice(p);
+        end
+
+        if p.eyetracking == 1
+            edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
+            Eyelink('OpenFile', edf_filename);
+            fprintf('EYELINK: opened edf file: %s\n', edf_filename);
+            Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
+
+            % Eye-tracking version
+            results_1_back = C_run_1_back(p, el, sequence_1_back_block);
+
+            % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+            % Eyelink('CloseFile');
+            % WaitSecs(0.1);
+            % try
+            %     Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+            % catch ME
+            %     fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+            % end
+        else
+
+            % Behavior-only version
+            results_1_back = C_run_1_back(p, el, sequence_1_back_block);
+        end
+
+        %% rest
+        message = sprintf('You have completed this task.\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
+        DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+        task_end_flip = Screen('Flip', p.window);
+
+        %% save data during rest
+        if p.eyetracking == 1
+            fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+            Eyelink('CloseFile');
+            WaitSecs(0.1);
+            try
+                Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+            catch ME
+                fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+            end
+        end
+        
+        try
+            block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
+            block_filepath = fullfile(p.results_dir, block_filename);
+            save(block_filepath, 'results_1_back');
+            fprintf('1-back block %d data saved.\n', b);
+        catch ME
+            warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
+        end
+
+        WaitSecs('UntilTime', task_end_flip + 10); 
+        
+        fprintf('Rest started... (30 seconds)\n');
+        Screen('Flip', p.window);
+        WaitSecs(45);
+
+        if p.eyetracking == 1
+            fprintf('Checking Calibration\n');
+            ask_for_recalibration(p, el);
+        end
+
+        % try
+        %     block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
+        %     block_filepath = fullfile(p.results_dir, block_filename);
+        %     save(block_filepath, 'results_1_back');
+        %     fprintf('1-back block %d data saved.\n', b);
+        % catch ME
+        %     warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
+        % end
+
+
+        %% Phase 1: run 2-back
+        fprintf('   Running 2-back\n\n');
+        sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
+
+        % instruction and practice: 2-back for only block 1
+        if b == 1
+            instructions(p, '2_back'); 
+            fprintf('   Run practice\n');
+            D_run_2_back_practice(p);
+        end
+
+        if p.eyetracking == 1
+            edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
+            fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+            Eyelink('OpenFile', edf_filename);
+            Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
+
+            % Eye-tracking version
+            results_2_back = D_run_2_back(p, el, sequence_2_back_block);
+            % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+            % Eyelink('CloseFile');
+            % WaitSecs(0.1);
+            % try
+            %     Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+            % catch ME
+            %     fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+            % end
+        else
+            % Behavior-only version
+            results_2_back = D_run_2_back(p, el, sequence_2_back_block);
+        end
+
+        if b < p.nBlocks
+            message = sprintf('You have completed this task.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
+            DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+            task_end_flip = Screen('Flip', p.window);
+
+            if p.eyetracking == 1
+                fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+                Eyelink('CloseFile');
+                WaitSecs(0.1);
+                try
+                    Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+                catch ME
+                    fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+                end
+            end
+            
+            try
+                block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
+                block_filepath = fullfile(p.results_dir, block_filename);
+                save(block_filepath, 'results_2_back');
+                fprintf('2-back block %d data saved.\n', b);
+            catch ME
+                warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+            end
+
+            WaitSecs('UntilTime', task_end_flip + 10);
+            fprintf('Rest started... (60 seconds)\n');
+            Screen('Flip', p.window); % Blank screen
+            WaitSecs(60);
+            
+            if p.eyetracking == 1
+                fprintf('Checking Calibration\n');
+                ask_for_recalibration(p, el);
+            end
+        else
+            % LAST block, so just save the data without a rest period
+            if p.eyetracking == 1
+                fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
+                Eyelink('CloseFile');
+                WaitSecs(0.1);
+                try
+                    Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
+                catch ME
+                    fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
+                end
+            end
+            
+            try
+                block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
+                block_filepath = fullfile(p.results_dir, block_filename);
+                save(block_filepath, 'results_2_back');
+                fprintf('2-back block %d data saved.\n', b);
+            catch ME
+                warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+            end
+        end
+
+        % save behavioral data
+        % try
+        %     block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
+        %     block_filepath = fullfile(p.results_dir, block_filename);
+        %     save(block_filepath, 'results_2_back');
+        %     fprintf('2-back block %d data saved.\n', b);
+        % catch ME
+        %     warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+        % end
+
+        
+
+    end % block loop ends
+
+    %% Save Phase 1 data
+    results_1_back_all = consolidate_data(p, '1_back');
+    results_2_back_all = consolidate_data(p, '2_back');
+    final_data_output.subj_id = p.subj_id;
+    final_data_output.parameters = p;
+    final_data_output.results_1_back_all = results_1_back_all;
+    final_data_output.results_2_back_all = results_2_back_all;
+    save(final_data_filename, 'final_data_output');
+    fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
 
     %% Phase 2: Recognition task
     fprintf('Running Recognition Task\n\n');    
@@ -344,19 +431,6 @@ function ask_for_recalibration(p, el)
     WaitSecs(0.5);
 end
 
-function rest(p, el)
-    message = sprintf('You have completed this task.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
-    DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-    Screen('Flip', p.window);
-    WaitSecs(10);
-    fprintf('Rest started... (60 seconds)\n');
-    Screen('Flip', p.window);
-    WaitSecs(60);
-    if p.eyetracking == 1
-        fprintf('Checking Calibration\n');
-        ask_for_recalibration(p, el);
-    end
-end
 
 function [full_data_table] = consolidate_data(p, task_name)
     full_data_table = table();
@@ -364,7 +438,7 @@ function [full_data_table] = consolidate_data(p, task_name)
     for b = 1:p.nBlocks
         block_filename = sprintf('sub%03d_%s_b%d.mat', p.subj_id, task_name, b);
         block_filepath = fullfile(p.results_dir, block_filename);
-
+        
         if exist(block_filepath, 'file')
             loaded_data = load(block_filepath);
             
@@ -378,6 +452,6 @@ function [full_data_table] = consolidate_data(p, task_name)
         else
             warning('Data file not found: %s. Final data set will be incomplete.', block_filename);
         end
-
     end
+ end
  end

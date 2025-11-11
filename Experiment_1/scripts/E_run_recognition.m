@@ -44,7 +44,8 @@ DrawFormattedText(p.window, ...
     'Press  ''' p.keys.same '''  (OLD) if you HAVE seen it.\n\n' ...
     'Press  ''' p.keys.diff '''  (NEW) if you have NOT seen it.\n\n\n' ...
     '\n\n' ...
-    'You will have 1 second for each item.\n\n' ...
+    'Each item will stay on screen until you respond (up to 4 seconds).\n\n' ...
+    'Please try to be as fast and accurate as you can.\n\n\n' ...
     'Press f to begin the final task.'], ...
     'center', 'center', p.colors.black, [], [], [], 1.2);
 Screen('Flip', p.window);
@@ -111,7 +112,7 @@ for i = 1:num_trials
     Screen('DrawTexture', p.window, img_texture, [], [], 0);
     
     KbQueueFlush(p.keys.device);
-    % --- present image and collect response (FIXED DURATION) ---
+    % --- present image and collect response
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
     
     if is_eyetracking
@@ -123,26 +124,37 @@ for i = 1:num_trials
     key_pressed = "NA";
     response_time = NaN;
     responded = false;
-    stim_duration = 1.0; 
+
+    % self-paced, but has a 4s limit
+    deadline = stim_onset_time + 4.0;
     
-    while GetSecs < stim_onset_time + stim_duration
+    % Loop until 4s passes OR a valid response is made
+    while GetSecs < deadline && ~responded
         [pressed, firstPress] = KbQueueCheck(p.keys.device);
-        if pressed && ~responded
-            responded = true; 
-            response_key_code = find(firstPress, 1);
+        
+        if pressed
+            response_key_code = find(firstPress > 0, 1);
+            if isempty(response_key_code)
+                continue; % A non-monitored key was pressed
+            end
+
+            % A monitored key was pressed. Log the time.
             response_time = firstPress(response_key_code) - stim_onset_time;
             
             if response_key_code == escape_key
                 error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
             elseif response_key_code == old_key
                 key_pressed = string(p.keys.same);
+                responded = true; % Valid response, stop looping
             elseif response_key_code == new_key
                 key_pressed = string(p.keys.diff);
+                responded = true; % Valid response, stop looping
             else
-                key_pressed = "invalid";
+                % An invalid (but monitored) key was pressed.
+                % Do nothing, let the loop continue.
             end
             
-            if is_eyetracking
+            if is_eyetracking && responded
                 rt_ms = response_time * 1000;
                 if ~isfinite(rt_ms) || rt_ms < 0, rt_log_value = -999;
                 else, rt_log_value = round(rt_ms); end
