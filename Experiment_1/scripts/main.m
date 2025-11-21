@@ -106,7 +106,7 @@ try
         [width, height] = Screen('WindowSize', screen_number);
         Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
         Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
-        Eyelink('command', 'calibration_type = HV13');
+        Eyelink('command', 'calibration_type = HV9');
         Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
         Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
        
@@ -453,5 +453,4 @@ function [full_data_table] = consolidate_data(p, task_name)
             warning('Data file not found: %s. Final data set will be incomplete.', block_filename);
         end
     end
- end
- end
+end
