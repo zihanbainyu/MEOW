@@ -61,11 +61,6 @@ while true
 end
 % Eyelink: start recording eye movements
 if is_eyetracking
-    edf_filename = sprintf('%d_r.edf', p.subj_id);
-    Eyelink('OpenFile', edf_filename);
-    fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-    Eyelink('command', 'add_file_preamble_text ''Recognition Task''');
-    
     if Eyelink('IsConnected') ~= 1
         error('EYELINK_FATAL: Connection lost.');
     end
