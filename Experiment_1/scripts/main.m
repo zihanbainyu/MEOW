@@ -215,7 +215,7 @@ try
             warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
         end
 
-        WaitSecs('UntilTime', task_end_flip + 10); 
+        WaitSecs('UntilTime', task_end_flip + 5); 
         
         fprintf('Rest started... (30 seconds)\n');
         Screen('Flip', p.window);
@@ -269,7 +269,7 @@ try
         end
 
         if b < p.nBlocks
-            message = sprintf('You have completed this task.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
+            message = sprintf('You have completed this task.\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             task_end_flip = Screen('Flip', p.window);
 
@@ -293,10 +293,10 @@ try
                 warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
             end
 
-            WaitSecs('UntilTime', task_end_flip + 10);
+            WaitSecs('UntilTime', task_end_flip + 5);
             fprintf('Rest started... (60 seconds)\n');
             Screen('Flip', p.window); % Blank screen
-            WaitSecs(60);
+            WaitSecs(45);
             
             if p.eyetracking == 1
                 fprintf('Checking Calibration\n');
