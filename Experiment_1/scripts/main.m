@@ -361,6 +361,7 @@ try
 
             % Eye-tracking version
             results_recognition = E_run_recognition(p, el, sequence_recognition);
+            instructions(p, 'goodbye');
             fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
             Eyelink('CloseFile');
             WaitSecs(0.1);
@@ -372,6 +373,7 @@ try
         else
             % Behavior-only version
             results_recognition = E_run_recognition(p, el, sequence_recognition);
+            instructions(p, 'goodbye');
     end
     
     % save behavioral data
@@ -388,7 +390,7 @@ try
     final_data_output.results_recognition = results_recognition;
     save(final_data_filename, 'final_data_output');
     fprintf('All data (Phase 1 + Phase 2) saved to:\n%s\n', final_data_filename);
-    instructions(p, 'goodbye');
+    
 catch ME
     fprintf(2, '\n! AN ERROR OCCURRED: %s !\n', ME.message);
 end
