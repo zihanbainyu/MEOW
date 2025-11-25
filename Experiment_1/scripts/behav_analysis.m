@@ -5,11 +5,12 @@ close all;
 
 
 %% Set up
-subj_id = 501;
+subj_id = 602;
 base_dir = '..';
 subj_folder = sprintf('sub%03d', subj_id); 
 results_dir = fullfile(base_dir, 'data', subj_folder);
-concat_file = fullfile(results_dir, sprintf('sub%03d_concat.mat', subj_id));
+% concat_file = fullfile(results_dir, sprintf('sub%03d_concat.mat', subj_id));
+concat_file = fullfile(results_dir, sprintf('example.mat', subj_id));
 rec_file = fullfile(results_dir, sprintf('sub%03d_rec.mat', subj_id)); 
 
 load(concat_file, 'final_data_output');
@@ -18,8 +19,8 @@ load(rec_file, 'results_recognition');
 MIN_RT_CUTOFF = 0.150;
 
 subj_stats = [];
-results_1_back = final_data_output.results_1_back;
-results_2_back = final_data_output.results_2_back;
+results_1_back = final_data_output.results_1_back_all;
+results_2_back = final_data_output.results_2_back_all;
 
 % define standard colors and fonts
 plot_font_name = 'Helvetica';
@@ -170,8 +171,8 @@ hold(h_ax3, 'off');
 % Apply one main title to the entire figure
 sgtitle('1-Back Task', 'FontSize', plot_font_size_sgtitle, 'FontName', plot_font_name);
 
-print(gcf, '1Back_Figure_HighRes.tiff', '-dtiff', '-r300'); 
-disp('Saved figure as 1Back_Figure_HighRes.tiff (300 DPI)');
+% print(gcf, '1Back_Figure_HighRes.tiff', '-dtiff', '-r300'); 
+% disp('Saved figure as 1Back_Figure_HighRes.tiff (300 DPI)');
 
 
 
@@ -204,6 +205,15 @@ subj_stats.twoback.overall_acc = mean(results_2_back.correct);
 % find trials
 real_trials_idx = ~contains(results_2_back.goal, "JUNK");
 valid_rt_idx = results_2_back.rt > MIN_RT_CUTOFF;
+all_valid_rts = results_2_back.rt(valid_rt_idx);
+
+figure('color', 'white');
+histogram(all_valid_rts, 50, 'FaceColor', [0.5 0.5 0.5]);
+title(sprintf('2-Back: RT Distribution (RTs > %.3fs)', MIN_RT_CUTOFF));
+xlabel('RT (s)');
+ylabel('Count');
+grid on;
+box off;
 
 aa_idx = real_trials_idx & strcmp(results_2_back.goal, 'A-A');
 ab_idx = real_trials_idx & strcmp(results_2_back.goal, 'A-B'); 
@@ -311,7 +321,7 @@ if all(~isnan(rt_data(:))), ylim([0, max(rt_data(:)) * 1.2]); end
 sgtitle('2-Back Task', 'FontSize', plot_font_size_sgtitle, 'FontName', plot_font_name);
 legend({'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'Box', 'off');
 
-print(gcf, '2Back_Figure_Acc_RT.tiff', '-dtiff', '-r300'); 
+% print(gcf, '2Back_Figure_Acc_RT.tiff', '-dtiff', '-r300'); 
 
 
 
@@ -385,10 +395,7 @@ legend([h_same_resp, h_similar_resp, h_new_resp], ...
     {'Same', 'Similar', 'New'}, 'Location', 'east', 'FontName', plot_font_name, 'Box', 'off');
 hold(h_ax3, 'off');
 
-print(gcf, '2Back_Figure_Resp.tiff', '-dtiff', '-r300'); 
-
-
-
+% print(gcf, '2Back_Figure_Resp.tiff', '-dtiff', '-r300'); 
 
 
 
@@ -482,7 +489,7 @@ set(h_ax2, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_fon
 xtickangle(h_ax2, 45);
 
 
-print(gcf, '2Back_Figure_LDI_Dprime.tiff', '-dtiff', '-r300'); 
+% print(gcf, '2Back_Figure_LDI_Dprime.tiff', '-dtiff', '-r300'); 
 
 
 
@@ -595,7 +602,7 @@ HR_B = n_hits_B / n_B;
 if HR_B == 1, HR_B = 1 - (1 / (2 * n_B)); end
 if HR_B == 0, HR_B = 1 / (2 * n_B); end
 
-% storee A vs B sdt
+% store A vs B sdt
 subj_stats.recog.HR_A = HR_A;
 subj_stats.recog.d_prime_A = norminv(HR_A) - norminv(FAR);
 subj_stats.recog.HR_B = HR_B;
@@ -651,7 +658,7 @@ b1 = bar(d_prime_data, 'FaceColor', 'flat');
 b1.CData(1,:) = plot_color_comp;
 b1.CData(2,:) = plot_color_iso;
 
-grid on;
+grid off;
 box off;
 title('d'' by condition', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
 ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
@@ -661,35 +668,35 @@ set(h_ax1, 'XTickLabel', {'Compared', 'Isolated'}, 'FontName', plot_font_name, '
 h_ax2 = subplot(1, 2, 2);
 d_prime_AB_data = [subj_stats.recog.d_prime_A, subj_stats.recog.d_prime_B];
 b2 = bar(d_prime_AB_data, 'FaceColor', 'flat');
-b2.CData(1,:) = plot_color_a;
-b2.CData(2,:) = plot_color_b;
+b2.CData(1,:) = plot_color_same;
+b2.CData(2,:) = plot_color_similar;
 
-grid on;
+grid off;
 box off;
 title('d'' by item identity', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
 ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax2, 'XTickLabel', {'A Items', 'B Items'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+set(h_ax2, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
 
 % --- figure 2: hr vs far ---
 figure('color', 'white');
-hr_data = [subj_stats.recog.HR_comp, subj_stats.recog.HR_iso];
-b3 = bar(hr_data, 'FaceColor', 'flat');
-b3.CData(1,:) = plot_color_comp;
-b3.CData(2,:) = plot_color_iso;
 hold on;
+b1 = bar(1, subj_stats.recog.HR_comp);
+set(b1, 'FaceColor', plot_color_comp);
+b2 = bar(2, subj_stats.recog.HR_iso);
+set(b2, 'FaceColor', plot_color_iso);
+baseline_val = subj_stats.recog.FAR_overall;
+l1 = yline(baseline_val, 'Color', plot_color_new, 'LineStyle', '--', 'LineWidth', 2);
 
-% add far baseline
-plot(xlim, [subj_stats.recog.FAR_overall, subj_stats.recog.FAR_overall], ...
-    'Color', plot_color_far, 'LineStyle', '--', 'LineWidth', 2);
-grid on;
+grid off;
 box off;
-title(sprintf('Hit Rates vs. False Alarm Rate'), 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('Rate (Proportion)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(gca, 'XTickLabel', {'Compared HR', 'Isolated HR'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-legend({'Compared', 'Isolated', 'False Alarm Rate'}, 'Location', 'best', 'FontName', plot_font_name);
-ylim([0, 1.0]); 
-plots: rt
-figure('color', 'white');
+title('HR vs FAR', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+ylabel('Proportion', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+set(gca, 'XTick', [1 2], 'XTickLabel', {'Compared HR', 'Isolated HR'}, ...
+    'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+legend([b1, b2, l1], {'Compared', 'Isolated', 'FAR'}, ...
+    'Location', 'best', 'FontName', plot_font_name);
+
+ylim([0, 1.0]);
 
 % --- rt by condition ---
 h_ax3 = subplot(1, 2, 1);
@@ -699,7 +706,7 @@ b4.CData(1,:) = plot_color_comp;
 b4.CData(2,:) = plot_color_iso;
 b4.CData(3,:) = [0.5 0.5 0.5]; % medium grey
 
-grid on;
+grid off;
 box off;
 title('RT by condition (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
 ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
@@ -709,14 +716,88 @@ set(h_ax3, 'XTickLabel', {'Compared Hit', 'Isolated Hit', 'New CR'}, 'FontName',
 h_ax4 = subplot(1, 2, 2);
 rt_identity_data = [subj_stats.recog.rt_A_hit, subj_stats.recog.rt_B_hit];
 b5 = bar(rt_identity_data, 'FaceColor', 'flat');
-b5.CData(1,:) = plot_color_a;
-b5.CData(2,:) = plot_color_b;
+b5.CData(1,:) = plot_color_same;
+b5.CData(2,:) = plot_color_similar;
 
-grid on;
+grid off;
 box off;
 title('RT by item identity (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('Reaction Time (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax4, 'XTickLabel', {'A Items', 'B Items'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-save results
-save_file = fullfile(results_dir, sprintf('subj_%03d_stats.mat', subj_id));
-save(save_file, 'subj_stats');
+ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+set(h_ax4, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+
+
+% save_file = fullfile(results_dir, sprintf('subj_%03d_stats.mat', subj_id));
+% save(save_file, 'subj_stats');
+
+
+
+
+
+%% Analysis: Transfer of Learning (1-Back -> 2-Back)
+% Goal: Calculate P(2-Back Correct | 1-Back Correct) for Compared Lures
+% We strictly look at "Compared" "B" items (the lures).
+
+% 1. Extract the relevant tables
+% Filter for Compared + Identity B (Lures)
+t1 = results_1_back(results_1_back.condition == "compared" & results_1_back.identity == "B", :);
+t2 = results_2_back(results_2_back.condition == "compared" & results_2_back.identity == "B", :);
+
+% 2. Clean up columns for joining
+% We only need stim_id and the correctness info
+t1_lite = t1(:, {'stim_id', 'correct'});
+t1_lite.Properties.VariableNames = {'stim_id', 'correct_1back'};
+
+t2_lite = t2(:, {'stim_id', 'correct'});
+t2_lite.Properties.VariableNames = {'stim_id', 'correct_2back'};
+
+% 3. Join the tables on 'stim_id'
+% This matches the exact same image file presented in both tasks
+merged_stats = innerjoin(t1_lite, t2_lite, 'Keys', 'stim_id');
+
+% 4. Calculate Conditional Probabilities
+% Group 1: Items they got RIGHT in 1-Back
+got_right_1back = merged_stats(merged_stats.correct_1back == 1, :);
+acc_2back_given_right = mean(got_right_1back.correct_2back);
+
+% Group 2: Items they got WRONG in 1-Back
+got_wrong_1back = merged_stats(merged_stats.correct_1back == 0, :);
+acc_2back_given_wrong = mean(got_wrong_1back.correct_2back);
+
+% Store in structure
+subj_stats.transfer.acc_given_1b_corr = acc_2back_given_right;
+subj_stats.transfer.acc_given_1b_err  = acc_2back_given_wrong;
+subj_stats.transfer.benefit = acc_2back_given_right - acc_2back_given_wrong;
+
+fprintf('\n--- Transfer of Learning Analysis ---\n');
+fprintf('2-Back Accuracy given 1-Back Correct: %.3f (N=%d)\n', ...
+    acc_2back_given_right, height(got_right_1back));
+fprintf('2-Back Accuracy given 1-Back Error:   %.3f (N=%d)\n', ...
+    acc_2back_given_wrong, height(got_wrong_1back));
+fprintf('Learning Benefit: %+.3f\n', subj_stats.transfer.benefit);
+
+%% Plot: Transfer of Learning
+figure('color', 'white', 'Name', 'Transfer Analysis');
+
+% Prepare data
+y_data = [subj_stats.transfer.acc_given_1b_corr, subj_stats.transfer.acc_given_1b_err];
+x_labels = {'1-Back: Correct', '1-Back: Error'};
+
+% Plot
+b = bar(y_data, 'FaceColor', 'flat');
+b.CData(1,:) = plot_color_comp;   % Use your 'compared' color (purple-ish)
+b.CData(2,:) = [0.6 0.6 0.6];     % Grey for the 'Error' baseline
+
+% Aesthetics
+ylabel('Subsequent 2-Back Accuracy', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+xticklabels(x_labels);
+title({'Does 1-Back Performance Predict', '2-Back Success?'}, ...
+    'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+ylim([0 1.05]);
+grid off; box off;
+
+% Add text labels on top of bars
+text(1, y_data(1), sprintf('%.2f', y_data(1)), ...
+    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
+text(2, y_data(2), sprintf('%.2f', y_data(2)), ...
+    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
+
