@@ -5,12 +5,12 @@ close all;
 
 
 %% Set up
-subj_id = 602;
+subj_id = 606;
 base_dir = '..';
 subj_folder = sprintf('sub%03d', subj_id); 
 results_dir = fullfile(base_dir, 'data', subj_folder);
-% concat_file = fullfile(results_dir, sprintf('sub%03d_concat.mat', subj_id));
-concat_file = fullfile(results_dir, sprintf('example.mat', subj_id));
+concat_file = fullfile(results_dir, sprintf('sub%03d_concat_m.mat', subj_id));
+% concat_file = fullfile(results_dir, sprintf('example.mat', subj_id));
 rec_file = fullfile(results_dir, sprintf('sub%03d_rec.mat', subj_id)); 
 
 load(concat_file, 'final_data_output');
@@ -494,310 +494,310 @@ xtickangle(h_ax2, 45);
 
 
 
-
-%%Recognition
-% code correctness
-results_recognition.corr_resp = cellstr(results_recognition.corr_resp);
-results_recognition.resp_key = cellstr(results_recognition.resp_key);
-resp_idx = ~strcmp(results_recognition.resp_key, 'NA');
-num_resp = sum(resp_idx);
-num_total = height(results_recognition);
-results_recognition.correct = strcmp(results_recognition.corr_resp, results_recognition.resp_key);
-
-% how much did they respond?
-subj_stats.recog.per_resp = num_resp / num_total;
-
-% how accurately was their response?
-subj_stats.recog.overall_acc = mean(results_recognition.correct(resp_idx));
-
-% how fast did they respond?
-valid_rt_idx = results_recognition.rt > MIN_RT_CUTOFF;
-all_valid_rts = results_recognition.rt(valid_rt_idx);
-
-figure('color', 'white');
-histogram(all_valid_rts, 50, 'FaceColor', [0.5 0.5 0.5]);
-title(sprintf('RT Distribution (RTs > %.3fs)', MIN_RT_CUTOFF));
-xlabel('RT (s)');
-ylabel('Count');
-grid on;
-box off;
-
-% store rt stats
-subj_stats.recog.median_rt = median(all_valid_rts);
-
-% print sanity checks
-fprintf('percent responded: %f\n', subj_stats.recog.per_resp);
-fprintf('overall accuracy: %f\n', subj_stats.recog.overall_acc);
-fprintf('median reaction times: %f\n', subj_stats.recog.median_rt);
-
-%% SDT
-% overall hit rate and false alarm rate
-old_trials = results_recognition(results_recognition.trial_type == "old", :);
-new_trials = results_recognition(results_recognition.trial_type ~= "old", :);
-n_old = height(old_trials);
-n_new = height(new_trials);
-n_hits = sum(old_trials.correct == 1 & old_trials.rt > MIN_RT_CUTOFF);
-n_fa = sum(strcmp(new_trials.resp_key, 'j') & new_trials.rt > MIN_RT_CUTOFF);
-
-HR = n_hits / n_old;
-FAR = n_fa / n_new;
-
-% correction
-if HR == 1, HR = 1 - (1 / (2 * n_old)); end
-if HR == 0, HR = 1 / (2 * n_old); end 
-if FAR == 0, FAR = 1 / (2 * n_new); end
-if FAR == 1, FAR = 1 - (1 / (2 * n_new)); end 
-
-% store overall sdt
-subj_stats.recog.HR_overall = HR;
-subj_stats.recog.FAR_overall = FAR;
-subj_stats.recog.d_prime_overall = norminv(HR) - norminv(FAR);
-
-fprintf('overall hit rate: %f\n', subj_stats.recog.HR_overall);
-fprintf('overall false alarm rate: %f\n', subj_stats.recog.FAR_overall);
-fprintf('overall d''prime: %f\n', subj_stats.recog.d_prime_overall);
-%% Compared vs Isolated
-comp_trials = old_trials(old_trials.condition == "compared", :);
-iso_trials = old_trials(old_trials.condition == "isolated", :);
-n_comp = height(comp_trials);
-n_iso = height(iso_trials);
-
-% comp hits
-n_hits_comp = sum(comp_trials.correct == 1 & comp_trials.rt > MIN_RT_CUTOFF);
-HR_comp = n_hits_comp / n_comp;
-if HR_comp == 1, HR_comp = 1 - (1 / (2 * n_comp)); end
-if HR_comp == 0, HR_comp = 1 / (2 * n_comp); end
-
-% iso hits
-n_hits_iso = sum(iso_trials.correct == 1 & iso_trials.rt > MIN_RT_CUTOFF);
-HR_iso = n_hits_iso / n_iso;
-if HR_iso == 1, HR_iso = 1 - (1 / (2 * n_iso)); end
-if HR_iso == 0, HR_iso = 1 / (2 * n_iso); end
-
-% store conditional sdt
-subj_stats.recog.HR_comp = HR_comp;
-subj_stats.recog.d_prime_comp = norminv(HR_comp) - norminv(FAR);
-subj_stats.recog.HR_iso = HR_iso;
-subj_stats.recog.d_prime_iso = norminv(HR_iso) - norminv(FAR);
-
-fprintf('compared HR: %f\n', subj_stats.recog.HR_comp);
-fprintf('compared d prime: %f\n', subj_stats.recog.d_prime_comp);
-fprintf('isolated HR: %f\n', subj_stats.recog.HR_iso);
-fprintf('isolated d prime: %f\n', subj_stats.recog.d_prime_iso);
-%% A vs B
-A_trials = old_trials(old_trials.identity == "A", :);
-B_trials = old_trials(old_trials.identity == "B", :);
-n_A = height(A_trials);
-n_B = height(B_trials);
-
-% A its
-n_hits_A = sum(A_trials.correct == 1 & A_trials.rt > MIN_RT_CUTOFF);
-HR_A = n_hits_A / n_A;
-if HR_A == 1, HR_A = 1 - (1 / (2 * n_A)); end
-if HR_A == 0, HR_A = 1 / (2 * n_A); end
-
-% B hits
-n_hits_B = sum(B_trials.correct == 1 & B_trials.rt > MIN_RT_CUTOFF);
-HR_B = n_hits_B / n_B;
-if HR_B == 1, HR_B = 1 - (1 / (2 * n_B)); end
-if HR_B == 0, HR_B = 1 / (2 * n_B); end
-
-% store A vs B sdt
-subj_stats.recog.HR_A = HR_A;
-subj_stats.recog.d_prime_A = norminv(HR_A) - norminv(FAR);
-subj_stats.recog.HR_B = HR_B;
-subj_stats.recog.d_prime_B = norminv(HR_B) - norminv(FAR);
-
-fprintf('A HR: %f\n', subj_stats.recog.HR_A);
-fprintf('A d prime: %f\n', subj_stats.recog.d_prime_A);
-fprintf('B HR: %f\n', subj_stats.recog.HR_B);
-fprintf('B d prime: %f\n', subj_stats.recog.d_prime_B);
-%% RT
-% Compared vs Isolated vs Foil
-rt_comp_hits = mean(results_recognition.rt(...
-    results_recognition.condition == "compared" & ...
-    results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
-
-rt_iso_hits = mean(results_recognition.rt(...
-    results_recognition.condition == "isolated" & ...
-    results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
-
-rt_new_crs = mean(results_recognition.rt(...
-    results_recognition.trial_type ~= "old" & ...
-    results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
-
-% by item identity
-rt_A_hits = mean(results_recognition.rt(...
-    results_recognition.identity == "A" & ...
-    results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
-    
-rt_B_hits = mean(results_recognition.rt(...
-    results_recognition.identity == "B" & ...
-    results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
-
-% store rt
-subj_stats.recog.rt_comp_hit = rt_comp_hits;
-subj_stats.recog.rt_iso_hit = rt_iso_hits;
-subj_stats.recog.rt_new_cr = rt_new_crs;
-subj_stats.recog.rt_A_hit = rt_A_hits;
-subj_stats.recog.rt_B_hit = rt_B_hits;
-
-fprintf('RT compared hit: %f\n', subj_stats.recog.rt_comp_hit);
-fprintf('RT isolated hit: %f\n', subj_stats.recog.rt_iso_hit);
-fprintf('RT new CR: %f\n', subj_stats.recog.rt_new_cr);
-fprintf('RT A hit: %f\n', subj_stats.recog.rt_A_hit);
-fprintf('RT B hit: %f\n', subj_stats.recog.rt_B_hit);
-
-%% plots: sdt
-figure('color', 'white'); 
-
-% d' by condition
-h_ax1 = subplot(1, 2, 1); 
-d_prime_data = [subj_stats.recog.d_prime_comp, subj_stats.recog.d_prime_iso];
-b1 = bar(d_prime_data, 'FaceColor', 'flat');
-b1.CData(1,:) = plot_color_comp;
-b1.CData(2,:) = plot_color_iso;
-
-grid off;
-box off;
-title('d'' by condition', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax1, 'XTickLabel', {'Compared', 'Isolated'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-
-% d' by item identity
-h_ax2 = subplot(1, 2, 2);
-d_prime_AB_data = [subj_stats.recog.d_prime_A, subj_stats.recog.d_prime_B];
-b2 = bar(d_prime_AB_data, 'FaceColor', 'flat');
-b2.CData(1,:) = plot_color_same;
-b2.CData(2,:) = plot_color_similar;
-
-grid off;
-box off;
-title('d'' by item identity', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax2, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-
-% --- figure 2: hr vs far ---
-figure('color', 'white');
-hold on;
-b1 = bar(1, subj_stats.recog.HR_comp);
-set(b1, 'FaceColor', plot_color_comp);
-b2 = bar(2, subj_stats.recog.HR_iso);
-set(b2, 'FaceColor', plot_color_iso);
-baseline_val = subj_stats.recog.FAR_overall;
-l1 = yline(baseline_val, 'Color', plot_color_new, 'LineStyle', '--', 'LineWidth', 2);
-
-grid off;
-box off;
-title('HR vs FAR', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('Proportion', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(gca, 'XTick', [1 2], 'XTickLabel', {'Compared HR', 'Isolated HR'}, ...
-    'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-legend([b1, b2, l1], {'Compared', 'Isolated', 'FAR'}, ...
-    'Location', 'best', 'FontName', plot_font_name);
-
-ylim([0, 1.0]);
-
-% --- rt by condition ---
-h_ax3 = subplot(1, 2, 1);
-rt_condition_data = [subj_stats.recog.rt_comp_hit, subj_stats.recog.rt_iso_hit, subj_stats.recog.rt_new_cr];
-b4 = bar(rt_condition_data, 'FaceColor', 'flat');
-b4.CData(1,:) = plot_color_comp;
-b4.CData(2,:) = plot_color_iso;
-b4.CData(3,:) = [0.5 0.5 0.5]; % medium grey
-
-grid off;
-box off;
-title('RT by condition (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax3, 'XTickLabel', {'Compared Hit', 'Isolated Hit', 'New CR'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-
-% --- rt by item identity ---
-h_ax4 = subplot(1, 2, 2);
-rt_identity_data = [subj_stats.recog.rt_A_hit, subj_stats.recog.rt_B_hit];
-b5 = bar(rt_identity_data, 'FaceColor', 'flat');
-b5.CData(1,:) = plot_color_same;
-b5.CData(2,:) = plot_color_similar;
-
-grid off;
-box off;
-title('RT by item identity (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax4, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-
-
-% save_file = fullfile(results_dir, sprintf('subj_%03d_stats.mat', subj_id));
-% save(save_file, 'subj_stats');
-
-
-
-
-
-%% Analysis: Transfer of Learning (1-Back -> 2-Back)
-% Goal: Calculate P(2-Back Correct | 1-Back Correct) for Compared Lures
-% We strictly look at "Compared" "B" items (the lures).
-
-% 1. Extract the relevant tables
-% Filter for Compared + Identity B (Lures)
-t1 = results_1_back(results_1_back.condition == "compared" & results_1_back.identity == "B", :);
-t2 = results_2_back(results_2_back.condition == "compared" & results_2_back.identity == "B", :);
-
-% 2. Clean up columns for joining
-% We only need stim_id and the correctness info
-t1_lite = t1(:, {'stim_id', 'correct'});
-t1_lite.Properties.VariableNames = {'stim_id', 'correct_1back'};
-
-t2_lite = t2(:, {'stim_id', 'correct'});
-t2_lite.Properties.VariableNames = {'stim_id', 'correct_2back'};
-
-% 3. Join the tables on 'stim_id'
-% This matches the exact same image file presented in both tasks
-merged_stats = innerjoin(t1_lite, t2_lite, 'Keys', 'stim_id');
-
-% 4. Calculate Conditional Probabilities
-% Group 1: Items they got RIGHT in 1-Back
-got_right_1back = merged_stats(merged_stats.correct_1back == 1, :);
-acc_2back_given_right = mean(got_right_1back.correct_2back);
-
-% Group 2: Items they got WRONG in 1-Back
-got_wrong_1back = merged_stats(merged_stats.correct_1back == 0, :);
-acc_2back_given_wrong = mean(got_wrong_1back.correct_2back);
-
-% Store in structure
-subj_stats.transfer.acc_given_1b_corr = acc_2back_given_right;
-subj_stats.transfer.acc_given_1b_err  = acc_2back_given_wrong;
-subj_stats.transfer.benefit = acc_2back_given_right - acc_2back_given_wrong;
-
-fprintf('\n--- Transfer of Learning Analysis ---\n');
-fprintf('2-Back Accuracy given 1-Back Correct: %.3f (N=%d)\n', ...
-    acc_2back_given_right, height(got_right_1back));
-fprintf('2-Back Accuracy given 1-Back Error:   %.3f (N=%d)\n', ...
-    acc_2back_given_wrong, height(got_wrong_1back));
-fprintf('Learning Benefit: %+.3f\n', subj_stats.transfer.benefit);
+% 
+% %%Recognition
+% % code correctness
+% results_recognition.corr_resp = cellstr(results_recognition.corr_resp);
+% results_recognition.resp_key = cellstr(results_recognition.resp_key);
+% resp_idx = ~strcmp(results_recognition.resp_key, 'NA');
+% num_resp = sum(resp_idx);
+% num_total = height(results_recognition);
+% results_recognition.correct = strcmp(results_recognition.corr_resp, results_recognition.resp_key);
+% 
+% % how much did they respond?
+% subj_stats.recog.per_resp = num_resp / num_total;
+% 
+% % how accurately was their response?
+% subj_stats.recog.overall_acc = mean(results_recognition.correct(resp_idx));
+% 
+% % how fast did they respond?
+% valid_rt_idx = results_recognition.rt > MIN_RT_CUTOFF;
+% all_valid_rts = results_recognition.rt(valid_rt_idx);
+% 
+% figure('color', 'white');
+% histogram(all_valid_rts, 50, 'FaceColor', [0.5 0.5 0.5]);
+% title(sprintf('RT Distribution (RTs > %.3fs)', MIN_RT_CUTOFF));
+% xlabel('RT (s)');
+% ylabel('Count');
+% grid on;
+% box off;
+% 
+% % store rt stats
+% subj_stats.recog.median_rt = median(all_valid_rts);
+% 
+% % print sanity checks
+% fprintf('percent responded: %f\n', subj_stats.recog.per_resp);
+% fprintf('overall accuracy: %f\n', subj_stats.recog.overall_acc);
+% fprintf('median reaction times: %f\n', subj_stats.recog.median_rt);
+% 
+% %% SDT
+% % overall hit rate and false alarm rate
+% old_trials = results_recognition(results_recognition.trial_type == "old", :);
+% new_trials = results_recognition(results_recognition.trial_type ~= "old", :);
+% n_old = height(old_trials);
+% n_new = height(new_trials);
+% n_hits = sum(old_trials.correct == 1 & old_trials.rt > MIN_RT_CUTOFF);
+% n_fa = sum(strcmp(new_trials.resp_key, 'j') & new_trials.rt > MIN_RT_CUTOFF);
+% 
+% HR = n_hits / n_old;
+% FAR = n_fa / n_new;
+% 
+% % correction
+% if HR == 1, HR = 1 - (1 / (2 * n_old)); end
+% if HR == 0, HR = 1 / (2 * n_old); end 
+% if FAR == 0, FAR = 1 / (2 * n_new); end
+% if FAR == 1, FAR = 1 - (1 / (2 * n_new)); end 
+% 
+% % store overall sdt
+% subj_stats.recog.HR_overall = HR;
+% subj_stats.recog.FAR_overall = FAR;
+% subj_stats.recog.d_prime_overall = norminv(HR) - norminv(FAR);
+% 
+% fprintf('overall hit rate: %f\n', subj_stats.recog.HR_overall);
+% fprintf('overall false alarm rate: %f\n', subj_stats.recog.FAR_overall);
+% fprintf('overall d''prime: %f\n', subj_stats.recog.d_prime_overall);
+% %% Compared vs Isolated
+% comp_trials = old_trials(old_trials.condition == "compared", :);
+% iso_trials = old_trials(old_trials.condition == "isolated", :);
+% n_comp = height(comp_trials);
+% n_iso = height(iso_trials);
+% 
+% % comp hits
+% n_hits_comp = sum(comp_trials.correct == 1 & comp_trials.rt > MIN_RT_CUTOFF);
+% HR_comp = n_hits_comp / n_comp;
+% if HR_comp == 1, HR_comp = 1 - (1 / (2 * n_comp)); end
+% if HR_comp == 0, HR_comp = 1 / (2 * n_comp); end
+% 
+% % iso hits
+% n_hits_iso = sum(iso_trials.correct == 1 & iso_trials.rt > MIN_RT_CUTOFF);
+% HR_iso = n_hits_iso / n_iso;
+% if HR_iso == 1, HR_iso = 1 - (1 / (2 * n_iso)); end
+% if HR_iso == 0, HR_iso = 1 / (2 * n_iso); end
+% 
+% % store conditional sdt
+% subj_stats.recog.HR_comp = HR_comp;
+% subj_stats.recog.d_prime_comp = norminv(HR_comp) - norminv(FAR);
+% subj_stats.recog.HR_iso = HR_iso;
+% subj_stats.recog.d_prime_iso = norminv(HR_iso) - norminv(FAR);
+% 
+% fprintf('compared HR: %f\n', subj_stats.recog.HR_comp);
+% fprintf('compared d prime: %f\n', subj_stats.recog.d_prime_comp);
+% fprintf('isolated HR: %f\n', subj_stats.recog.HR_iso);
+% fprintf('isolated d prime: %f\n', subj_stats.recog.d_prime_iso);
+% %% A vs B
+% A_trials = old_trials(old_trials.identity == "A", :);
+% B_trials = old_trials(old_trials.identity == "B", :);
+% n_A = height(A_trials);
+% n_B = height(B_trials);
+% 
+% % A its
+% n_hits_A = sum(A_trials.correct == 1 & A_trials.rt > MIN_RT_CUTOFF);
+% HR_A = n_hits_A / n_A;
+% if HR_A == 1, HR_A = 1 - (1 / (2 * n_A)); end
+% if HR_A == 0, HR_A = 1 / (2 * n_A); end
+% 
+% % B hits
+% n_hits_B = sum(B_trials.correct == 1 & B_trials.rt > MIN_RT_CUTOFF);
+% HR_B = n_hits_B / n_B;
+% if HR_B == 1, HR_B = 1 - (1 / (2 * n_B)); end
+% if HR_B == 0, HR_B = 1 / (2 * n_B); end
+% 
+% % store A vs B sdt
+% subj_stats.recog.HR_A = HR_A;
+% subj_stats.recog.d_prime_A = norminv(HR_A) - norminv(FAR);
+% subj_stats.recog.HR_B = HR_B;
+% subj_stats.recog.d_prime_B = norminv(HR_B) - norminv(FAR);
+% 
+% fprintf('A HR: %f\n', subj_stats.recog.HR_A);
+% fprintf('A d prime: %f\n', subj_stats.recog.d_prime_A);
+% fprintf('B HR: %f\n', subj_stats.recog.HR_B);
+% fprintf('B d prime: %f\n', subj_stats.recog.d_prime_B);
+% %% RT
+% % Compared vs Isolated vs Foil
+% rt_comp_hits = mean(results_recognition.rt(...
+%     results_recognition.condition == "compared" & ...
+%     results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
+% 
+% rt_iso_hits = mean(results_recognition.rt(...
+%     results_recognition.condition == "isolated" & ...
+%     results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
+% 
+% rt_new_crs = mean(results_recognition.rt(...
+%     results_recognition.trial_type ~= "old" & ...
+%     results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
+% 
+% % by item identity
+% rt_A_hits = mean(results_recognition.rt(...
+%     results_recognition.identity == "A" & ...
+%     results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
+% 
+% rt_B_hits = mean(results_recognition.rt(...
+%     results_recognition.identity == "B" & ...
+%     results_recognition.correct == 1 & valid_rt_idx), 'omitnan');
+% 
+% % store rt
+% subj_stats.recog.rt_comp_hit = rt_comp_hits;
+% subj_stats.recog.rt_iso_hit = rt_iso_hits;
+% subj_stats.recog.rt_new_cr = rt_new_crs;
+% subj_stats.recog.rt_A_hit = rt_A_hits;
+% subj_stats.recog.rt_B_hit = rt_B_hits;
+% 
+% fprintf('RT compared hit: %f\n', subj_stats.recog.rt_comp_hit);
+% fprintf('RT isolated hit: %f\n', subj_stats.recog.rt_iso_hit);
+% fprintf('RT new CR: %f\n', subj_stats.recog.rt_new_cr);
+% fprintf('RT A hit: %f\n', subj_stats.recog.rt_A_hit);
+% fprintf('RT B hit: %f\n', subj_stats.recog.rt_B_hit);
+% 
+% %% plots: sdt
+% figure('color', 'white'); 
+% 
+% % d' by condition
+% h_ax1 = subplot(1, 2, 1); 
+% d_prime_data = [subj_stats.recog.d_prime_comp, subj_stats.recog.d_prime_iso];
+% b1 = bar(d_prime_data, 'FaceColor', 'flat');
+% b1.CData(1,:) = plot_color_comp;
+% b1.CData(2,:) = plot_color_iso;
+% 
+% grid off;
+% box off;
+% title('d'' by condition', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(h_ax1, 'XTickLabel', {'Compared', 'Isolated'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% 
+% % % d' by item identity
+% % h_ax2 = subplot(1, 2, 2);
+% % d_prime_AB_data = [subj_stats.recog.d_prime_A, subj_stats.recog.d_prime_B];
+% % b2 = bar(d_prime_AB_data, 'FaceColor', 'flat');
+% % b2.CData(1,:) = plot_color_same;
+% % b2.CData(2,:) = plot_color_similar;
+% % 
+% % grid off;
+% % box off;
+% % title('d'' by item identity', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% % ylabel('d-prime', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% % set(h_ax2, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% 
+% % --- figure 2: hr vs far ---
+% figure('color', 'white');
+% hold on;
+% b1 = bar(1, subj_stats.recog.HR_comp);
+% set(b1, 'FaceColor', plot_color_comp);
+% b2 = bar(2, subj_stats.recog.HR_iso);
+% set(b2, 'FaceColor', plot_color_iso);
+% baseline_val = subj_stats.recog.FAR_overall;
+% l1 = yline(baseline_val, 'Color', plot_color_new, 'LineStyle', '--', 'LineWidth', 2);
+% 
+% grid off;
+% box off;
+% title('HR vs FAR', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% ylabel('Proportion', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(gca, 'XTick', [1 2], 'XTickLabel', {'Compared HR', 'Isolated HR'}, ...
+%     'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% legend([b1, b2, l1], {'Compared', 'Isolated', 'FAR'}, ...
+%     'Location', 'best', 'FontName', plot_font_name);
+% 
+% ylim([0, 1.0]);
+% % 
+% % % --- rt by condition ---
+% % h_ax3 = subplot(1, 2, 1);
+% % rt_condition_data = [subj_stats.recog.rt_comp_hit, subj_stats.recog.rt_iso_hit, subj_stats.recog.rt_new_cr];
+% % b4 = bar(rt_condition_data, 'FaceColor', 'flat');
+% % b4.CData(1,:) = plot_color_comp;
+% % b4.CData(2,:) = plot_color_iso;
+% % b4.CData(3,:) = [0.5 0.5 0.5]; % medium grey
+% % 
+% % grid off;
+% % box off;
+% % title('RT by condition (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% % ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% % set(h_ax3, 'XTickLabel', {'Compared Hit', 'Isolated Hit', 'New CR'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% % 
+% % % --- rt by item identity ---
+% % h_ax4 = subplot(1, 2, 2);
+% % rt_identity_data = [subj_stats.recog.rt_A_hit, subj_stats.recog.rt_B_hit];
+% % b5 = bar(rt_identity_data, 'FaceColor', 'flat');
+% % b5.CData(1,:) = plot_color_same;
+% % b5.CData(2,:) = plot_color_similar;
+% 
+% grid off;
+% box off;
+% title('RT by item identity (correct)', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(h_ax4, 'XTickLabel', {'A', 'B'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% 
+% 
+% % save_file = fullfile(results_dir, sprintf('subj_%03d_stats.mat', subj_id));
+% % save(save_file, 'subj_stats');
+% 
+% 
+% 
+% 
+% 
+% %% Analysis: Transfer of Learning (1-Back -> 2-Back)
+% % Goal: Calculate P(2-Back Correct | 1-Back Correct) for Compared Lures
+% % We strictly look at "Compared" "B" items (the lures).
+% 
+% % 1. Extract the relevant tables
+% % Filter for Compared + Identity B (Lures)
+% t1 = results_1_back(results_1_back.condition == "compared" & results_1_back.identity == "B", :);
+% t2 = results_2_back(results_2_back.condition == "compared" & results_2_back.identity == "B", :);
+% 
+% % 2. Clean up columns for joining
+% % We only need stim_id and the correctness info
+% t1_lite = t1(:, {'stim_id', 'correct'});
+% t1_lite.Properties.VariableNames = {'stim_id', 'correct_1back'};
+% 
+% t2_lite = t2(:, {'stim_id', 'correct'});
+% t2_lite.Properties.VariableNames = {'stim_id', 'correct_2back'};
+% 
+% % 3. Join the tables on 'stim_id'
+% % This matches the exact same image file presented in both tasks
+% merged_stats = innerjoin(t1_lite, t2_lite, 'Keys', 'stim_id');
+% 
+% % 4. Calculate Conditional Probabilities
+% % Group 1: Items they got RIGHT in 1-Back
+% got_right_1back = merged_stats(merged_stats.correct_1back == 1, :);
+% acc_2back_given_right = mean(got_right_1back.correct_2back);
+% 
+% % Group 2: Items they got WRONG in 1-Back
+% got_wrong_1back = merged_stats(merged_stats.correct_1back == 0, :);
+% acc_2back_given_wrong = mean(got_wrong_1back.correct_2back);
+% 
+% % Store in structure
+% subj_stats.transfer.acc_given_1b_corr = acc_2back_given_right;
+% subj_stats.transfer.acc_given_1b_err  = acc_2back_given_wrong;
+% subj_stats.transfer.benefit = acc_2back_given_right - acc_2back_given_wrong;
+% 
+% fprintf('\n--- Transfer of Learning Analysis ---\n');
+% fprintf('2-Back Accuracy given 1-Back Correct: %.3f (N=%d)\n', ...
+%     acc_2back_given_right, height(got_right_1back));
+% fprintf('2-Back Accuracy given 1-Back Error:   %.3f (N=%d)\n', ...
+%     acc_2back_given_wrong, height(got_wrong_1back));
+% fprintf('Learning Benefit: %+.3f\n', subj_stats.transfer.benefit);
 
 %% Plot: Transfer of Learning
-figure('color', 'white', 'Name', 'Transfer Analysis');
-
-% Prepare data
-y_data = [subj_stats.transfer.acc_given_1b_corr, subj_stats.transfer.acc_given_1b_err];
-x_labels = {'1-Back: Correct', '1-Back: Error'};
-
-% Plot
-b = bar(y_data, 'FaceColor', 'flat');
-b.CData(1,:) = plot_color_comp;   % Use your 'compared' color (purple-ish)
-b.CData(2,:) = [0.6 0.6 0.6];     % Grey for the 'Error' baseline
-
-% Aesthetics
-ylabel('Subsequent 2-Back Accuracy', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-xticklabels(x_labels);
-title({'Does 1-Back Performance Predict', '2-Back Success?'}, ...
-    'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylim([0 1.05]);
-grid off; box off;
-
-% Add text labels on top of bars
-text(1, y_data(1), sprintf('%.2f', y_data(1)), ...
-    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
-text(2, y_data(2), sprintf('%.2f', y_data(2)), ...
-    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
+% figure('color', 'white', 'Name', 'Transfer Analysis');
+% 
+% % Prepare data
+% y_data = [subj_stats.transfer.acc_given_1b_corr, subj_stats.transfer.acc_given_1b_err];
+% x_labels = {'1-Back: Correct', '1-Back: Error'};
+% 
+% % Plot
+% b = bar(y_data, 'FaceColor', 'flat');
+% b.CData(1,:) = plot_color_comp;   % Use your 'compared' color (purple-ish)
+% b.CData(2,:) = [0.6 0.6 0.6];     % Grey for the 'Error' baseline
+% 
+% % Aesthetics
+% ylabel('Subsequent 2-Back Accuracy', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% xticklabels(x_labels);
+% title({'Does 1-Back Performance Predict', '2-Back Success?'}, ...
+%     'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% ylim([0 1.05]);
+% grid off; box off;
+% 
+% % Add text labels on top of bars
+% text(1, y_data(1), sprintf('%.2f', y_data(1)), ...
+%     'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
+% text(2, y_data(2), sprintf('%.2f', y_data(2)), ...
+%     'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'FontSize', 12);
 
