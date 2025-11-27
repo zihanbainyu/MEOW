@@ -136,7 +136,7 @@ try
     fprintf('***Experiment begins\n\n\n');
 
     % global instructions
-    % instructions(p, 'welcome');
+    instructions(p, 'welcome');
 
     % initial eyetracker calibration
     if p.eyetracking == 1
@@ -174,7 +174,7 @@ try
             Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
 
             % Eye-tracking version
-            results_1_back = C_run_1_back(p, el, sequence_1_back_block);
+            results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
 
             % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
             % Eyelink('CloseFile');

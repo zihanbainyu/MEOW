@@ -121,7 +121,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_same = ['Situation 1: Same\n\n' ...
                         'The current image looks exactly the same as 1 trial ago.\n\n' ...
-                        'Press  ' p.keys.same ' .'];
+                        'You would press  ' p.keys.same ' .'];
             DrawFormattedText(p.window, msg_same, 'center', Y_CAPTION, p.colors.black);
             
             % 4. Show and Wait
@@ -144,7 +144,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_sim = ['Situation 2: Similar\n\n' ...
                        'The current image looks similar to 1 trial ago, but it is NOT identical.\n\n' ...
-                       'Press  ' p.keys.diff ' .'];
+                       'You would press  ' p.keys.diff ' .'];
             DrawFormattedText(p.window, msg_sim, 'center', Y_CAPTION, p.colors.black);
             
             % 4. Show and Wait
@@ -169,7 +169,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_new = ['Situation 3: New\n\n' ...
                        'The current image looks completely different from one trial ago.\n\n' ...
-                       'Do not press anything'];
+                       'You would not press anything'];
             DrawFormattedText(p.window, msg_new, 'center', Y_CAPTION, p.colors.black);
             
             % 4. Show and Wait
@@ -265,7 +265,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_match = ['Situation 1: Same\n\n' ...
                          'The current image looks exactly the same as 2 trials ago.\n\n' ...
-                         'Press  ' p.keys.same ' .'];
+                         'You would press  ' p.keys.same ' .'];
             DrawFormattedText(p.window, msg_match, 'center', Y_CAPTION, p.colors.black);
             
             Screen('Flip', p.window);
@@ -294,7 +294,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_lure = ['Situation 2: Similar\n\n' ...
                         'The current image looks similar to 2 trials ago, but NOT identical.\n\n' ...
-                        'Press  ' p.keys.diff ' .'];
+                        'You would press  ' p.keys.diff ' .'];
             DrawFormattedText(p.window, msg_lure, 'center', Y_CAPTION, p.colors.black);
             
             Screen('Flip', p.window);
@@ -323,7 +323,7 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_new = ['Situation 3: New\n\n' ...
                        'The current image looks completely different from 2 trials ago.\n\n' ...
-                       'Do not press anything.'];
+                       'You would not press anything.'];
             DrawFormattedText(p.window, msg_new, 'center', Y_CAPTION, p.colors.black);
             
             Screen('Flip', p.window);
