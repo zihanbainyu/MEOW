@@ -51,12 +51,14 @@ function instructions(p, instruction_type)
             try
                 img_repeat = imread(fullfile(p.stim_dir, 'instr_A.png'));
                 img_similar = imread(fullfile(p.stim_dir, 'instr_B.png'));
+                img_new = imread(fullfile(p.stim_dir, 'instr_B_foil.png'));
             catch
                 error('could not find example images!');
             end
             
             tex_repeat = Screen('MakeTexture', p.window, img_repeat);
             tex_similar = Screen('MakeTexture', p.window, img_similar);
+            tex_new = Screen('MakeTexture', p.window, img_new);
 
             % Task Overview Screen 1
             DrawFormattedText(p.window, ['1-Back Task\n\n' ...
@@ -80,9 +82,9 @@ function instructions(p, instruction_type)
             % Response Rules Screen 2
             DrawFormattedText(p.window, ['You have three possible responses:\n\n' ...
                 '\n\n' ...
-                'Press  ' p.keys.same '  (SAME)  with your index finger if the item is exactly the same as the one from one trial ago.\n\n' ...
-                'Press  ' p.keys.diff '  (SIMILAR) with your middle finger if the item is similar but not identical to the one from one trial ago.\n\n' ...
-                'Do not press any key if the item is completely new (NEW).\n\n'], ...
+                'Press  ' p.keys.same '  (SAME)  with your index finger if the image is exactly the same as 1 trial ago.\n\n' ...
+                'Press  ' p.keys.diff '  (SIMILAR) with your middle finger if the image is similar but not identical to 1 trial ago.\n\n' ...
+                'Do not press any key if the image is completely different (NEW).\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
@@ -93,64 +95,92 @@ function instructions(p, instruction_type)
             waitForKeyPress(p, start_key, escape_key);
 
             % --- Define Layout Constants (Using values from 2-Back for consistency) ---
-            IMAGE_SIZE_DISPLAY = 300;  % 300x300 pixels
-            IMAGE_SPACING_HALF = 325;  % Half the distance between image centers (350/2 is too small, use 350)
-            TEXT_OFFSET_Y      = 175;  % Vertical offset for labels above images
-            TEXT_OFFSET_CAPTION = 200; % Vertical offset for captions below images
-            ROW_HEIGHT         = 450;  % Vertical spacing between the center of Row 1 and Row 2
-            
-            % --- Horizontal Offsets (centered on p.xCenter) ---
-            X_LEFT_ENC   = p.xCenter - IMAGE_SPACING_HALF; % 350 pixels left of center
-            X_RIGHT_ENC  = p.xCenter + IMAGE_SPACING_HALF; % 350 pixels right of center
 
-            % --- Row 1 Vertical Positions (SAME/REPEAT Example) ---
-            Y_ROW1_CENTER = p.yCenter - 275; 
-            Y_ROW1_LABEL  = Y_ROW1_CENTER - TEXT_OFFSET_Y;
-            Y_ROW1_CAPTION= Y_ROW1_CENTER + TEXT_OFFSET_CAPTION;
+            IMAGE_SIZE_DISPLAY  = 250;  % Size in pixels
+            IMAGE_SPACING_HALF  = 350;  % Distance from center to image
+            TEXT_OFFSET_Y       = 225;  % Label height above center
+            TEXT_OFFSET_CAPTION = 225;  % Caption height below center
             
-            % --- Row 2 Vertical Positions (SIMILAR/LURE Example) ---
-            Y_ROW2_CENTER = Y_ROW1_CENTER + ROW_HEIGHT;
-            Y_ROW2_LABEL  = Y_ROW2_CENTER - TEXT_OFFSET_Y;
-            Y_ROW2_CAPTION= Y_ROW2_CENTER + TEXT_OFFSET_CAPTION;
-
+            % Horizontal Positions
+            X_LEFT  = p.xCenter - IMAGE_SPACING_HALF; % "One trial ago" position
+            X_RIGHT = p.xCenter + IMAGE_SPACING_HALF; % "Current Image" position
             
-            % ========================================================================
-            % Example 1: SAME/REPEAT (Centered around X_LEFT_ENC and X_RIGHT_ENC)
-            % ========================================================================
-            % --- Labels ---
-            % Position text labels above the image centers
-            DrawFormattedText(p.window, 'Previous Item', X_LEFT_ENC - 50, Y_ROW1_LABEL, p.colors.black);
-            DrawFormattedText(p.window, 'Current Item', X_RIGHT_ENC - 50, Y_ROW1_LABEL, p.colors.black);
+            % Vertical Positions (Everything centered on p.yCenter)
+            Y_CENTER  = p.yCenter;
+            Y_LABEL   = Y_CENTER - TEXT_OFFSET_Y;
+            Y_CAPTION = Y_CENTER + TEXT_OFFSET_CAPTION;
             
-            % --- Images ---
-            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT_ENC, Y_ROW1_CENTER));
-            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT_ENC, Y_ROW1_CENTER));
+            % 1. Labels
+            DrawFormattedText(p.window, '1 trial ago', X_LEFT - 70, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 70, Y_LABEL, p.colors.black);
             
-            % --- Instruction text (Caption) ---
-            DrawFormattedText(p.window, ['You would press  ' p.keys.same '  because it is exactly the SAME.'], 'center', Y_ROW1_CAPTION, p.colors.black);
-        
+            % 2. Images (Identical images on left and right)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
             
-            % ========================================================================
-            % Example 2: SIMILAR/LURE (Centered around X_LEFT_ENC and X_RIGHT_ENC)
-            % ========================================================================
-            % --- Labels ---
-            DrawFormattedText(p.window, 'Previous Item', X_LEFT_ENC - 50, Y_ROW2_LABEL, p.colors.black);
-            DrawFormattedText(p.window, 'Current Item', X_RIGHT_ENC - 50, Y_ROW2_LABEL, p.colors.black);
+            % 3. Explanation
+            msg_same = ['Situation 1: Same\n\n' ...
+                        'The current image looks exactly the same as 1 trial ago.\n\n' ...
+                        'Press  ' p.keys.same ' .'];
+            DrawFormattedText(p.window, msg_same, 'center', Y_CAPTION, p.colors.black);
             
-            % --- Images ---
-            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT_ENC, Y_ROW2_CENTER));
-            Screen('DrawTexture', p.window, tex_similar, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT_ENC, Y_ROW2_CENTER));
-            
-            % --- Instruction text (Caption) ---
-            DrawFormattedText(p.window, ['You would press  ' p.keys.diff '  because it is SIMILAR but not identical.'], 'center', Y_ROW2_CAPTION, p.colors.black);
-            
+            % 4. Show and Wait
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
+            
+            
+            % ========================================================================
+            % SCREEN 2: SIMILAR / LURE EXAMPLE
+            % ========================================================================
+            
+            % 1. Labels
+            DrawFormattedText(p.window, '1 trial ago', X_LEFT - 70, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 70, Y_LABEL, p.colors.black);
+            
+            % 2. Images (Target on left, Similar Lure on right)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            Screen('DrawTexture', p.window, tex_similar, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
+            
+            % 3. Explanation
+            msg_sim = ['Situation 2: Similar\n\n' ...
+                       'The current image looks similar to 1 trial ago, but it is NOT identical.\n\n' ...
+                       'Press  ' p.keys.diff ' .'];
+            DrawFormattedText(p.window, msg_sim, 'center', Y_CAPTION, p.colors.black);
+            
+            % 4. Show and Wait
+            Screen('Flip', p.window);
+            waitForKeyPress(p, start_key, escape_key);
+            
+            
+            % ========================================================================
+            % SCREEN 3: NEW / DIFFERENT EXAMPLE
+            % ========================================================================
+            % Note: You need a third texture loaded as 'tex_new' (or use a distractor texture)
+            
+            % 1. Labels
+            DrawFormattedText(p.window, '1 trial ago', X_LEFT - 70, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 70, Y_LABEL, p.colors.black);
+            
+            % 2. Images (Target on left, Totally different image on right)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            % Assuming you have a variable 'tex_new' or 'tex_distractor' loaded:
+            Screen('DrawTexture', p.window, tex_new, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
+            
+            % 3. Explanation
+            msg_new = ['Situation 3: New\n\n' ...
+                       'The current image looks completely different from one trial ago.\n\n' ...
+                       'Do not press anything'];
+            DrawFormattedText(p.window, msg_new, 'center', Y_CAPTION, p.colors.black);
+            
+            % 4. Show and Wait
+            Screen('Flip', p.window);
+            waitForKeyPress(p, start_key, escape_key);
+            
 
                     
             % Final Instructions Screen 5
-            DrawFormattedText(p.window, ['Please respond as quickly and accurately as you can.\n\n' ...
-                '\n\n' ...
+            DrawFormattedText(p.window, ['Please pay close attention to each image!\n\n', ...
+                'Please respond as quickly and accurately as you can.\n\n\n\n' ...
                 'If you have any questions, please ask the experimenter now.\n\n\n\n' ...
                 'Otherwise, we will begin with a short practice round.\n\n' ...
                 'When you are ready, press f to begin.'], ...
@@ -167,7 +197,8 @@ function instructions(p, instruction_type)
             try
                 img_repeat = imread(fullfile(p.stim_dir, 'instr_A.png'));
                 img_similar = imread(fullfile(p.stim_dir, 'instr_B.png'));
-                img_new = imread(fullfile(p.stim_dir, 'instr_A_foil.png'));
+                img_foil = imread(fullfile(p.stim_dir, 'instr_foil_A.png'));
+                img_new = imread(fullfile(p.stim_dir, 'instr_foil_1.png'));
             catch
                 error('could not find example images!');
             end
@@ -175,12 +206,13 @@ function instructions(p, instruction_type)
             tex_repeat = Screen('MakeTexture', p.window, img_repeat);
             tex_similar = Screen('MakeTexture', p.window, img_similar);
             tex_new = Screen('MakeTexture', p.window, img_new);
+            tex_foil = Screen('MakeTexture', p.window, img_foil);
             
             % Task Overview Screen 1
             DrawFormattedText(p.window, ['2-Back Task\n\n' ...
                 '\n\n' ...
                 'This task is similar, but with one important change.\n\n' ...
-                'Your task is now to compare each item to the one from TWO TRIALS AGO.\n\n'], ...
+                'Your task is now to compare each image to the image from TWO TRIALS AGO.\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
@@ -188,11 +220,11 @@ function instructions(p, instruction_type)
             % Response Rules Screen 2
             DrawFormattedText(p.window, ['Therefore, the response rules now are:\n\n' ...
                 '\n\n' ...
-                'Press  ' p.keys.same '  (SAME) with your index finger if the item is exactly the same as the one from two trials ago.\n\n' ...
-                'Press  ' p.keys.diff '  (SIMILAR) with your middle finger if the item is similar but not identical to the one from two trials ago.\n\n' ...
-                'Do not press any key if the item is completely new (NEW).\n\n' ...
+                'Press  ' p.keys.same '  (SAME) if the image is exactly the same as 2 trials ago.\n\n' ...
+                'Press  ' p.keys.diff '  (SIMILAR) if the image is similar but not identical to 2 trials ago.\n\n' ...
+                'Do not press any key if the image is completely different (NEW).\n\n' ...
                 '\n\n' ...
-                'Important: If an item repeats or resembles the one from only one trial ago, do nothing!\n\n'], ...
+                'Important: If an image repeats or resembles the one from only 1 trial ago, do nothing!\n\n'], ...
                 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
@@ -201,74 +233,102 @@ function instructions(p, instruction_type)
             DrawFormattedText(p.window, 'Before you begin, here is a brief demonstration.', 'center', 'center', p.colors.black, [], [], [], line_spacing);
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
+
+            IMAGE_SIZE_DISPLAY  = 200;  % Slightly smaller to fit 3 in a row
+            IMAGE_SPACING       = 300;  % Distance between centers
+            TEXT_OFFSET_Y       = 200;  % Label height above center
+            TEXT_OFFSET_CAPTION = 225;  % Caption height below center
             
-            % --- Define Layout Constants ---
-            IMAGE_SIZE_DISPLAY = 300; % Displayed size in pixels
-            IMAGE_SPACING = 350;      % Horizontal spacing between image centers
-            TEXT_OFFSET_Y = 175;      % Vertical offset for labels above images
-            TEXT_OFFSET_CAPTION = 200; % Vertical offset for captions below images
-            ROW_HEIGHT = 450;         % Vertical spacing between the center of Row 1 and Row 2
+            % Horizontal Positions (Left, Middle, Right)
+            X_MID   = p.xCenter;                  % 1 Trial Ago (Center)
+            X_LEFT  = p.xCenter - IMAGE_SPACING;  % 2 Trials Ago (Left)
+            X_RIGHT = p.xCenter + IMAGE_SPACING;  % Current Image (Right)
             
-            % --- Horizontal Offsets (centered on p.xCenter) ---
-            X_LEFT   = p.xCenter - IMAGE_SPACING;
-            X_CENTER = p.xCenter;
-            X_RIGHT  = p.xCenter + IMAGE_SPACING;
+            % Vertical Positions (Centered)
+            Y_CENTER  = p.yCenter;
+            Y_LABEL   = Y_CENTER - TEXT_OFFSET_Y;
+            Y_CAPTION = Y_CENTER + TEXT_OFFSET_CAPTION;
+
+            % 1. Labels
+            DrawFormattedText(p.window, '2 trials ago', X_LEFT - 60, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, '1 trial ago', X_MID - 60, Y_LABEL, p.colors.black); % Grayed out to imply ignore
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 40, Y_LABEL, [200 0 0]); % Red to highlight
             
-            % --- Row 1 Vertical Positions ---
-            Y_ROW1_CENTER = p.yCenter - 275; % Adjusted to start higher up
-            Y_ROW1_LABEL  = Y_ROW1_CENTER - TEXT_OFFSET_Y;
-            Y_ROW1_CAPTION= Y_ROW1_CENTER + TEXT_OFFSET_CAPTION;
+            % 2. Images
+            % Left: Target (A)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            % Middle: Distractor (B) - Using 'tex_new' or a distinct texture
+            Screen('DrawTexture', p.window, tex_foil, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_MID, Y_CENTER));
+            % Right: Target (A) - Matches Left
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
             
-            % --- Row 2 Vertical Positions ---
-            Y_ROW2_CENTER = Y_ROW1_CENTER + ROW_HEIGHT;
-            Y_ROW2_LABEL  = Y_ROW2_CENTER - TEXT_OFFSET_Y;
-            Y_ROW2_CAPTION= Y_ROW2_CENTER + TEXT_OFFSET_CAPTION;
+            % 3. Explanation
+            msg_match = ['Situation 1: Same\n\n' ...
+                         'The current image looks exactly the same as 2 trials ago.\n\n' ...
+                         'Press  ' p.keys.same ' .'];
+            DrawFormattedText(p.window, msg_match, 'center', Y_CAPTION, p.colors.black);
             
-            
-            % ========================================================================
-            %                   Example 1: SAME (2-back)
-            % ========================================================================
-            
-            % --- Labels ---
-            % X_LEFT - 100 to align the text leftwards so its center is over the image center
-            DrawFormattedText(p.window, 'Two Trials Ago', X_LEFT - 100, Y_ROW1_LABEL, p.colors.black); 
-            DrawFormattedText(p.window, 'Previous Item', X_CENTER - 50, Y_ROW1_LABEL, p.colors.black); 
-            DrawFormattedText(p.window, 'Current Item', X_RIGHT - 50, Y_ROW1_LABEL, p.colors.black); 
-            
-            % --- Images ---
-            % Note: CenterRectOnPointd only takes one X and one Y point
-            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_ROW1_CENTER));  % two trials ago
-            Screen('DrawTexture', p.window, tex_new,  [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_CENTER, Y_ROW1_CENTER));  % previous
-            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_ROW1_CENTER));  % current
-            
-            % --- Instruction text (Caption) ---
-            DrawFormattedText(p.window, ['You would press  ' p.keys.same '  because it is exactly the SAME as the item two trials ago.'], ...
-                'center', Y_ROW1_CAPTION, p.colors.black);
-            
-            
-            % ========================================================================
-            %                   Example 2: SIMILAR (2-back)
-            % ========================================================================
-            
-            % --- Labels ---
-            % The error was here: too many X/Y arguments passed
-            DrawFormattedText(p.window, 'Two Trials Ago', X_LEFT - 100, Y_ROW2_LABEL, p.colors.black); 
-            DrawFormattedText(p.window, 'Previous Item', X_CENTER - 50, Y_ROW2_LABEL, p.colors.black);
-            DrawFormattedText(p.window, 'Current Item', X_RIGHT - 50, Y_ROW2_LABEL, p.colors.black);
-            
-            % --- Images ---
-            Screen('DrawTexture', p.window, tex_repeat,  [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_ROW2_CENTER)); % two trials ago
-            Screen('DrawTexture', p.window, tex_new,   [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_CENTER, Y_ROW2_CENTER)); % previous
-            Screen('DrawTexture', p.window, tex_similar, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_ROW2_CENTER)); % current
-            
-            % --- Instruction text (Caption) ---
-            DrawFormattedText(p.window, ['You would press  ' p.keys.diff '  because it is SIMILAR to the item two trials ago, but not identical.'], ...
-                'center', Y_ROW2_CAPTION, p.colors.black);
-            
-            % --- Flip screen and wait ---
             Screen('Flip', p.window);
             waitForKeyPress(p, start_key, escape_key);
-        
+            
+            
+            % ========================================================================
+            % SCREEN 2: 2-BACK LURE (SIMILAR)
+            % ========================================================================
+            % Logic: Image A -> Image B -> Image A' (Similar)
+            % The Current image looks like 2-ago, but is slightly different.
+            
+            % 1. Labels
+            DrawFormattedText(p.window, '2 trials ago', X_LEFT - 60, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, '1 trial ago', X_MID - 60, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 40, Y_LABEL, [200 0 0]);
+            
+            % 2. Images
+            % Left: Target (A)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            % Middle: Distractor (B)
+            Screen('DrawTexture', p.window, tex_foil, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_MID, Y_CENTER));
+            % Right: Lure (A') - Similar to Left
+            Screen('DrawTexture', p.window, tex_similar, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
+            
+            % 3. Explanation
+            msg_lure = ['Situation 2: Similar\n\n' ...
+                        'The current image looks similar to 2 trials ago, but NOT identical.\n\n' ...
+                        'Press  ' p.keys.diff ' .'];
+            DrawFormattedText(p.window, msg_lure, 'center', Y_CAPTION, p.colors.black);
+            
+            Screen('Flip', p.window);
+            waitForKeyPress(p, start_key, escape_key);
+            
+            
+            % ========================================================================
+            % SCREEN 3: 2-BACK NON-MATCH (NEW)
+            % ========================================================================
+            % Logic: Image A -> Image B -> Image C
+            % Current image matches nothing.
+            
+            % 1. Labels
+            DrawFormattedText(p.window, '2 trials ago', X_LEFT - 60, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, '1 trial ago', X_MID - 60, Y_LABEL, p.colors.black);
+            DrawFormattedText(p.window, 'Current image', X_RIGHT - 40, Y_LABEL, [200 0 0]);
+            
+            % 2. Images
+            % Left: Target (A)
+            Screen('DrawTexture', p.window, tex_repeat, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_LEFT, Y_CENTER));
+            % Middle: Distractor (B)
+            Screen('DrawTexture', p.window, tex_foil, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_MID, Y_CENTER));
+            % Right: New (C) - Using a distractor or new texture
+            Screen('DrawTexture', p.window, tex_new, [], CenterRectOnPointd([0 0 IMAGE_SIZE_DISPLAY IMAGE_SIZE_DISPLAY], X_RIGHT, Y_CENTER));
+            
+            % 3. Explanation
+            msg_new = ['Situation 3: New\n\n' ...
+                       'The current image looks completely different from 2 trials ago.\n\n' ...
+                       'Do not press anything.'];
+            DrawFormattedText(p.window, msg_new, 'center', Y_CAPTION, p.colors.black);
+            
+            Screen('Flip', p.window);
+            waitForKeyPress(p, start_key, escape_key);
+            
             % Final Instructions Screen 4
             DrawFormattedText(p.window, ['Please respond as quickly and accurately as you can.\n\n' ...
                 '\n\n' ...

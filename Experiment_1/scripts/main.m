@@ -136,7 +136,7 @@ try
     fprintf('***Experiment begins\n\n\n');
 
     % global instructions
-    instructions(p, 'welcome');
+    % instructions(p, 'welcome');
 
     % initial eyetracker calibration
     if p.eyetracking == 1
@@ -160,11 +160,12 @@ try
         sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
 
         % instruction and practice: 1-back for only block 1
-        % if b == 1
-        %     instructions(p, '1_back'); 
-        %     fprintf('   Run practice\n');
-        %     C_run_1_back_practice(p);
-        % end
+        if b == 1
+            instructions(p, '1_back'); 
+            fprintf('   Run practice\n');
+            C_run_1_back_practice(p);
+        end
+
 
         if p.eyetracking == 1
             edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
@@ -190,7 +191,7 @@ try
         end
 
         %% rest
-        message = sprintf('You have completed this task.\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
+        message = sprintf('Well done!\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
         DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
         task_end_flip = Screen('Flip', p.window);
 
@@ -269,7 +270,7 @@ try
         end
 
         if b < p.nBlocks
-            message = sprintf('You have completed this task.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
+            message = sprintf('Fantastic job!\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             task_end_flip = Screen('Flip', p.window);
 
