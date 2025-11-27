@@ -160,11 +160,11 @@ try
         sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
 
         % instruction and practice: 1-back for only block 1
-        if b == 1
-            instructions(p, '1_back'); 
-            fprintf('   Run practice\n');
-            C_run_1_back_practice(p);
-        end
+        % if b == 1
+        %     instructions(p, '1_back'); 
+        %     fprintf('   Run practice\n');
+        %     C_run_1_back_practice(p);
+        % end
 
         if p.eyetracking == 1
             edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
@@ -186,7 +186,7 @@ try
         else
 
             % Behavior-only version
-            results_1_back = C_run_1_back(p, el, sequence_1_back_block);
+            results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
         end
 
         %% rest
@@ -215,9 +215,9 @@ try
             warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
         end
 
-        WaitSecs('UntilTime', task_end_flip + 5); 
+        WaitSecs('UntilTime', task_end_flip); 
         
-        fprintf('Rest started... (30 seconds)\n');
+        fprintf('Rest started... (45 seconds)\n');
         Screen('Flip', p.window);
         WaitSecs(45);
 
@@ -254,7 +254,7 @@ try
             Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
 
             % Eye-tracking version
-            results_2_back = D_run_2_back(p, el, sequence_2_back_block);
+            results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
             % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
             % Eyelink('CloseFile');
             % WaitSecs(0.1);
@@ -265,11 +265,11 @@ try
             % end
         else
             % Behavior-only version
-            results_2_back = D_run_2_back(p, el, sequence_2_back_block);
+            results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
         end
 
         if b < p.nBlocks
-            message = sprintf('You have completed this task.\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
+            message = sprintf('You have completed this task.\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             task_end_flip = Screen('Flip', p.window);
 
@@ -293,10 +293,10 @@ try
                 warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
             end
 
-            WaitSecs('UntilTime', task_end_flip + 5);
+            WaitSecs('UntilTime', task_end_flip);
             fprintf('Rest started... (60 seconds)\n');
             Screen('Flip', p.window); % Blank screen
-            WaitSecs(45);
+            WaitSecs(60);
             
             if p.eyetracking == 1
                 fprintf('Checking Calibration\n');
