@@ -1,7 +1,7 @@
 clear; clc; close all;
 
 %% setup
-subj_ids = [501, 601, 602, 603, 604, 605, 606];
+subj_ids = [601, 602, 603, 604, 605, 606, 607];
 base_dir = '..'; 
 min_rt = 0.150;
 

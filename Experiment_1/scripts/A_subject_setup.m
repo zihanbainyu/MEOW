@@ -3,8 +3,6 @@
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
 % note: you must run this for each subject before running the task
-%
-% MODIFIED: 2025-10-31 to implement proper 2-back test generator
 %==========================================================================
 
 clear;
@@ -491,34 +489,31 @@ end
 % --- First, save the goal_list_full we just built ---
 fprintf('\nBuilding final recognition task...\n');
 
-% --- 1. Get 'Old' items (N=240) from 'comp' and 'iso' ---
-% YOUR PLAN: Randomly sample A or B. All are seen 1+ times.
-n_old_items = p.nComparison + p.nIsolated_Both; % 240
-all_study_pairs = [p.stim.compared; p.stim.isolated];
-all_study_conds = [repmat("compared", p.nComparison, 1); ...
-                   repmat("isolated", p.nIsolated_Both, 1)];
+tested_goals = goal_list_full(goal_list_full.goal_type ~= "A-N" & goal_list_full.condition ~= "novel", :);
 
-selected_old_items = strings(n_old_items, 1);
-selected_identity = strings(n_old_items, 1);
+n_tested = height(tested_goals);
+selected_items = strings(n_tested, 1);
+selected_identity = strings(n_tested, 1);
 
-fprintf('  Sampling 240 old items (random A/B) from compared/isolated...\n');
-for i = 1:n_old_items
+for i = 1:n_tested
     if rand() > 0.5
-        selected_old_items(i) = all_study_pairs.A(i);
+        selected_items(i) = tested_goals.A(i);
         selected_identity(i) = "A";
     else
-        selected_old_items(i) = all_study_pairs.B(i);
+        selected_items(i) = tested_goals.B(i);
         selected_identity(i) = "B";
     end
 end
-% Build the final 'Old' items table
-all_old_items = table(selected_old_items, all_study_conds, selected_identity, ...
-    'VariableNames', {'stim_id', 'condition', 'identity'});
-all_old_items.trial_type = repmat("old", n_old_items, 1);
-all_old_items.corr_resp = repmat(p.keys.same, n_old_items, 1); 
+
+all_old_items = table(selected_items, tested_goals.condition, ...
+    selected_identity, repmat("old", n_tested, 1), ...
+    repmat(p.keys.same, n_tested, 1), ...
+    'VariableNames', {'stim_id', 'condition', 'identity', 'trial_type', 'corr_resp'});
+all_old_items.trial_type = repmat("old", n_tested, 1);
+all_old_items.corr_resp = repmat(p.keys.same, n_tested, 1); 
 
 % --- Pool 2b: The 'Foil' Pool (N=160) ---
-n_rec_foils = 240;
+n_rec_foils = 160;
 assert(height(all_foils_remain) >= n_rec_foils, ...
     'Not enough remaining foils for recognition task! Need %d, have %d', ...
     n_rec_foils, height(all_foils_remain));
@@ -535,7 +530,6 @@ all_new_foils = table(new_foils_list, repmat("foil", n_rec_foils, 1), ...
 % --- 3. Combine, shuffle, and add to 'p' struct ---
 sequence_recognition = [all_old_items; all_new_foils];
 sequence_recognition = sequence_recognition(randperm(height(sequence_recognition)), :);
-
 
 %% ========================================================================
 %  P7: ADD JITTER & SAVE OUTPUT

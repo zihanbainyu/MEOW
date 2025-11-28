@@ -178,7 +178,7 @@ try
 
             % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
             % Eyelink('CloseFile');
-            % WaitSecs(0.1);
+            % WaitSecs(0.01);
             % try
             %     Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
             % catch ME
@@ -206,7 +206,7 @@ try
                 fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
             end
         end
-        
+
         try
             block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
             block_filepath = fullfile(p.results_dir, block_filename);
@@ -217,7 +217,7 @@ try
         end
 
         WaitSecs('UntilTime', task_end_flip); 
-        
+
         fprintf('Rest started... (45 seconds)\n');
         Screen('Flip', p.window);
         WaitSecs(45);
