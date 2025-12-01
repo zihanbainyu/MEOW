@@ -104,12 +104,6 @@ try
 
         % eyelink configuration
         Eyelink('command', 'sample_rate = 1000');
-        [result, rate] = Eyelink('GetModeData');
-        if rate ~= 1000
-             fprintf(2, '\n\nWARNING: Tracker is still reporting %d Hz, not 1000Hz.\nCHECK HOST PC SETTINGS.\n\n', rate);
-        else
-             fprintf('SUCCESS: Tracker configured to 1000Hz.\n');
-        end
         Eyelink('command', 'pupil_model = ELLIPSE');
         Eyelink('command', 'pupil_size_diameter = YES');
         [width, height] = Screen('WindowSize', screen_number);
@@ -145,19 +139,19 @@ try
     fprintf('***Experiment begins\n\n\n');
 
     % global instructions
-    instructions(p, 'welcome');
-
-    % initial eyetracker calibration
-    if p.eyetracking == 1
-        instructions(p, 'calibration');
-        fprintf('Performing initial calibration\n');
-        EyelinkDoTrackerSetup(el);
-    end
+    % instructions(p, 'welcome');
+    % 
+    % % initial eyetracker calibration
+    % if p.eyetracking == 1
+    %     instructions(p, 'calibration');
+    %     fprintf('Performing initial calibration\n');
+    %     EyelinkDoTrackerSetup(el);
+    % end
 
     % run all or some?
         % if the task crashes for some reason (although it should not), set to
         % the block you want to run to continue
-    b_to_run = 0;
+    b_to_run = [3 4];
     if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
 
     for b = b_seq
