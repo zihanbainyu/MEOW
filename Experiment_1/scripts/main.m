@@ -99,8 +99,17 @@ try
 
         [v vs]=Eyelink('GetTrackerVersion');
 
+        Eyelink('command', 'set_idle_mode');
+        WaitSecs(0.05);
+
         % eyelink configuration
         Eyelink('command', 'sample_rate = 1000');
+        [result, rate] = Eyelink('GetModeData');
+        if rate ~= 1000
+             fprintf(2, '\n\nWARNING: Tracker is still reporting %d Hz, not 1000Hz.\nCHECK HOST PC SETTINGS.\n\n', rate);
+        else
+             fprintf('SUCCESS: Tracker configured to 1000Hz.\n');
+        end
         Eyelink('command', 'pupil_model = ELLIPSE');
         Eyelink('command', 'pupil_size_diameter = YES');
         [width, height] = Screen('WindowSize', screen_number);
