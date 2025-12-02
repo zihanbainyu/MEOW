@@ -1,7 +1,7 @@
 clear; clc; close all;
 
 %% setup
-subj_ids = [601, 602, 603, 604, 605, 606, 607];
+subj_ids = [601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
 base_dir = '..'; 
 min_rt = 0.150;
 
@@ -19,7 +19,6 @@ for s = 1:length(subj_ids)
     f_dir = fullfile(base_dir, 'data', sprintf('sub%03d', curr_id));
     if ~exist(fullfile(f_dir, sprintf('sub%03d_concat.mat', curr_id)), 'file'), continue; end
     load(fullfile(f_dir, sprintf('sub%03d_concat.mat', curr_id)), 'final_data_output');
-    load(fullfile(f_dir, sprintf('sub%03d_rec.mat', curr_id)), 'results_recognition');
     
     r1 = final_data_output.results_1_back_all;
     r2 = final_data_output.results_2_back_all;
@@ -60,9 +59,9 @@ for s = 1:length(subj_ids)
     aa = real & strcmp(r2.goal,'A-A'); ab = real & strcmp(r2.goal,'A-B'); an = (pan==1);
     comp = strcmp(r2.condition,'compared'); iso = strcmp(r2.condition,'isolated'); nov = strcmp(r2.condition,'novel');
     j_key = strcmp(r2.corr_resp,'j'); k_key = strcmp(r2.corr_resp,'k');
-    
+
     calc_d = @(h,f,nh,nf) norminv(max(1/(2*nh), min(1-1/(2*nh), h))) - norminv(max(1/(2*nf), min(1-1/(2*nf), f)));
-    
+
     % condition loop
     conds = {comp, iso, nov}; suffixes = {'comp', 'iso', 'nov'};
     for c=1:3
@@ -73,45 +72,55 @@ for s = 1:length(subj_ids)
         stats.two.(['acc_AB_' sx]) = mean(r2.correct(ab & msk & k_key));
         stats.two.(['rt_AA_' sx]) = median(r2.rt(aa & msk & j_key & r2.correct & v_rt), 'omitnan');
         stats.two.(['rt_AB_' sx]) = median(r2.rt(ab & msk & k_key & r2.correct & v_rt), 'omitnan');
-        
         err_k = sum(strcmp(r2.resp_key(an & msk), 'k')) / sum(an & msk);
         stats.two.(['ldi_' sx]) = stats.two.(['acc_AB_' sx]) - err_k;
-        
         nh = sum(aa & msk & j_key); nfa = sum(an & msk);
         hr = stats.two.(['acc_AA_' sx]); far = sum(strcmp(r2.resp_key(an & msk), 'j')) / nfa;
         stats.two.(['d_AA_' sx]) = calc_d(hr, far, nh, nfa);
-
-        % confusion matrix (calculated per condition)
+        
+        % Response proportions for visualization (matching your plot code)
+        % A-A trials: correct = 'j' (same), error = 'k' (similar) or 'none' (new)
+        stats.two.(['err_AA_' sx '_as_k']) = sum(strcmp(r2.resp_key(aa & msk), 'k')) / sum(aa & msk);
+        stats.two.(['err_AA_' sx '_as_none']) = sum(strcmp(r2.resp_key(aa & msk), 'none')) / sum(aa & msk);
+        
+        % A-B trials: correct = 'k' (similar), error = 'j' (same) or 'none' (new)
+        stats.two.(['err_AB_' sx '_as_j']) = sum(strcmp(r2.resp_key(ab & msk), 'j')) / sum(ab & msk);
+        stats.two.(['err_AB_' sx '_as_none']) = sum(strcmp(r2.resp_key(ab & msk), 'none')) / sum(ab & msk);
+        
+        % A-N trials: correct = 'none' (new), error = 'j' (same) or 'k' (similar)
+        stats.two.(['acc_AN_' sx]) = sum(strcmp(r2.resp_key(an & msk), 'none')) / sum(an & msk);
+        stats.two.(['err_AN_' sx '_as_j']) = sum(strcmp(r2.resp_key(an & msk), 'j')) / sum(an & msk);
+        stats.two.(['err_AN_' sx '_as_k']) = sum(strcmp(r2.resp_key(an & msk), 'k')) / sum(an & msk);
+        
+        % Optional: Keep confusion matrix with generic labels if needed elsewhere
         daa = sum(aa & msk); dab = sum(ab & msk); dan = sum(an & msk);
-        stats.two.(['m_' sx '_aa_j']) = sum(strcmp(r2.resp_key(aa&msk),'j'))/daa;
-        stats.two.(['m_' sx '_aa_k']) = sum(strcmp(r2.resp_key(aa&msk),'k'))/daa;
-        stats.two.(['m_' sx '_aa_n']) = sum(strcmp(r2.resp_key(aa&msk),'none'))/daa;
-        
-        stats.two.(['m_' sx '_ab_j']) = sum(strcmp(r2.resp_key(ab&msk),'j'))/dab;
-        stats.two.(['m_' sx '_ab_k']) = sum(strcmp(r2.resp_key(ab&msk),'k'))/dab;
-        stats.two.(['m_' sx '_ab_n']) = sum(strcmp(r2.resp_key(ab&msk),'none'))/dab;
-        
-        stats.two.(['m_' sx '_an_j']) = sum(strcmp(r2.resp_key(an&msk),'j'))/dan;
-        stats.two.(['m_' sx '_an_k']) = sum(strcmp(r2.resp_key(an&msk),'k'))/dan;
-        stats.two.(['m_' sx '_an_n']) = sum(strcmp(r2.resp_key(an&msk),'none'))/dan;
+        stats.two.(['m_' sx '_aa_j']) = sum(strcmp(r2.resp_key(aa & msk),'j'))/daa;
+        stats.two.(['m_' sx '_aa_k']) = sum(strcmp(r2.resp_key(aa & msk),'k'))/daa;
+        stats.two.(['m_' sx '_aa_n']) = sum(strcmp(r2.resp_key(aa & msk),'none'))/daa;
+        stats.two.(['m_' sx '_ab_j']) = sum(strcmp(r2.resp_key(ab & msk),'j'))/dab;
+        stats.two.(['m_' sx '_ab_k']) = sum(strcmp(r2.resp_key(ab & msk),'k'))/dab;
+        stats.two.(['m_' sx '_ab_n']) = sum(strcmp(r2.resp_key(ab & msk),'none'))/dab;
+        stats.two.(['m_' sx '_an_j']) = sum(strcmp(r2.resp_key(an & msk),'j'))/dan;
+        stats.two.(['m_' sx '_an_k']) = sum(strcmp(r2.resp_key(an & msk),'k'))/dan;
+        stats.two.(['m_' sx '_an_n']) = sum(strcmp(r2.resp_key(an & msk),'none'))/dan;
     end
-
-    % --- recognition ---
-    rec = results_recognition;
-    rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
-    old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
-    n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
-    far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
     
-    tc = old(old.condition=="compared",:); nc = height(tc);
-    hc = sum(tc.correct & tc.rt>min_rt)/nc;
-    stats.rec.d_comp = calc_d(hc, far, nc, n_new);
-    ti = old(old.condition=="isolated",:); ni = height(ti);
-    hi = sum(ti.correct & ti.rt>min_rt)/ni;
-    stats.rec.d_iso = calc_d(hi, far, ni, n_new);
-    
-    all_subjs(s).stats = stats;
-end
+        % --- recognition ---
+        rec = final_data_output.results_recognition;
+        rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
+        old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
+        n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
+        far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
+        
+        tc = old(old.condition=="compared",:); nc = height(tc);
+        hc = sum(tc.correct & tc.rt>min_rt)/nc;
+        stats.rec.d_comp = calc_d(hc, far, nc, n_new);
+        ti = old(old.condition=="isolated",:); ni = height(ti);
+        hi = sum(ti.correct & ti.rt>min_rt)/ni;
+        stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+        
+        all_subjs(s).stats = stats;
+    end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 
 %% visualization
@@ -186,6 +195,7 @@ raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'
 text(1.5, max(d_tot)*0.9, sprintf('Mean d''=%.2f\nt(%d)=%.2f, p=%.3f', mean(d_tot), s_stat.df, s_stat.tstat, p), ...
      'FontSize',11, 'BackgroundColor','w', 'EdgeColor','k', 'Margin',5);
 ylim([-0.5, max(data(:))+0.5]);
+
 
 %% functions
 function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
