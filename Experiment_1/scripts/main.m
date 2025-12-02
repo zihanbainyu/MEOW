@@ -98,8 +98,6 @@ try
         end
 
         [v vs]=Eyelink('GetTrackerVersion');
-
-        Eyelink('command', 'set_idle_mode');
         WaitSecs(0.05);
 
         % eyelink configuration
@@ -139,19 +137,19 @@ try
     fprintf('***Experiment begins\n\n\n');
 
     % global instructions
-    % instructions(p, 'welcome');
-    % 
-    % % initial eyetracker calibration
-    % if p.eyetracking == 1
-    %     instructions(p, 'calibration');
-    %     fprintf('Performing initial calibration\n');
-    %     EyelinkDoTrackerSetup(el);
-    % end
+    instructions(p, 'welcome');
+
+    % initial eyetracker calibration
+    if p.eyetracking == 1
+        instructions(p, 'calibration');
+        fprintf('Performing initial calibration\n');
+        EyelinkDoTrackerSetup(el);
+    end
 
     % run all or some?
         % if the task crashes for some reason (although it should not), set to
         % the block you want to run to continue
-    b_to_run = [3 4];
+    b_to_run = 0;
     if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
 
     for b = b_seq
@@ -178,17 +176,7 @@ try
 
             % Eye-tracking version
             results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
-
-            % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
-            % Eyelink('CloseFile');
-            % WaitSecs(0.01);
-            % try
-            %     Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
-            % catch ME
-            %     fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
-            % end
         else
-
             % Behavior-only version
             results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
         end
@@ -230,16 +218,6 @@ try
             ask_for_recalibration(p, el);
         end
 
-        % try
-        %     block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
-        %     block_filepath = fullfile(p.results_dir, block_filename);
-        %     save(block_filepath, 'results_1_back');
-        %     fprintf('1-back block %d data saved.\n', b);
-        % catch ME
-        %     warning('SAVE_FAILED: Could not save 1-back data for block %d. Reason: %s', b, ME.message);
-        % end
-
-
         %% Phase 1: run 2-back
         fprintf('   Running 2-back\n\n');
         sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
@@ -259,14 +237,6 @@ try
 
             % Eye-tracking version
             results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
-            % fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
-            % Eyelink('CloseFile');
-            % WaitSecs(0.1);
-            % try
-            %     Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
-            % catch ME
-            %     fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
-            % end
         else
             % Behavior-only version
             results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
@@ -328,17 +298,6 @@ try
                 warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
             end
         end
-
-        % save behavioral data
-        % try
-        %     block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
-        %     block_filepath = fullfile(p.results_dir, block_filename);
-        %     save(block_filepath, 'results_2_back');
-        %     fprintf('2-back block %d data saved.\n', b);
-        % catch ME
-        %     warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-        % end
-
         
 
     end % block loop ends
