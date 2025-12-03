@@ -18,13 +18,6 @@ function C_run_1_back_practice(p)
     KbQueueCreate(p.keys.device, respKeys);
     
     %% Instructions
-    DrawFormattedText(p.window, ...
-        ['Practice: 1-Back Task\n\n\n' ...
-        'You will receive feedback after each response.\n\n' ...
-        'When you are ready, press f to begin.'], ...
-        'center', 'center', p.colors.black);
-    Screen('Flip', p.window);
-    
     KbReleaseWait(p.keys.device);
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
@@ -120,7 +113,7 @@ function C_run_1_back_practice(p)
             end
             
             feedback_text = sprintf('Incorrect!\n\nCorrect response is: %s', correct_text);
-            feedback_color = [200 0 0];
+            feedback_color = [140 0 0];
         end
         
         DrawFormattedText(p.window, feedback_text, 'center', 'center', feedback_color);
@@ -139,7 +132,7 @@ function C_run_1_back_practice(p)
     %% Performance summary
     accuracy = (n_correct / nTrials) * 100;
     
-    if accuracy >= 100
+    if accuracy == 100
         summary_text = sprintf(...
             ['Great! Practice complete.\n\n' ...
             'Accuracy: %.0f%%\n\n\n\n' ...
@@ -152,7 +145,7 @@ function C_run_1_back_practice(p)
             'Accuracy: %.0f%%\n\n\n' ...
             'Please find the experimenter for any questions.\n\n' ...
             'Press f to try practice again.'], accuracy);
-        summary_color = [200 0 0];
+        summary_color = [140 0 0];
     end
     
     DrawFormattedText(p.window, summary_text, 'center', 'center', summary_color);

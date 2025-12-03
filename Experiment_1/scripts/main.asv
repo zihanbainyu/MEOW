@@ -13,19 +13,20 @@ ListenChar(0);
 ShowCursor;
 
 try
-    %% Set up
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % setup
+    %%%%%%%%%%%%%%%%%%%%%%%
     rng('shuffle');
     Screen('Preference', 'SkipSyncTests', 1);
     
-    % directories
     base_dir = '..';
     addpath(genpath(fullfile(base_dir, 'functions')));
-
-    % subj info
-    p.subj_id = input('Enter subject ID (e.g., 101): ');
-    p.eyetracking = input('Eyetracking? (1=yes, 0=no): ');
+    p.stim_dir = fullfile(base_dir, 'stimulus/stim_final/');
     p.setup_dir = fullfile(base_dir, 'subj_setup');
     p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
+    p.subj_id = input('Enter subject ID (e.g., 101): ');
+    p.eyetracking = input('Eyetracking? (1=yes, 0=no): ');
+   
     final_data_filename = fullfile(p.results_dir, sprintf('sub%03d_concat.mat', p.subj_id));
 
     % generate subj set up
@@ -44,7 +45,9 @@ try
     sequence_2_back_all = subject_data.sequence_2_back;
     sequence_recognition = subject_data.sequence_recognition;
 
-    %% Psychtoolbox
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % psychotoolbox
+    %%%%%%%%%%%%%%%%%%%%%%%
     PsychDefaultSetup(2);
     screens = Screen('Screens');
     screen_number = max(screens);
@@ -72,7 +75,9 @@ try
     disp(' ');
     KbReleaseWait(p.keys.device);
 
-    %% Eyelink set up
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % eyelink
+    %%%%%%%%%%%%%%%%%%%%%%%
     el = []; % in case no eyetracking
     if p.eyetracking == 1
         dummymode = 0; % set to 1 for debugging without a tracker
@@ -114,7 +119,9 @@ try
         EyelinkUpdateDefaults(el);
     end
 
-    %% Run Experiment
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % run experiment
+    %%%%%%%%%%%%%%%%%%%%%%%
     fprintf('***Experiment begins\n\n\n');
     
     %%%%%%%%%%%%%%%%%%%%%%%
@@ -309,14 +316,14 @@ try
                 save(block_filepath, 'results_2_back');
                 fprintf('2-back block %d data saved.\n', b);
             catch ME
-                warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+                warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
             end
         end
-
-
     end % block loop ends
 
-    %% Save Phase 1 data
+     %%%%%%%%%%%%%%%%%%%%%%%
+     % save 1-back and 2-back data
+     %%%%%%%%%%%%%%%%%%%%%%%
     results_1_back_all = consolidate_data(p, '1_back');
     results_2_back_all = consolidate_data(p, '2_back');
     final_data_output.subj_id = p.subj_id;
@@ -326,17 +333,24 @@ try
     save(final_data_filename, 'final_data_output');
     fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
 
-    %% Phase 2: Recognition task
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % Phase 2: Recognition
+    %%%%%%%%%%%%%%%%%%%%%%%
     fprintf('Running Recognition Task\n\n');
     sequence_recognition = subject_data.sequence_recognition;
 
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % Phase 1: 2-back
+    %%%%%%%%%%%%%%%%%%%%%%%
+
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % eyetracking version
+    %%%%%%%%%%%%%%%%%%%%%%%
     if p.eyetracking == 1
         edf_filename = sprintf('%d_rec.edf', p.subj_id);
         Eyelink('OpenFile', edf_filename);
         fprintf('EYELINK: opened edf file: %s\n', edf_filename);
         Eyelink('command', 'add_file_preamble_text ''Recog''');
-
-        % Eye-tracking version
         results_recognition = E_run_recognition(p, el, sequence_recognition);
         instructions(p, 'goodbye');
         fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
@@ -348,12 +362,16 @@ try
             fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
         end
     else
-        % Behavior-only version
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % behavior-only version
+    %%%%%%%%%%%%%%%%%%%%%%%
         results_recognition = E_run_recognition(p, el, sequence_recognition);
         instructions(p, 'goodbye');
     end
 
-    % save behavioral data
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % save recognitoin data
+    %%%%%%%%%%%%%%%%%%%%%%%
     try
         rec_filename = sprintf('sub%03d_rec.mat', p.subj_id);
         rec_filepath = fullfile(p.results_dir, rec_filename);
@@ -363,7 +381,9 @@ try
         warning('SAVE_FAILED: Could not save recognition data. Reason: %s', ME.message);
     end
 
-    %% Final save
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % save full data
+    %%%%%%%%%%%%%%%%%%%%%%%
     final_data_output.results_recognition = results_recognition;
     save(final_data_filename, 'final_data_output');
     fprintf('All data (Phase 1 + Phase 2) saved to:\n%s\n', final_data_filename);
@@ -372,7 +392,9 @@ catch ME
     fprintf(2, '\n! AN ERROR OCCURRED: %s !\n', ME.message);
 end
 
-%% Clean up
+%%%%%%%%%%%%%%%%%%%%%%%
+% clean up
+%%%%%%%%%%%%%%%%%%%%%%%
 if exist('p', 'var') && isfield(p, 'eyetracking') && p.eyetracking == 1
     if Eyelink('IsConnected') == 1
         Eyelink('StopRecording');
@@ -387,14 +409,15 @@ ShowCursor;
 fprintf('\nThe End.\n');
 end
 
-%% Functions
+%%%%%%%%%%%%%%%%%%%%%%%
+% Functions
+%%%%%%%%%%%%%%%%%%%%%%%
 function ask_for_recalibration(p, el)
-    recal_text = 'Welcome back! Recalibrate eye tracker?\n\nWait for experimenter to press y for yes, n for skip';
+    recal_text = 'Welcome back! Recalibrate eye tracker?\n\nPlease wait for the experimenter';
     DrawFormattedText(p.window, recal_text, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
     KbReleaseWait(p.keys.device);
     while true
-        % Use KbCheck with the specific device index
         [~, ~, keyCode] = KbCheck(p.keys.device);
         if keyCode(KbName('y'))
             fprintf('Recalibrating...\n');
@@ -404,16 +427,14 @@ function ask_for_recalibration(p, el)
             fprintf('Skipping recalibration.\n');
             break;
         end
-        WaitSecs(0.001); % Yield CPU
+        WaitSecs(0.001);
     end
     Screen('Flip', p.window);
     WaitSecs(0.5);
 end
 
-
 function [full_data_table] = consolidate_data(p, task_name)
     full_data_table = table();
-    fprintf('appending %s data...\n', task_name);
     for b = 1:p.nBlocks
         block_filename = sprintf('sub%03d_%s_b%d.mat', p.subj_id, task_name, b);
         block_filepath = fullfile(p.results_dir, block_filename);
@@ -434,13 +455,9 @@ function [full_data_table] = consolidate_data(p, task_name)
     end
 end
 
-
 function subject_data = generate_sequences(p)
     subj_id = p.subj_id;
     sequence_1_back = []; sequence_2_back = []; goal_list_full = [];
-    base_dir = '..';
-    p.stim_dir = fullfile(base_dir, 'stimulus/stim_final/');
-    p.setup_dir = fullfile(base_dir, 'subj_setup/');
     p.counts.oneback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
     p.counts.twoback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
     p.nComparison = 120; p.nIsolated_Both = 120; p.nNovel = 120;

@@ -283,7 +283,8 @@ function instructions(p, instruction_type)
             % 3. Explanation
             msg_lure = 'Case 2: Similar';
             DrawFormattedText(p.window, msg_lure, 'center', Y_CAPTION, p.colors.black);
-            msg_lure_2 = ['The current image looks similar to 2 trials ago, but NOT identical,\n\n' ...
+            msg_lure_2 = ['Case 2: Similar\n\n' ...
+                        'Because the current image looks similar to 2 trials ago, but NOT identical,\n\n' ...
                         'You would press  ' p.keys.diff ' .'];
             DrawFormattedText(p.window, msg_lure_2, 'center', Y_CAPTION_2, p.colors.black);
             
