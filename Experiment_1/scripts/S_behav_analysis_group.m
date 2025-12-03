@@ -6,7 +6,6 @@ clear; clc; close all;
 subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
 base_dir = '..'; 
 min_rt = 0.150;
-
 % colors
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
@@ -173,6 +172,7 @@ mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')
 draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('Response matrix', 'FontSize', 12);
 sgtitle('1-Back Task Performance', 'FontSize', 16);
+print(gcf, '1Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 2-back
@@ -224,6 +224,7 @@ mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k'))
 draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('novel', 'FontSize', 14);
 sgtitle('2-Back Task Performance', 'FontSize', 16);
+print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % predicts 2-back performance from 1-back
@@ -245,7 +246,7 @@ y_lc_r = get_res(y_l_c); y_li_r = get_res(y_l_i); y_lo_r = get_res(y_l_o);
 [r_pdo, p_pdo] = partialcorr(X, y_d_o, Z); [r_pdc, p_pdc] = partialcorr(X, y_d_c, Z); [r_pdi, p_pdi] = partialcorr(X, y_d_i, Z);
 [r_plo, p_plo] = partialcorr(X, y_l_o, Z); [r_plc, p_plc] = partialcorr(X, y_l_c, Z); [r_pli, p_pli] = partialcorr(X, y_l_i, Z);
 
-figure('color','w','Position',[100 100 600 500]);
+figure('color','w','Position',[150 150 1600 500]);
 subplot(1,3,1); hold on;
 s_i = plot_layer(x_rt, y_d_i, c_iso, 60, 0.5, 2); 
 s_c = plot_layer(x_rt, y_d_c, c_comp, 60, 0.5, 2);
@@ -279,6 +280,7 @@ legend([s_o2, s_c2, s_i2], {sprintf('overall (r_{p}=%.2f, p=%.3f)',r_plo,p_plo),
     'Location','southeast','FontSize',10);
 
 grid off; set(gca,'GridAlpha',0.1); box off; sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
+print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % episodic memory
@@ -297,6 +299,7 @@ msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t
 text(3.4, max(data(:))*1.15, msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
      'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
 ylim([-0.5, max(data(:))*1.3]);
+print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
 
 
 %% functions
