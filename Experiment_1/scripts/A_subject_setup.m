@@ -518,7 +518,6 @@ assert(height(all_foils_remain) >= n_rec_foils, ...
     'Not enough remaining foils for recognition task! Need %d, have %d', ...
     n_rec_foils, height(all_foils_remain));
     
-fprintf('  Assigning %d A-foils as New Foils (k-response)...\n', n_rec_foils);
 new_foils_list = all_foils_remain.A_foil(1:n_rec_foils);
 all_foils_remain(1:n_rec_foils, :) = []; % Remove them
 
