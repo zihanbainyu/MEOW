@@ -1,7 +1,9 @@
 clear; clc; close all;
 
-%% setup
-subj_ids = [601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
+%%%%%%%%%%%%%%%%%%%%%%%
+% setup
+%%%%%%%%%%%%%%%%%%%%%%%
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
 base_dir = '..'; 
 min_rt = 0.150;
 
@@ -11,20 +13,23 @@ c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255
 c_pts = [100 100 100]/255; c_reg = [180 174 211]/255; 
 all_subjs = struct(); 
 
-%% math
+%%%%%%%%%%%%%%%%%%%%%%%
+% math
+%%%%%%%%%%%%%%%%%%%%%%%
 for s = 1:length(subj_ids)
     curr_id = subj_ids(s);
     fprintf('processing subject %d...\n', curr_id);
     
-    f_dir = fullfile(base_dir, 'data', sprintf('sub%03d', curr_id));
-    if ~exist(fullfile(f_dir, sprintf('sub%03d_concat.mat', curr_id)), 'file'), continue; end
-    load(fullfile(f_dir, sprintf('sub%03d_concat.mat', curr_id)), 'final_data_output');
+    subj_dir = fullfile(base_dir, 'data', sprintf('sub%03d', curr_id));
+    load(fullfile(subj_dir, sprintf('sub%03d_concat.mat', curr_id)), 'final_data_output');
     
     r1 = final_data_output.results_1_back_all;
     r2 = final_data_output.results_2_back_all;
     stats = [];
 
-    % --- 1-back stats ---
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % 1-back stats
+    %%%%%%%%%%%%%%%%%%%%%%%
     r1.resp_key = cellstr(r1.resp_key); r1.resp_key(strcmp(r1.resp_key,'NA')) = {'none'};
     r1.correct = strcmp(cellstr(r1.corr_resp), r1.resp_key);
     
@@ -48,153 +53,250 @@ for s = 1:length(subj_ids)
     stats.one.err_new_as_same = sum(strcmp(r1.resp_key(idx_cr),'j'))/n_cr;
     stats.one.err_new_as_sim = sum(strcmp(r1.resp_key(idx_cr),'k'))/n_cr;
 
-    % --- 2-back stats ---
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % 2-back stats
+    %%%%%%%%%%%%%%%%%%%%%%%
     r2.resp_key = cellstr(r2.resp_key); r2.resp_key(strcmp(r2.resp_key,'NA')) = {'none'};
     r2.correct = strcmp(cellstr(r2.corr_resp), r2.resp_key);
     
     pan = zeros(height(r2),1); 
-    for i=1:height(r2)-2, if strcmp(r2.goal(i),'A-N'), pan(i+2)=1; end; end
+    for i=1:height(r2)-2, if strcmp(r2.goal(i),'A-N'), pan(i+2)=1; end; end % the corresponding item for A-N trials
     
-    real = ~contains(r2.goal, "JUNK"); v_rt = r2.rt > min_rt;
-    aa = real & strcmp(r2.goal,'A-A'); ab = real & strcmp(r2.goal,'A-B'); an = (pan==1);
-    comp = strcmp(r2.condition,'compared'); iso = strcmp(r2.condition,'isolated'); nov = strcmp(r2.condition,'novel');
-    j_key = strcmp(r2.corr_resp,'j'); k_key = strcmp(r2.corr_resp,'k');
+    real = ~contains(r2.goal, "JUNK");
+    v_rt = r2.rt > min_rt;
+    aa_idx = real & strcmp(r2.goal,'A-A'); 
+    ab_idx = real & strcmp(r2.goal,'A-B'); 
+    an_idx = (pan==1);
+    comp_idx = real & strcmp(r2.condition,'compared');
+    iso_idx = real & strcmp(r2.condition,'isolated');
+    nov_idx = real & strcmp(r2.condition,'novel');
+    j_idx = real & strcmp(r2.corr_resp,'j'); 
+    k_idx = real & strcmp(r2.corr_resp,'k');
+    n_idx = real & strcmp(r2.corr_resp, 'none');
 
     calc_d = @(h,f,nh,nf) norminv(max(1/(2*nh), min(1-1/(2*nh), h))) - norminv(max(1/(2*nf), min(1-1/(2*nf), f)));
 
-    % condition loop
-    conds = {comp, iso, nov}; suffixes = {'comp', 'iso', 'nov'};
-    for c=1:3
-        msk = conds{c}; sx = suffixes{c};
-        
-        % metrics
-        stats.two.(['acc_AA_' sx]) = mean(r2.correct(aa & msk & j_key));
-        stats.two.(['acc_AB_' sx]) = mean(r2.correct(ab & msk & k_key));
-        stats.two.(['rt_AA_' sx]) = median(r2.rt(aa & msk & j_key & r2.correct & v_rt), 'omitnan');
-        stats.two.(['rt_AB_' sx]) = median(r2.rt(ab & msk & k_key & r2.correct & v_rt), 'omitnan');
-        err_k = sum(strcmp(r2.resp_key(an & msk), 'k')) / sum(an & msk);
-        stats.two.(['ldi_' sx]) = stats.two.(['acc_AB_' sx]) - err_k;
-        nh = sum(aa & msk & j_key); nfa = sum(an & msk);
-        hr = stats.two.(['acc_AA_' sx]); far = sum(strcmp(r2.resp_key(an & msk), 'j')) / nfa;
-        stats.two.(['d_AA_' sx]) = calc_d(hr, far, nh, nfa);
-        
-        % Response proportions for visualization (matching your plot code)
-        % A-A trials: correct = 'j' (same), error = 'k' (similar) or 'none' (new)
-        stats.two.(['err_AA_' sx '_as_k']) = sum(strcmp(r2.resp_key(aa & msk), 'k')) / sum(aa & msk);
-        stats.two.(['err_AA_' sx '_as_none']) = sum(strcmp(r2.resp_key(aa & msk), 'none')) / sum(aa & msk);
-        
-        % A-B trials: correct = 'k' (similar), error = 'j' (same) or 'none' (new)
-        stats.two.(['err_AB_' sx '_as_j']) = sum(strcmp(r2.resp_key(ab & msk), 'j')) / sum(ab & msk);
-        stats.two.(['err_AB_' sx '_as_none']) = sum(strcmp(r2.resp_key(ab & msk), 'none')) / sum(ab & msk);
-        
-        % A-N trials: correct = 'none' (new), error = 'j' (same) or 'k' (similar)
-        stats.two.(['acc_AN_' sx]) = sum(strcmp(r2.resp_key(an & msk), 'none')) / sum(an & msk);
-        stats.two.(['err_AN_' sx '_as_j']) = sum(strcmp(r2.resp_key(an & msk), 'j')) / sum(an & msk);
-        stats.two.(['err_AN_' sx '_as_k']) = sum(strcmp(r2.resp_key(an & msk), 'k')) / sum(an & msk);
-        
-        % Optional: Keep confusion matrix with generic labels if needed elsewhere
-        daa = sum(aa & msk); dab = sum(ab & msk); dan = sum(an & msk);
-        stats.two.(['m_' sx '_aa_j']) = sum(strcmp(r2.resp_key(aa & msk),'j'))/daa;
-        stats.two.(['m_' sx '_aa_k']) = sum(strcmp(r2.resp_key(aa & msk),'k'))/daa;
-        stats.two.(['m_' sx '_aa_n']) = sum(strcmp(r2.resp_key(aa & msk),'none'))/daa;
-        stats.two.(['m_' sx '_ab_j']) = sum(strcmp(r2.resp_key(ab & msk),'j'))/dab;
-        stats.two.(['m_' sx '_ab_k']) = sum(strcmp(r2.resp_key(ab & msk),'k'))/dab;
-        stats.two.(['m_' sx '_ab_n']) = sum(strcmp(r2.resp_key(ab & msk),'none'))/dab;
-        stats.two.(['m_' sx '_an_j']) = sum(strcmp(r2.resp_key(an & msk),'j'))/dan;
-        stats.two.(['m_' sx '_an_k']) = sum(strcmp(r2.resp_key(an & msk),'k'))/dan;
-        stats.two.(['m_' sx '_an_n']) = sum(strcmp(r2.resp_key(an & msk),'none'))/dan;
-    end
+    stats.two.acc_AA_comp = mean(r2.correct(aa_idx & comp_idx & j_idx));
+    stats.two.acc_AA_iso = mean(r2.correct(aa_idx & iso_idx & j_idx));
+    stats.two.acc_AA_nov = mean(r2.correct(aa_idx & nov_idx & j_idx));
+    stats.two.acc_AB_comp = mean(r2.correct(ab_idx & comp_idx & k_idx));
+    stats.two.acc_AB_iso = mean(r2.correct(ab_idx & iso_idx & k_idx));
+    stats.two.acc_AB_nov = mean(r2.correct(ab_idx & nov_idx & k_idx));
+    stats.two.acc_AN_comp = mean(r2.correct(an_idx & comp_idx & n_idx));
+    stats.two.acc_AN_iso = mean(r2.correct(an_idx & iso_idx & n_idx));
+    stats.two.acc_AN_nov = mean(r2.correct(an_idx & nov_idx & n_idx));
+
+    stats.two.rt_AA_comp = median(r2.rt(aa_idx & comp_idx & j_idx & r2.correct==1 & v_rt), 'omitnan');
+    stats.two.rt_AA_iso = median(r2.rt(aa_idx & iso_idx & j_idx & r2.correct==1 & v_rt), 'omitnan');
+    stats.two.rt_AA_nov = median(r2.rt(aa_idx & nov_idx & j_idx & r2.correct==1 & v_rt), 'omitnan');
+    stats.two.rt_AB_comp = median(r2.rt(ab_idx & comp_idx & k_idx & r2.correct==1 & v_rt), 'omitnan');
+    stats.two.rt_AB_iso = median(r2.rt(ab_idx & iso_idx & k_idx & r2.correct==1 & v_rt), 'omitnan');
+    stats.two.rt_AB_nov = median(r2.rt(ab_idx & nov_idx & k_idx & r2.correct==1 & v_rt), 'omitnan');
+
+    n_AA_comp = sum(aa_idx & comp_idx & j_idx);
+    n_AA_iso = sum(aa_idx & iso_idx & j_idx);
+    n_AA_nov = sum(aa_idx & nov_idx & j_idx);
+    n_AB_comp = sum(ab_idx & comp_idx & k_idx);
+    n_AB_iso = sum(ab_idx & iso_idx & k_idx);
+    n_AB_nov = sum(ab_idx & nov_idx & k_idx);
+    n_AN_comp = sum(an_idx & comp_idx & n_idx);
+    n_AN_iso = sum(an_idx & iso_idx & n_idx);
+    n_AN_nov = sum(an_idx & nov_idx & n_idx);
+
+    stats.two.err_AA_comp_as_k = sum(strcmp(r2.resp_key(aa_idx & comp_idx & j_idx), 'k')) / n_AA_comp;
+    stats.two.err_AA_comp_as_n = sum(strcmp(r2.resp_key(aa_idx & comp_idx & j_idx), 'none')) / n_AA_comp;
+    stats.two.err_AB_comp_as_j = sum(strcmp(r2.resp_key(ab_idx & comp_idx & k_idx), 'j')) / n_AB_comp;
+    stats.two.err_AB_comp_as_n = sum(strcmp(r2.resp_key(ab_idx & comp_idx & k_idx), 'none')) / n_AB_comp;
+    stats.two.err_AN_comp_as_j = sum(strcmp(r2.resp_key(an_idx & comp_idx & n_idx), 'j')) / n_AN_comp;
+    stats.two.err_AN_comp_as_k = sum(strcmp(r2.resp_key(an_idx & comp_idx & n_idx), 'k')) / n_AN_comp;
+
+    stats.two.err_AA_iso_as_k = sum(strcmp(r2.resp_key(aa_idx & iso_idx & j_idx), 'k')) / n_AA_iso;
+    stats.two.err_AA_iso_as_n = sum(strcmp(r2.resp_key(aa_idx & iso_idx & j_idx), 'none')) / n_AA_iso;
+    stats.two.err_AB_iso_as_j = sum(strcmp(r2.resp_key(ab_idx & iso_idx & k_idx), 'j')) / n_AB_iso;
+    stats.two.err_AB_iso_as_n = sum(strcmp(r2.resp_key(ab_idx & iso_idx & k_idx), 'none')) / n_AB_iso;
+    stats.two.err_AN_iso_as_j = sum(strcmp(r2.resp_key(an_idx & iso_idx & n_idx), 'j')) / n_AN_iso;
+    stats.two.err_AN_iso_as_k = sum(strcmp(r2.resp_key(an_idx & iso_idx & n_idx), 'k')) / n_AN_iso;
     
-        % --- recognition ---
-        rec = final_data_output.results_recognition;
-        rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
-        old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
-        n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
-        far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
+    stats.two.err_AA_nov_as_k = sum(strcmp(r2.resp_key(aa_idx & nov_idx & j_idx), 'k')) / n_AA_nov;
+    stats.two.err_AA_nov_as_n = sum(strcmp(r2.resp_key(aa_idx & nov_idx & j_idx), 'none')) / n_AA_nov;
+    stats.two.err_AB_nov_as_j = sum(strcmp(r2.resp_key(ab_idx & nov_idx & k_idx), 'j')) / n_AB_nov;
+    stats.two.err_AB_nov_as_n = sum(strcmp(r2.resp_key(ab_idx & nov_idx & k_idx), 'none')) / n_AB_nov;
+    stats.two.err_AN_nov_as_j = sum(strcmp(r2.resp_key(an_idx & nov_idx & n_idx), 'j')) / n_AN_nov;
+    stats.two.err_AN_nov_as_k = sum(strcmp(r2.resp_key(an_idx & nov_idx & n_idx), 'k')) / n_AN_nov;
+    
+    stats.two.ldi_comp = stats.two.acc_AB_comp - stats.two.err_AN_comp_as_k;
+    stats.two.ldi_iso = stats.two.acc_AB_iso - stats.two.err_AN_iso_as_k;
+    stats.two.ldi_nov = stats.two.acc_AB_nov - stats.two.err_AN_nov_as_k;
+    stats.two.dprime_comp = calc_d(stats.two.acc_AA_comp, stats.two.err_AN_comp_as_j, n_AA_comp, n_AN_comp);
+    stats.two.dprime_iso = calc_d(stats.two.acc_AA_iso, stats.two.err_AN_iso_as_j, n_AA_iso, n_AN_iso);
+    stats.two.dprime_nov = calc_d(stats.two.acc_AA_nov, stats.two.err_AN_nov_as_j, n_AA_nov, n_AN_nov);
+
+    
+    %%%%%%%%%%%%%%%%%%%%%%%
+    % recognition stats
+    %%%%%%%%%%%%%%%%%%%%%%%
+    rec = final_data_output.results_recognition;
+    rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
+    old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
+    n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
+    far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
+
+    tc = old(old.condition=="compared",:); nc = height(tc);
+    hc = sum(tc.correct & tc.rt>min_rt)/nc;
+    stats.rec.d_comp = calc_d(hc, far, nc, n_new);
+    ti = old(old.condition=="isolated",:); ni = height(ti);
+    hi = sum(ti.correct & ti.rt>min_rt)/ni;
+    stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+    all_subjs(s).stats = stats;
         
-        tc = old(old.condition=="compared",:); nc = height(tc);
-        hc = sum(tc.correct & tc.rt>min_rt)/nc;
-        stats.rec.d_comp = calc_d(hc, far, nc, n_new);
-        ti = old(old.condition=="isolated",:); ni = height(ti);
-        hi = sum(ti.correct & ti.rt>min_rt)/ni;
-        stats.rec.d_iso = calc_d(hi, far, ni, n_new);
-        
-        all_subjs(s).stats = stats;
-    end
+end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 
 %% visualization
 
-% --- fig 1: 1-back ---
+%%%%%%%%%%%%%%%%%%%%%%%
+% fig. 1-back
+%%%%%%%%%%%%%%%%%%%%%%%
 figure('color','w','Position',[100 100 1200 400]);
 subplot(1,3,1); 
 data = [get_v('one','acc_same'); get_v('one','acc_sim'); get_v('one','acc_new')]';
 raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1.05]);
+add_sig(data, [1 2; 2 3; 1 3]);
 subplot(1,3,2); 
 data = [get_v('one','rt_same'); get_v('one','rt_sim')]';
 raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
+add_sig(data, [1 2]);
 subplot(1,3,3); hold on;
-mat = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
+mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
        mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
        mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
-draw_matrix(mat, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('Response matrix', 'FontSize', 12);
 sgtitle('1-Back Task Performance', 'FontSize', 16);
 
-% --- fig 2: 2-back
+%%%%%%%%%%%%%%%%%%%%%%%
+% fig. 2-back
+%%%%%%%%%%%%%%%%%%%%%%%
 figure('color','w','Position',[50 50 1200 900]);
 
-% row 1: metrics
+%%%%%%%%%%%%%%%%%%%%%%%
+% ldi & dprime & rt
+%%%%%%%%%%%%%%%%%%%%%%%
 subplot(3,3,1);
 data = [get_v('two','ldi_comp'); get_v('two','ldi_iso'); get_v('two','ldi_nov')]';
 raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination');
+add_sig(data, [1 2; 2 3; 1 3]);
+
 subplot(3,3,4);
-data = [get_v('two','d_AA_comp'); get_v('two','d_AA_iso'); get_v('two','d_AA_nov')]';
+data = [get_v('two','dprime_comp'); get_v('two','dprime_iso'); get_v('two','dprime_nov')]';
 raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Recognition');
+add_sig(data, [1 2; 2 3; 1 3]);
+
 subplot(3,3,2);
 data = [get_v('two','rt_AB_comp'); get_v('two','rt_AB_iso'); get_v('two','rt_AB_nov')]';
 raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)');
+add_sig(data, [1 2; 2 3; 1 3]);
 
-% row 2: rts
 subplot(3,3,5);
 data = [get_v('two','rt_AA_comp'); get_v('two','rt_AA_iso'); get_v('two','rt_AA_nov')]';
 raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Recognition)');
+add_sig(data, [1 2; 2 3; 1 3]);
 
-
-% row 3: 3 confusion matrices
-lbl_row = {'Exp Same(A-A)','Exp Sim(A-B)','Exp New(A-N)'}; lbl_col = {'Resp Same','Resp Sim','Resp New'};
-mat_colors = {c_same, c_sim, c_new};
-
-subplot(3,3,7); 
-m_c = [mean(get_v('two','m_comp_aa_j')), mean(get_v('two','m_comp_aa_k')), mean(get_v('two','m_comp_aa_n'));
-       mean(get_v('two','m_comp_ab_j')), mean(get_v('two','m_comp_ab_k')), mean(get_v('two','m_comp_ab_n'));
-       mean(get_v('two','m_comp_an_j')), mean(get_v('two','m_comp_an_k')), mean(get_v('two','m_comp_an_n'))];
-draw_matrix(m_c, mat_colors, lbl_row, lbl_col); title('Compared', 'FontSize',14);
-
-subplot(3,3,8); 
-m_i = [mean(get_v('two','m_iso_aa_j')), mean(get_v('two','m_iso_aa_k')), mean(get_v('two','m_iso_aa_n'));
-       mean(get_v('two','m_iso_ab_j')), mean(get_v('two','m_iso_ab_k')), mean(get_v('two','m_iso_ab_n'));
-       mean(get_v('two','m_iso_an_j')), mean(get_v('two','m_iso_an_k')), mean(get_v('two','m_iso_an_n'))];
-draw_matrix(m_i, mat_colors, lbl_row, lbl_col); title('Isolated', 'FontSize',14);
-
-subplot(3,3,9); 
-m_n = [mean(get_v('two','m_nov_aa_j')), mean(get_v('two','m_nov_aa_k')), mean(get_v('two','m_nov_aa_n'));
-       mean(get_v('two','m_nov_ab_j')), mean(get_v('two','m_nov_ab_k')), mean(get_v('two','m_nov_ab_n'));
-       mean(get_v('two','m_nov_an_j')), mean(get_v('two','m_nov_an_k')), mean(get_v('two','m_nov_an_n'))];
-draw_matrix(m_n, mat_colors, lbl_row, lbl_col); title('Novel', 'FontSize',14);
+%%%%%%%%%%%%%%%%%%%%%%%
+% confusion matrix
+%%%%%%%%%%%%%%%%%%%%%%%
+subplot(3,3,7); hold on;
+mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
+       mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+       mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('compared', 'FontSize', 14);
+subplot(3,3,8); hold on;
+mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
+       mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+       mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('isolated', 'FontSize', 14);
+subplot(3,3,9); hold on;
+mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
+       mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+       mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('novel', 'FontSize', 14);
 sgtitle('2-Back Task Performance', 'FontSize', 16);
 
-% --- fig 3: recognition ---
+%%%%%%%%%%%%%%%%%%%%%%%
+% predicts 2-back performance from 1-back
+%%%%%%%%%%%%%%%%%%%%%%%
+x_rt = get_v('one','rt_same')'; x_acc = get_v('one','acc_sim')';
+y_d_c = get_v('two','dprime_comp')'; y_d_i = get_v('two','dprime_iso')'; y_d_o = (y_d_c+y_d_i)/2;
+y_l_c = get_v('two','ldi_comp')'; y_l_i = get_v('two','ldi_iso')'; y_l_o = (y_l_c+y_l_i)/2;
+
+[r_do, p_do] = corr(x_rt, y_d_o); [r_dc, p_dc] = corr(x_rt, y_d_c); [r_di, p_di] = corr(x_rt, y_d_i);
+[r_lo, p_lo] = corr(x_acc, y_l_o); [r_lc, p_lc] = corr(x_acc, y_l_c); [r_li, p_li] = corr(x_acc, y_l_i);
+
+% partial regression: controlling for speed
+Z = x_rt; X = x_acc;
+mdl_x = fitlm(Z, X); x_res = mdl_x.Residuals.Raw;
+get_res = @(y) fitlm(Z, y).Residuals.Raw;
+y_dc_r = get_res(y_d_c); y_di_r = get_res(y_d_i); y_do_r = get_res(y_d_o);
+y_lc_r = get_res(y_l_c); y_li_r = get_res(y_l_i); y_lo_r = get_res(y_l_o);
+
+[r_pdo, p_pdo] = partialcorr(X, y_d_o, Z); [r_pdc, p_pdc] = partialcorr(X, y_d_c, Z); [r_pdi, p_pdi] = partialcorr(X, y_d_i, Z);
+[r_plo, p_plo] = partialcorr(X, y_l_o, Z); [r_plc, p_plc] = partialcorr(X, y_l_c, Z); [r_pli, p_pli] = partialcorr(X, y_l_i, Z);
+
 figure('color','w','Position',[100 100 600 500]);
-d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c + d_i)/2;
+subplot(1,3,1); hold on;
+s_i = plot_layer(x_rt, y_d_i, c_iso, 60, 0.5, 2); 
+s_c = plot_layer(x_rt, y_d_c, c_comp, 60, 0.5, 2);
+s_o = plot_layer(x_rt, y_d_o, [0.2 0.2 0.2], 60, 1, 2.5);
+xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back d''','FontSize',14,'FontWeight','bold');
+title('1-Back Speed Generally Predicts Recognition','FontSize',11);
+legend([s_o, s_c, s_i], {sprintf('overall (r=%.2f, p=%.3f)',r_do,p_do), ...
+    sprintf('compared (r=%.2f, p=%.3f)',r_dc,p_dc), sprintf('isolated (r=%.2f, p=%.3f)',r_di,p_di)}, ...
+    'Location','northeast','FontSize',10);
+grid off; set(gca,'GridAlpha',0.1); box off;
+
+subplot(1,3,2); hold on;
+s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
+s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
+s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
+title('1-Back Comparison Specifically Predicts Lure Discrimination','FontSize',11);
+legend([s_o2, s_c2, s_i2], {sprintf('overall (r=%.2f, p=%.3f)',r_lo,p_lo), ...
+    sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li)}, ...
+    'Location','southeast','FontSize',10);
+
+subplot(1,3,3); hold on;
+xline(0,'--','Color',[0.8 0.8 0.8]); yline(0,'--','Color',[0.8 0.8 0.8]);
+s_i2 = plot_layer(x_res, y_li_r, c_iso, 40, 0.5, 2);
+s_c2 = plot_layer(x_res, y_lc_r, c_comp, 40, 0.5, 2);
+s_o2 = plot_layer(x_res, y_lo_r, [0.2 0.2 0.2], 60, 1, 2.5);
+xlabel('1-Back Accuracy (Residuals)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI (Residuals)','FontSize',14,'FontWeight','bold');
+title({'Comparison Memory Drives Lure Discrimination', '(controlling for speed)'}, 'FontSize',11);
+legend([s_o2, s_c2, s_i2], {sprintf('overall (r_{p}=%.2f, p=%.3f)',r_plo,p_plo), ...
+    sprintf('compared (r_{p}=%.2f, p=%.3f)',r_plc,p_plc), sprintf('isolated (r_{p}=%.2f, p=%.3f)',r_pli,p_pli)}, ...
+    'Location','southeast','FontSize',10);
+
+grid off; set(gca,'GridAlpha',0.1); box off; sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% episodic memory
+%%%%%%%%%%%%%%%%%%%%%%%
+figure('color','w','Position',[100 100 600 500]);
+d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c+d_i)/2;
 data = [d_tot', d_c', d_i'];
 hold on;
 fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
 yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Do they have memory?');
-[~, p, ~, s_stat] = ttest(d_tot);
-text(1.5, max(d_tot)*0.9, sprintf('Mean d''=%.2f\nt(%d)=%.2f, p=%.3f', mean(d_tot), s_stat.df, s_stat.tstat, p), ...
-     'FontSize',11, 'BackgroundColor','w', 'EdgeColor','k', 'Margin',5);
-ylim([-0.5, max(data(:))+0.5]);
+raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
+add_sig(data, [1 0; 2 3]);
+[~,p_t,~,s_t] = ttest(d_tot); [~,p_d,~,s_d] = ttest(d_c, d_i);
+msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t), ...
+       sprintf('\\bfcompared vs isolated:\\rm t(%d)=%.2f, p=%.3f', s_d.df, s_d.tstat, p_d)};
+text(3.4, max(data(:))*1.15, msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
+     'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
+ylim([-0.5, max(data(:))*1.3]);
 
 
 %% functions
@@ -212,7 +314,7 @@ function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
     end
     set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 12);
     if ~isempty(ttl), title(ttl, 'FontSize', 14); end
-    ylabel(ylbl,'FontSize',12,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
+    ylabel(ylbl,'FontSize',14,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
     if nargin>5 && ~isempty(ylims), ylim(ylims); end
     grid off; set(gca,'GridAlpha',0.1); box off; hold off;
 end
@@ -226,17 +328,66 @@ function draw_matrix(mat, cols, ylbl, xlbl)
             patch([c-0.48 c+0.48 c+0.48 c-0.48], [r-0.48 r-0.48 r+0.48 r+0.48], ...
                   cols{r}, 'EdgeColor','none','FaceAlpha',v);
             text(c, r, sprintf('%.2f',v), 'HorizontalAlignment','center', ...
-                 'Color',t_c, 'FontWeight','bold', 'FontSize',12);
+                 'Color',t_c, 'FontWeight','bold', 'FontSize',10);
             if r==1 
                 text(c, 0.4, xlbl{c}, 'HorizontalAlignment','center', ...
-                     'Color',cols{c}, 'FontWeight','bold', 'FontSize',11); 
+                     'Color',cols{c}, 'FontWeight','bold', 'FontSize',10); 
             end
         end
         text(0.4, r, ylbl{r}, 'HorizontalAlignment','right', ...
-             'Color',cols{r}, 'FontWeight','bold', 'FontSize',11);
+             'Color',cols{r}, 'FontWeight','bold', 'FontSize',10);
     end 
     axis ij equal; 
     xlim([0.2 3.8]); ylim([0.3 3.5]);
     set(gca, 'XTick', [], 'YTick', [], 'XColor', 'none', 'YColor', 'none'); 
+    hold off;
+end
+
+function s = plot_layer(x, y, c, sz, alph, lw)
+    s = scatter(x, y, sz, c, 'filled', 'MarkerFaceAlpha', alph);
+    p = polyfit(x, y, 1); x_r = linspace(min(x), max(x), 100);
+    plot(x_r, polyval(p, x_r), 'Color', c, 'LineWidth', lw);
+end
+
+function add_sig(data, pairs)
+    % pairs: [col_A col_B] -> paired t-test between A and B
+    %        [col_A 0]     -> one-sample t-test of A against 0
+    [~, n_grps] = size(data);
+    y_max = max(data(:)); 
+    rng = max(data(:)) - min(data(:));
+    if rng == 0, rng = 1; end 
+    step = rng * 0.15; 
+
+    line_lvl = 1;
+    hold on;
+    for i = 1:size(pairs,1)
+        c1 = pairs(i,1); c2 = pairs(i,2);
+        if c2 == 0 
+            [~, p] = ttest(data(:,c1)); 
+            is_paired = false;
+        else
+            [~, p] = ttest(data(:,c1), data(:,c2));
+            is_paired = true;
+        end
+        if p < 0.05
+            if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
+            y_pos = y_max + (line_lvl * step);
+            if is_paired
+                plot([c1, c1, c2, c2], [y_pos-step*0.2, y_pos, y_pos, y_pos-step*0.2], 'k-', 'LineWidth', 1.2);
+                text(mean([c1 c2]), y_pos + step*0.05, txt, 'HorizontalAlignment', 'center', 'FontSize', 15, 'FontWeight', 'bold');
+            else
+                text(c1, y_pos, txt, 'HorizontalAlignment', 'center', 'FontSize', 18, 'FontWeight', 'bold', 'Color', 'k');
+            end
+
+            line_lvl = line_lvl + 1;
+        end
+    end
+    if line_lvl > 1
+        current_ylim = ylim;
+        new_upper = y_max + (line_lvl * step) + step;
+        if new_upper > current_ylim(2)
+            ylim([current_ylim(1), new_upper]);
+        end
+    end
     hold off;
 end
