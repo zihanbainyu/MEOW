@@ -156,10 +156,10 @@ get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 1-back
 %%%%%%%%%%%%%%%%%%%%%%%
-figure('color','w','Position',[100 100 1200 400]);
+figure('color','w','Position',[100 100 1200 400]); axis square;
 subplot(1,3,1); 
 data = [get_v('one','acc_same'); get_v('one','acc_sim'); get_v('one','acc_new')]';
-raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1.05]);
+raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
 add_sig(data, [1 2; 2 3; 1 3]);
 subplot(1,3,2); 
 data = [get_v('one','rt_same'); get_v('one','rt_sim')]';
@@ -172,6 +172,7 @@ mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')
 draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('Response matrix', 'FontSize', 12);
 sgtitle('1-Back Task Performance', 'FontSize', 16);
+set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, '1Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -246,19 +247,19 @@ y_lc_r = get_res(y_l_c); y_li_r = get_res(y_l_i); y_lo_r = get_res(y_l_o);
 [r_pdo, p_pdo] = partialcorr(X, y_d_o, Z); [r_pdc, p_pdc] = partialcorr(X, y_d_c, Z); [r_pdi, p_pdi] = partialcorr(X, y_d_i, Z);
 [r_plo, p_plo] = partialcorr(X, y_l_o, Z); [r_plc, p_plc] = partialcorr(X, y_l_c, Z); [r_pli, p_pli] = partialcorr(X, y_l_i, Z);
 
-figure('color','w','Position',[150 150 1600 500]);
-subplot(1,3,1); hold on;
+figure('color','w','Position',[50 50 1500 400]);
+subplot(1,3,1); hold on; axis square;
 s_i = plot_layer(x_rt, y_d_i, c_iso, 60, 0.5, 2); 
 s_c = plot_layer(x_rt, y_d_c, c_comp, 60, 0.5, 2);
 s_o = plot_layer(x_rt, y_d_o, [0.2 0.2 0.2], 60, 1, 2.5);
 xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back d''','FontSize',14,'FontWeight','bold');
-title('1-Back Speed Generally Predicts Recognition','FontSize',11);
+title('1-Back Speed Generally Predicts Recognition','FontSize',12);
 legend([s_o, s_c, s_i], {sprintf('overall (r=%.2f, p=%.3f)',r_do,p_do), ...
     sprintf('compared (r=%.2f, p=%.3f)',r_dc,p_dc), sprintf('isolated (r=%.2f, p=%.3f)',r_di,p_di)}, ...
     'Location','northeast','FontSize',10);
 grid off; set(gca,'GridAlpha',0.1); box off;
 
-subplot(1,3,2); hold on;
+subplot(1,3,2); hold on; axis square;
 s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
 s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
 s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
@@ -268,10 +269,10 @@ legend([s_o2, s_c2, s_i2], {sprintf('overall (r=%.2f, p=%.3f)',r_lo,p_lo), ...
     sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li)}, ...
     'Location','southeast','FontSize',10);
 
-subplot(1,3,3); hold on;
+subplot(1,3,3); hold on; axis square;
 xline(0,'--','Color',[0.8 0.8 0.8]); yline(0,'--','Color',[0.8 0.8 0.8]);
-s_i2 = plot_layer(x_res, y_li_r, c_iso, 40, 0.5, 2);
-s_c2 = plot_layer(x_res, y_lc_r, c_comp, 40, 0.5, 2);
+s_i2 = plot_layer(x_res, y_li_r, c_iso, 60, 0.5, 2);
+s_c2 = plot_layer(x_res, y_lc_r, c_comp, 60, 0.5, 2);
 s_o2 = plot_layer(x_res, y_lo_r, [0.2 0.2 0.2], 60, 1, 2.5);
 xlabel('1-Back Accuracy (Residuals)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI (Residuals)','FontSize',14,'FontWeight','bold');
 title({'Comparison Memory Drives Lure Discrimination', '(controlling for speed)'}, 'FontSize',11);
@@ -280,6 +281,7 @@ legend([s_o2, s_c2, s_i2], {sprintf('overall (r_{p}=%.2f, p=%.3f)',r_plo,p_plo),
     'Location','southeast','FontSize',10);
 
 grid off; set(gca,'GridAlpha',0.1); box off; sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
+set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
