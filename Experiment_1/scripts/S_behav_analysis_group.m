@@ -3,7 +3,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 % setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614];
 base_dir = '..'; 
 min_rt = 0.150;
 % colors
@@ -134,20 +134,24 @@ for s = 1:length(subj_ids)
     %%%%%%%%%%%%%%%%%%%%%%%
     % recognition stats
     %%%%%%%%%%%%%%%%%%%%%%%
-    rec = final_data_output.results_recognition;
-    rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
-    old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
-    n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
-    far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
-
-    tc = old(old.condition=="compared",:); nc = height(tc);
-    hc = sum(tc.correct & tc.rt>min_rt)/nc;
-    stats.rec.d_comp = calc_d(hc, far, nc, n_new);
-    ti = old(old.condition=="isolated",:); ni = height(ti);
-    hi = sum(ti.correct & ti.rt>min_rt)/ni;
-    stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+    if isfield(final_data_output, 'results_recognition')
+        rec = final_data_output.results_recognition;
+        rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
+        old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
+        n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
+        far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
+        tc = old(old.condition=="compared",:); nc = height(tc);
+        hc = sum(tc.correct & tc.rt>min_rt)/nc;
+        stats.rec.d_comp = calc_d(hc, far, nc, n_new);
+        ti = old(old.condition=="isolated",:); ni = height(ti);
+        hi = sum(ti.correct & ti.rt>min_rt)/ni;
+        stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+    else
+        fprintf('  recognition data missing for subject %d, filling with NaNs.\n', curr_id);
+        stats.rec.d_comp = NaN;
+        stats.rec.d_iso = NaN;
+    end
     all_subjs(s).stats = stats;
-        
 end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 
@@ -225,68 +229,116 @@ mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k'))
 draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('novel', 'FontSize', 14);
 sgtitle('2-Back Task Performance', 'FontSize', 16);
-print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
+% print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % predicts 2-back performance from 1-back
 %%%%%%%%%%%%%%%%%%%%%%%
-x_rt = get_v('one','rt_same')'; x_acc = get_v('one','acc_sim')';
-y_d_c = get_v('two','dprime_comp')'; y_d_i = get_v('two','dprime_iso')'; y_d_o = (y_d_c+y_d_i)/2;
-y_l_c = get_v('two','ldi_comp')'; y_l_i = get_v('two','ldi_iso')'; y_l_o = (y_l_c+y_l_i)/2;
+x_rt_sim  = get_v('one', 'rt_sim')';
+x_acc = get_v('one','acc_sim')';
+y_d_c = get_v('two','dprime_comp')';
+y_d_i = get_v('two','dprime_iso')';
+y_d_n = get_v('two','dprime_nov')';
+y_d_o = (y_d_c+y_d_i)/2;
+y_l_c = get_v('two','ldi_comp')'; 
+y_l_i = get_v('two','ldi_iso')'; 
+y_l_n = get_v('two','ldi_nov')'; 
+y_l_o = (y_l_c+y_l_i)/2;
+y_r_c = get_v('two','rt_AB_comp')';
+y_r_i = get_v('two','rt_AB_iso')';
+y_r_n = get_v('two','rt_AB_nov')';
 
-[r_do, p_do] = corr(x_rt, y_d_o); [r_dc, p_dc] = corr(x_rt, y_d_c); [r_di, p_di] = corr(x_rt, y_d_i);
-[r_lo, p_lo] = corr(x_acc, y_l_o); [r_lc, p_lc] = corr(x_acc, y_l_c); [r_li, p_li] = corr(x_acc, y_l_i);
+% acc ~ ldi
+[r_lo, p_lo] = corr(x_acc, y_l_o); 
+[r_lc, p_lc] = corr(x_acc, y_l_c); 
+[r_li, p_li] = corr(x_acc, y_l_i);
+[r_ln, p_ln] = corr(x_acc, y_l_n);
+% rt ~ ldi/dprime
+[r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
+[r_rli, p_rli] = corr(x_rt_sim, y_l_i);
+[r_rln, p_rln] = corr(x_rt_sim, y_l_n);
+[r_rlo, p_rlo] = corr(x_rt_sim, y_l_o);
+[r_do, p_do] = corr(x_rt_sim, y_d_o);
+[r_dc, p_dc] = corr(x_rt_sim, y_d_c);
+[r_di, p_di] = corr(x_rt_sim, y_d_i);
+% rt ~ rt
+[r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
+[r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
+[r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
 
-% partial regression: controlling for speed
-Z = x_rt; X = x_acc;
-mdl_x = fitlm(Z, X); x_res = mdl_x.Residuals.Raw;
-get_res = @(y) fitlm(Z, y).Residuals.Raw;
-y_dc_r = get_res(y_d_c); y_di_r = get_res(y_d_i); y_do_r = get_res(y_d_o);
-y_lc_r = get_res(y_l_c); y_li_r = get_res(y_l_i); y_lo_r = get_res(y_l_o);
-
-[r_pdo, p_pdo] = partialcorr(X, y_d_o, Z); [r_pdc, p_pdc] = partialcorr(X, y_d_c, Z); [r_pdi, p_pdi] = partialcorr(X, y_d_i, Z);
-[r_plo, p_plo] = partialcorr(X, y_l_o, Z); [r_plc, p_plc] = partialcorr(X, y_l_c, Z); [r_pli, p_pli] = partialcorr(X, y_l_i, Z);
-
-figure('color','w','Position',[50 50 1500 400]);
-subplot(1,3,1); hold on; axis square;
-s_i = plot_layer(x_rt, y_d_i, c_iso, 60, 0.5, 2); 
-s_c = plot_layer(x_rt, y_d_c, c_comp, 60, 0.5, 2);
-s_o = plot_layer(x_rt, y_d_o, [0.2 0.2 0.2], 60, 1, 2.5);
-xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back d''','FontSize',14,'FontWeight','bold');
-title('1-Back Speed Generally Predicts Recognition','FontSize',12);
-legend([s_o, s_c, s_i], {sprintf('overall (r=%.2f, p=%.3f)',r_do,p_do), ...
-    sprintf('compared (r=%.2f, p=%.3f)',r_dc,p_dc), sprintf('isolated (r=%.2f, p=%.3f)',r_di,p_di)}, ...
-    'Location','northeast','FontSize',10);
-grid off; set(gca,'GridAlpha',0.1); box off;
-
-subplot(1,3,2); hold on; axis square;
+figure('color','w','Position',[100 100 800 400]);
+subplot(1,2,1); hold on; 
 s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
 s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
-s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+% s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+s_n2 = plot_layer(x_acc, y_l_n, c_nov, 60, 0.5, 2);
 xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
-title('1-Back Comparison Specifically Predicts Lure Discrimination','FontSize',11);
-legend([s_o2, s_c2, s_i2], {sprintf('overall (r=%.2f, p=%.3f)',r_lo,p_lo), ...
-    sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li)}, ...
+title('1-Back Comparison Specifically Predicts Lure Discrimination','FontSize',12);
+legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
     'Location','southeast','FontSize',10);
 
-subplot(1,3,3); hold on; axis square;
-xline(0,'--','Color',[0.8 0.8 0.8]); yline(0,'--','Color',[0.8 0.8 0.8]);
-s_i2 = plot_layer(x_res, y_li_r, c_iso, 60, 0.5, 2);
-s_c2 = plot_layer(x_res, y_lc_r, c_comp, 60, 0.5, 2);
-s_o2 = plot_layer(x_res, y_lo_r, [0.2 0.2 0.2], 60, 1, 2.5);
-xlabel('1-Back Accuracy (Residuals)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI (Residuals)','FontSize',14,'FontWeight','bold');
-title({'Comparison Memory Drives Lure Discrimination', '(controlling for speed)'}, 'FontSize',11);
-legend([s_o2, s_c2, s_i2], {sprintf('overall (r_{p}=%.2f, p=%.3f)',r_plo,p_plo), ...
-    sprintf('compared (r_{p}=%.2f, p=%.3f)',r_plc,p_plc), sprintf('isolated (r_{p}=%.2f, p=%.3f)',r_pli,p_pli)}, ...
-    'Location','southeast','FontSize',10);
+subplot(1,2,2); hold on; 
+s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
+s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
+s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
+% s_o = plot_layer(x_rt_sim, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
+title('1-Back Faster Comparison Predicts Lure Discrimination','FontSize',12);
+legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
+    'Location','northeast','FontSize',10);
+grid off; set(gca,'GridAlpha',0.1); box off;
+sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 
-grid off; set(gca,'GridAlpha',0.1); box off; sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
+% subplot(2,3,3); hold on; 
+% s_c = plot_layer(x_rt_sim, y_d_c, c_comp, 60, 0.5, 2);
+% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back d''','FontSize',14,'FontWeight','bold');
+% title('1-Back Comparison Speed Predicts 2-Back Recognition','FontSize',12);
+% legend(s_c, {sprintf('compared (r=%.2f, p=%.3f)',r_dc,p_dc)}, ...
+%     'Location','northeast','FontSize',10);
+% grid off; set(gca,'GridAlpha',0.1); box off;
+% 
+% subplot(2,3,4); hold on; 
+% s_c = plot_layer(x_rt_sim, y_r_c, c_comp, 60, 0.5, 2);
+% s_i = plot_layer(x_rt_sim, y_r_i, c_iso, 60, 0.5, 2);
+% s_n = plot_layer(x_rt_sim, y_r_n, c_nov, 60, 0.5, 2);
+% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back RT (s)','FontSize',14,'FontWeight','bold');
+% title('1-Back Comparison Speed Predicts 2-Back Recognition','FontSize',12);
+% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rrc,p_rrc), ...
+%     sprintf('isolated (r=%.2f, p=%.3f)',r_rri,p_rri), sprintf('novel (r=%.2f, p=%.3f)',r_rrn,p_rrn)}, ...
+%     'Location','northeast','FontSize',10);
+% grid off; set(gca,'GridAlpha',0.1); box off;
 
-%%%%%%%%%%%%%%%%%%%%%%%
-% episodic memory
-%%%%%%%%%%%%%%%%%%%%%%%
+
+% subplot(2,3,3); hold on; 
+% xline(0,'--','Color',[0.8 0.8 0.8]); yline(0,'--','Color',[0.8 0.8 0.8]);
+% s_i2 = plot_layer(x_res, y_li_r, c_iso, 60, 0.5, 2);
+% s_c2 = plot_layer(x_res, y_lc_r, c_comp, 60, 0.5, 2);
+% s_o2 = plot_layer(x_res, y_lo_r, [0.2 0.2 0.2], 60, 1, 2.5);
+% xlabel('1-Back Accuracy (Residuals)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI (Residuals)','FontSize',14,'FontWeight','bold');
+% title({'Comparison Memory Drives Lure Discrimination', '(controlling for speed)'}, 'FontSize',11);
+% legend([s_o2, s_c2, s_i2], {sprintf('overall (r_{p}=%.2f, p=%.3f)',r_plo,p_plo), ...
+%     sprintf('compared (r_{p}=%.2f, p=%.3f)',r_plc,p_plc), sprintf('isolated (r_{p}=%.2f, p=%.3f)',r_pli,p_pli)}, ...
+%     'Location','southeast','FontSize',10);
+% 
+
+% partial regression: controlling for speed
+% Z = x_rt; X = x_acc;
+% mdl_x = fitlm(Z, X); x_res = mdl_x.Residuals.Raw;
+% get_res = @(y) fitlm(Z, y).Residuals.Raw;
+% y_dc_r = get_res(y_d_c); y_di_r = get_res(y_d_i); y_do_r = get_res(y_d_o);
+% y_lc_r = get_res(y_l_c); y_li_r = get_res(y_l_i); y_lo_r = get_res(y_l_o);
+% 
+% [r_pdo, p_pdo] = partialcorr(X, y_d_o, Z); [r_pdc, p_pdc] = partialcorr(X, y_d_c, Z); [r_pdi, p_pdi] = partialcorr(X, y_d_i, Z);
+% [r_plo, p_plo] = partialcorr(X, y_l_o, Z); [r_plc, p_plc] = partialcorr(X, y_l_c, Z); [r_pli, p_pli] = partialcorr(X, y_l_i, Z);
+% 
+
+
+
+% print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%
+% % episodic memory
+% %%%%%%%%%%%%%%%%%%%%%%%
 figure('color','w','Position',[100 100 600 500]);
 d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c+d_i)/2;
 data = [d_tot', d_c', d_i'];
