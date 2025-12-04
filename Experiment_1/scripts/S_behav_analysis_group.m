@@ -3,7 +3,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 % setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610];
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614];
 base_dir = '..'; 
 min_rt = 0.150;
 % colors
@@ -134,20 +134,24 @@ for s = 1:length(subj_ids)
     %%%%%%%%%%%%%%%%%%%%%%%
     % recognition stats
     %%%%%%%%%%%%%%%%%%%%%%%
-    rec = final_data_output.results_recognition;
-    rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
-    old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
-    n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
-    far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
-
-    tc = old(old.condition=="compared",:); nc = height(tc);
-    hc = sum(tc.correct & tc.rt>min_rt)/nc;
-    stats.rec.d_comp = calc_d(hc, far, nc, n_new);
-    ti = old(old.condition=="isolated",:); ni = height(ti);
-    hi = sum(ti.correct & ti.rt>min_rt)/ni;
-    stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+    if isfield(final_data_output, 'results_recognition')
+        rec = final_data_output.results_recognition;
+        rec.correct = strcmp(cellstr(rec.corr_resp), cellstr(rec.resp_key));
+        old = rec(rec.trial_type=="old",:); new = rec(rec.trial_type~="old",:);
+        n_new = height(new); n_fa = sum(strcmp(cellstr(new.resp_key),'j') & new.rt>min_rt);
+        far = max(1/(2*n_new), min(1-1/(2*n_new), n_fa/n_new));
+        tc = old(old.condition=="compared",:); nc = height(tc);
+        hc = sum(tc.correct & tc.rt>min_rt)/nc;
+        stats.rec.d_comp = calc_d(hc, far, nc, n_new);
+        ti = old(old.condition=="isolated",:); ni = height(ti);
+        hi = sum(ti.correct & ti.rt>min_rt)/ni;
+        stats.rec.d_iso = calc_d(hi, far, ni, n_new);
+    else
+        fprintf('  recognition data missing for subject %d, filling with NaNs.\n', curr_id);
+        stats.rec.d_comp = NaN;
+        stats.rec.d_iso = NaN;
+    end
     all_subjs(s).stats = stats;
-        
 end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 
@@ -156,75 +160,75 @@ get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 1-back
 %%%%%%%%%%%%%%%%%%%%%%%
-% figure('color','w','Position',[100 100 1200 400]); axis square;
-% subplot(1,3,1); 
-% data = [get_v('one','acc_same'); get_v('one','acc_sim'); get_v('one','acc_new')]';
-% raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(1,3,2); 
-% data = [get_v('one','rt_same'); get_v('one','rt_sim')]';
-% raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
-% add_sig(data, [1 2]);
-% subplot(1,3,3); hold on;
-% mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
-%        mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
-%        mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
-% draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('Response matrix', 'FontSize', 12);
-% sgtitle('1-Back Task Performance', 'FontSize', 16);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, '1Back_Figures.tiff', '-dtiff', '-r300'); 
+figure('color','w','Position',[100 100 1200 400]); axis square;
+subplot(1,3,1); 
+data = [get_v('one','acc_same'); get_v('one','acc_sim'); get_v('one','acc_new')]';
+raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(1,3,2); 
+data = [get_v('one','rt_same'); get_v('one','rt_sim')]';
+raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
+add_sig(data, [1 2]);
+subplot(1,3,3); hold on;
+mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
+       mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
+       mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
+draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('Response matrix', 'FontSize', 12);
+sgtitle('1-Back Task Performance', 'FontSize', 16);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, '1Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 2-back
 %%%%%%%%%%%%%%%%%%%%%%%
-% figure('color','w','Position',[50 50 1200 900]);
+figure('color','w','Position',[50 50 1200 900]);
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % ldi & dprime & rt
 %%%%%%%%%%%%%%%%%%%%%%%
-% subplot(3,3,1);
-% data = [get_v('two','ldi_comp'); get_v('two','ldi_iso'); get_v('two','ldi_nov')]';
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% 
-% subplot(3,3,4);
-% data = [get_v('two','dprime_comp'); get_v('two','dprime_iso'); get_v('two','dprime_nov')]';
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Recognition');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% 
-% subplot(3,3,2);
-% data = [get_v('two','rt_AB_comp'); get_v('two','rt_AB_iso'); get_v('two','rt_AB_nov')]';
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% 
-% subplot(3,3,5);
-% data = [get_v('two','rt_AA_comp'); get_v('two','rt_AA_iso'); get_v('two','rt_AA_nov')]';
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Recognition)');
-% add_sig(data, [1 2; 2 3; 1 3]);
+subplot(3,3,1);
+data = [get_v('two','ldi_comp'); get_v('two','ldi_iso'); get_v('two','ldi_nov')]';
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination');
+add_sig(data, [1 2; 2 3; 1 3]);
+
+subplot(3,3,4);
+data = [get_v('two','dprime_comp'); get_v('two','dprime_iso'); get_v('two','dprime_nov')]';
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Recognition');
+add_sig(data, [1 2; 2 3; 1 3]);
+
+subplot(3,3,2);
+data = [get_v('two','rt_AB_comp'); get_v('two','rt_AB_iso'); get_v('two','rt_AB_nov')]';
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)');
+add_sig(data, [1 2; 2 3; 1 3]);
+
+subplot(3,3,5);
+data = [get_v('two','rt_AA_comp'); get_v('two','rt_AA_iso'); get_v('two','rt_AA_nov')]';
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Recognition)');
+add_sig(data, [1 2; 2 3; 1 3]);
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % confusion matrix
 %%%%%%%%%%%%%%%%%%%%%%%
-% subplot(3,3,7); hold on;
-% mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
-%        mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
-%        mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
-% draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('compared', 'FontSize', 14);
-% subplot(3,3,8); hold on;
-% mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
-%        mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
-%        mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
-% draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('isolated', 'FontSize', 14);
-% subplot(3,3,9); hold on;
-% mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
-%        mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
-%        mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
-% draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('novel', 'FontSize', 14);
-% sgtitle('2-Back Task Performance', 'FontSize', 16);
+subplot(3,3,7); hold on;
+mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
+       mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+       mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('compared', 'FontSize', 14);
+subplot(3,3,8); hold on;
+mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
+       mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+       mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('isolated', 'FontSize', 14);
+subplot(3,3,9); hold on;
+mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
+       mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+       mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('novel', 'FontSize', 14);
+sgtitle('2-Back Task Performance', 'FontSize', 16);
 % print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -262,31 +266,28 @@ y_r_n = get_v('two','rt_AB_nov')';
 [r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
 [r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
 
-
 figure('color','w','Position',[100 100 800 400]);
 subplot(1,2,1); hold on; 
 s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
 s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
-s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+% s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
 s_n2 = plot_layer(x_acc, y_l_n, c_nov, 60, 0.5, 2);
 xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
 title('1-Back Comparison Specifically Predicts Lure Discrimination','FontSize',12);
-legend([s_o2, s_c2, s_i2, s_n2], {sprintf('compared+isolated (r=%.2f, p=%.3f)',r_lo,p_lo), ...
-    sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
+legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
     'Location','southeast','FontSize',10);
 
 subplot(1,2,2); hold on; 
 s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
 s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
 s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
-s_o = plot_layer(x_rt_sim, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
+% s_o = plot_layer(x_rt_sim, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
 xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
 title('1-Back Faster Comparison Predicts Lure Discrimination','FontSize',12);
-legend([s_o, s_c, s_i, s_n], {sprintf('compared+isolated (r=%.2f, p=%.3f)',r_rlo,p_rlo), ...
-    sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
+legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
     'Location','northeast','FontSize',10);
 grid off; set(gca,'GridAlpha',0.1); box off;
-
+sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 
 % subplot(2,3,3); hold on; 
 % s_c = plot_layer(x_rt_sim, y_d_c, c_comp, 60, 0.5, 2);
@@ -306,8 +307,6 @@ grid off; set(gca,'GridAlpha',0.1); box off;
 %     sprintf('isolated (r=%.2f, p=%.3f)',r_rri,p_rri), sprintf('novel (r=%.2f, p=%.3f)',r_rrn,p_rrn)}, ...
 %     'Location','northeast','FontSize',10);
 % grid off; set(gca,'GridAlpha',0.1); box off;
-
-sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 
 
 % subplot(2,3,3); hold on; 
@@ -340,21 +339,21 @@ sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 % %%%%%%%%%%%%%%%%%%%%%%%
 % % episodic memory
 % %%%%%%%%%%%%%%%%%%%%%%%
-% figure('color','w','Position',[100 100 600 500]);
-% d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c+d_i)/2;
-% data = [d_tot', d_c', d_i'];
-% hold on;
-% fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
-% yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-% raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
-% add_sig(data, [1 0; 2 3]);
-% [~,p_t,~,s_t] = ttest(d_tot); [~,p_d,~,s_d] = ttest(d_c, d_i);
-% msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t), ...
-%        sprintf('\\bfcompared vs isolated:\\rm t(%d)=%.2f, p=%.3f', s_d.df, s_d.tstat, p_d)};
-% text(3.4, max(data(:))*1.15, msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
-%      'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
-% ylim([-0.5, max(data(:))*1.3]);
-% print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
+figure('color','w','Position',[100 100 600 500]);
+d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c+d_i)/2;
+data = [d_tot', d_c', d_i'];
+hold on;
+fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
+yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
+add_sig(data, [1 0; 2 3]);
+[~,p_t,~,s_t] = ttest(d_tot); [~,p_d,~,s_d] = ttest(d_c, d_i);
+msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t), ...
+       sprintf('\\bfcompared vs isolated:\\rm t(%d)=%.2f, p=%.3f', s_d.df, s_d.tstat, p_d)};
+text(3.4, max(data(:))*1.15, msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
+     'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
+ylim([-0.5, max(data(:))*1.3]);
+print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
 
 
 %% functions
