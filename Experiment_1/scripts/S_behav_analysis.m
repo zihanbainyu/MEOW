@@ -5,7 +5,7 @@ close all;
 
 
 %% Set up
-subj_id = 616;
+subj_id = 617;
 base_dir = '..';
 subj_folder = sprintf('sub%03d', subj_id); 
 results_dir = fullfile(base_dir, 'data', subj_folder);
