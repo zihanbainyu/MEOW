@@ -3,7 +3,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 % setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615];
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616];
 base_dir = '..'; 
 min_rt = 0.150;
 % colors
@@ -243,6 +243,7 @@ y_d_o = (y_d_c+y_d_i)/2;
 y_l_c = get_v('two','ldi_comp')'; 
 y_l_i = get_v('two','ldi_iso')'; 
 y_l_n = get_v('two','ldi_nov')'; 
+ldi_delta = y_l_c - y_l_n;
 y_l_o = (y_l_c+y_l_i)/2;
 y_r_c = get_v('two','rt_AB_comp')';
 y_r_i = get_v('two','rt_AB_iso')';
@@ -265,6 +266,78 @@ y_r_n = get_v('two','rt_AB_nov')';
 [r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
 [r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
 [r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
+
+[r_int, p_int] = corr(y_l_c, ldi_delta); % Internal structure
+[r_res, p_res] = corr(x_acc, ldi_delta); % The Rescue (Predictor vs Cost)
+
+fprintf('\n=== INTERFERENCE COMPONENT ANALYSIS ===\n');
+fprintf('1. Internal: LDI Comp vs (Comp - Nov): r=%.2f, p=%.3f\n', r_int, p_int);
+fprintf('2. Hypothesis: 1-Back Acc vs (Comp - Nov): r=%.2f, p=%.3f\n', r_res, p_res);
+
+% 4. Visualization
+figure('color','w','Position',[100 100 1000 400]);
+
+% --- Plot A: Internal Structure (LDI Comp vs Delta) ---
+subplot(1,2,1); hold on;
+scatter(ldi_delta, y_l_c, 60, c_comp, 'filled', 'MarkerEdgeColor','k');
+h1 = lsline; set(h1, 'Color', 'k', 'LineWidth', 2);
+yline(0, '--', 'Color', [0.7 0.7 0.7]); xline(0, '--', 'Color', [0.7 0.7 0.7]);
+xlabel('Interference Resistance (Comp - Nov)', 'FontSize', 12, 'FontWeight','bold');
+ylabel('LDI Compared (Performance)', 'FontSize', 12, 'FontWeight','bold');
+title({'Internal Structure', sprintf('r=%.2f, p=%.3f', r_int, p_int)}, 'FontSize', 14);
+grid on; axis square;
+
+% --- Plot B: The Rescue (1-Back Prediction) ---
+subplot(1,2,2); hold on;
+scatter(x_acc, ldi_delta, 60, [0.8 0.2 0.2], 'filled', 'MarkerEdgeColor','k');
+h2 = lsline; set(h2, 'Color', [0.8 0.2 0.2], 'LineWidth', 2);
+yline(0, '--', 'Color', [0.7 0.7 0.7]);
+xlabel('1-Back Accuracy (Similar)', 'FontSize', 12, 'FontWeight','bold');
+ylabel('Interference Resistance (Comp - Nov)', 'FontSize', 12, 'FontWeight','bold');
+title({'Does 1-Back Predict Interference Cost?', sprintf('r=%.2f, p=%.3f', r_res, p_res)}, 'FontSize', 14);
+grid on; axis square;
+
+sgtitle('Isolating Specific Interference Resolution from General Memory', 'FontSize', 16);
+
+%% ANALYSIS: Cognitive Efficiency (RT Cost)
+% 1. Extract RT Data
+rt1_sim = get_v('one','rt_sim')';      % 1-Back Conflict RT
+rt2_c   = get_v('two','rt_AB_comp')';  % 2-Back Lure RT (Compared)
+rt2_n   = get_v('two','rt_AB_nov')';   % 2-Back Lure RT (Novel)
+
+% 2. Calculate RT Cost (Slowing)
+% Positive value = It took longer to reject the high-interference item
+rt_cost = rt2_c - rt2_n; 
+
+% 3. Correlations
+[r_rt, p_rt] = corr(rt1_sim, rt_cost, 'Rows','complete');
+[r_raw, p_raw] = corr(rt1_sim, rt2_c, 'Rows','complete');
+
+fprintf('\n=== EFFICIENCY ANALYSIS ===\n');
+fprintf('1. Raw Speed: 1-Back RT vs 2-Back Comp RT: r=%.2f, p=%.3f\n', r_raw, p_raw);
+fprintf('2. Cost:      1-Back RT vs (Comp - Nov) RT: r=%.2f, p=%.3f\n', r_rt, p_rt);
+
+% 4. Visualization
+figure('color','w','Position',[100 100 1000 400]);
+
+% --- Plot A: Raw Speed Link ---
+subplot(1,2,1); hold on;
+scatter(rt1_sim, rt2_c, 60, c_comp, 'filled', 'MarkerEdgeColor','k');
+lsline;
+xlabel('1-Back RT (Similar)'); ylabel('2-Back RT (Compared)');
+title(sprintf('General Speed\nr=%.2f, p=%.3f', r_raw, p_raw), 'FontSize',14);
+grid on; axis square;
+
+% --- Plot B: The Specific Cost ---
+subplot(1,2,2); hold on;
+scatter(rt1_sim, rt_cost, 60, [0.8 0.4 0.1], 'filled', 'MarkerEdgeColor','k');
+h = lsline; set(h, 'Color', [0.8 0.4 0.1], 'LineWidth', 2);
+yline(0, '--k');
+xlabel('1-Back RT (Similar)'); ylabel('RT Cost (Comp - Nov)');
+title(sprintf('Does Encoding Speed Predict Retrieval Cost?\nr=%.2f, p=%.3f', r_rt, p_rt), 'FontSize',14);
+grid on; axis square;
+
+sgtitle('Cognitive Efficiency: Processing Speed & Interference Cost', 'FontSize',16);
 
 figure('color','w','Position',[100 100 800 400]);
 subplot(1,2,1); hold on; 
