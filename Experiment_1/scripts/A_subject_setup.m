@@ -28,6 +28,8 @@ base_dir = '..';
 p.stim_dir = fullfile(base_dir, 'stimulus/stim_final/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
+p.subj_dir = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
+if ~exist(p.subj_dir, 'dir'), mkdir(p.subj_dir); end
 
 %% P1: Setup
 p.nComparison = 120;
