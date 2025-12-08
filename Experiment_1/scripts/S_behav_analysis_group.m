@@ -3,7 +3,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 % setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616];
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617];
 base_dir = '..'; 
 min_rt = 0.150;
 % colors
@@ -254,6 +254,9 @@ y_r_n = get_v('two','rt_AB_nov')';
 [r_lc, p_lc] = corr(x_acc, y_l_c); 
 [r_li, p_li] = corr(x_acc, y_l_i);
 [r_ln, p_ln] = corr(x_acc, y_l_n);
+[r_lrc, p_lrc] = corr(x_acc, y_r_c); 
+[r_lri, p_lri] = corr(x_acc, y_r_i);
+[r_lrn, p_lrn] = corr(x_acc, y_r_n);
 % rt ~ ldi/dprime
 [r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
 [r_rli, p_rli] = corr(x_rt_sim, y_l_i);
@@ -262,85 +265,13 @@ y_r_n = get_v('two','rt_AB_nov')';
 [r_do, p_do] = corr(x_rt_sim, y_d_o);
 [r_dc, p_dc] = corr(x_rt_sim, y_d_c);
 [r_di, p_di] = corr(x_rt_sim, y_d_i);
-% rt ~ rt
 [r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
-[r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
-[r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
+[r_rri, p_rri] = corr(x_rt_sim, y_r_i);
+[r_rrn, p_rrn] = corr(x_rt_sim, y_r_n);
 
-[r_int, p_int] = corr(y_l_c, ldi_delta); % Internal structure
-[r_res, p_res] = corr(x_acc, ldi_delta); % The Rescue (Predictor vs Cost)
-
-fprintf('\n=== INTERFERENCE COMPONENT ANALYSIS ===\n');
-fprintf('1. Internal: LDI Comp vs (Comp - Nov): r=%.2f, p=%.3f\n', r_int, p_int);
-fprintf('2. Hypothesis: 1-Back Acc vs (Comp - Nov): r=%.2f, p=%.3f\n', r_res, p_res);
-
-% 4. Visualization
-figure('color','w','Position',[100 100 1000 400]);
-
-% --- Plot A: Internal Structure (LDI Comp vs Delta) ---
-subplot(1,2,1); hold on;
-scatter(ldi_delta, y_l_c, 60, c_comp, 'filled', 'MarkerEdgeColor','k');
-h1 = lsline; set(h1, 'Color', 'k', 'LineWidth', 2);
-yline(0, '--', 'Color', [0.7 0.7 0.7]); xline(0, '--', 'Color', [0.7 0.7 0.7]);
-xlabel('Interference Resistance (Comp - Nov)', 'FontSize', 12, 'FontWeight','bold');
-ylabel('LDI Compared (Performance)', 'FontSize', 12, 'FontWeight','bold');
-title({'Internal Structure', sprintf('r=%.2f, p=%.3f', r_int, p_int)}, 'FontSize', 14);
-grid on; axis square;
-
-% --- Plot B: The Rescue (1-Back Prediction) ---
-subplot(1,2,2); hold on;
-scatter(x_acc, ldi_delta, 60, [0.8 0.2 0.2], 'filled', 'MarkerEdgeColor','k');
-h2 = lsline; set(h2, 'Color', [0.8 0.2 0.2], 'LineWidth', 2);
-yline(0, '--', 'Color', [0.7 0.7 0.7]);
-xlabel('1-Back Accuracy (Similar)', 'FontSize', 12, 'FontWeight','bold');
-ylabel('Interference Resistance (Comp - Nov)', 'FontSize', 12, 'FontWeight','bold');
-title({'Does 1-Back Predict Interference Cost?', sprintf('r=%.2f, p=%.3f', r_res, p_res)}, 'FontSize', 14);
-grid on; axis square;
-
-sgtitle('Isolating Specific Interference Resolution from General Memory', 'FontSize', 16);
-
-%% ANALYSIS: Cognitive Efficiency (RT Cost)
-% 1. Extract RT Data
-rt1_sim = get_v('one','rt_sim')';      % 1-Back Conflict RT
-rt2_c   = get_v('two','rt_AB_comp')';  % 2-Back Lure RT (Compared)
-rt2_n   = get_v('two','rt_AB_nov')';   % 2-Back Lure RT (Novel)
-
-% 2. Calculate RT Cost (Slowing)
-% Positive value = It took longer to reject the high-interference item
-rt_cost = rt2_c - rt2_n; 
-
-% 3. Correlations
-[r_rt, p_rt] = corr(rt1_sim, rt_cost, 'Rows','complete');
-[r_raw, p_raw] = corr(rt1_sim, rt2_c, 'Rows','complete');
-
-fprintf('\n=== EFFICIENCY ANALYSIS ===\n');
-fprintf('1. Raw Speed: 1-Back RT vs 2-Back Comp RT: r=%.2f, p=%.3f\n', r_raw, p_raw);
-fprintf('2. Cost:      1-Back RT vs (Comp - Nov) RT: r=%.2f, p=%.3f\n', r_rt, p_rt);
-
-% 4. Visualization
-figure('color','w','Position',[100 100 1000 400]);
-
-% --- Plot A: Raw Speed Link ---
-subplot(1,2,1); hold on;
-scatter(rt1_sim, rt2_c, 60, c_comp, 'filled', 'MarkerEdgeColor','k');
-lsline;
-xlabel('1-Back RT (Similar)'); ylabel('2-Back RT (Compared)');
-title(sprintf('General Speed\nr=%.2f, p=%.3f', r_raw, p_raw), 'FontSize',14);
-grid on; axis square;
-
-% --- Plot B: The Specific Cost ---
-subplot(1,2,2); hold on;
-scatter(rt1_sim, rt_cost, 60, [0.8 0.4 0.1], 'filled', 'MarkerEdgeColor','k');
-h = lsline; set(h, 'Color', [0.8 0.4 0.1], 'LineWidth', 2);
-yline(0, '--k');
-xlabel('1-Back RT (Similar)'); ylabel('RT Cost (Comp - Nov)');
-title(sprintf('Does Encoding Speed Predict Retrieval Cost?\nr=%.2f, p=%.3f', r_rt, p_rt), 'FontSize',14);
-grid on; axis square;
-
-sgtitle('Cognitive Efficiency: Processing Speed & Interference Cost', 'FontSize',16);
 
 figure('color','w','Position',[100 100 800 400]);
-subplot(1,2,1); hold on; 
+subplot(2,2,1); hold on; 
 s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
 s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
 % s_o2 = plot_layer(x_acc, y_l_o, [0.2 0.2 0.2], 60, 1, 2.5);
@@ -350,7 +281,7 @@ title('1-Back Comparison Specifically Predicts Lure Discrimination','FontSize',1
 legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
     'Location','southeast','FontSize',10);
 
-subplot(1,2,2); hold on; 
+subplot(2,2,2); hold on; 
 s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
 s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
 s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
@@ -362,22 +293,25 @@ legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprin
 grid off; set(gca,'GridAlpha',0.1); box off;
 sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 
-% subplot(2,3,3); hold on; 
-% s_c = plot_layer(x_rt_sim, y_d_c, c_comp, 60, 0.5, 2);
-% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back d''','FontSize',14,'FontWeight','bold');
-% title('1-Back Comparison Speed Predicts 2-Back Recognition','FontSize',12);
-% legend(s_c, {sprintf('compared (r=%.2f, p=%.3f)',r_dc,p_dc)}, ...
-%     'Location','northeast','FontSize',10);
-% grid off; set(gca,'GridAlpha',0.1); box off;
-% 
-% subplot(2,3,4); hold on; 
+
+% subplot(2,2,3); hold on; 
 % s_c = plot_layer(x_rt_sim, y_r_c, c_comp, 60, 0.5, 2);
 % s_i = plot_layer(x_rt_sim, y_r_i, c_iso, 60, 0.5, 2);
 % s_n = plot_layer(x_rt_sim, y_r_n, c_nov, 60, 0.5, 2);
-% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back RT (s)','FontSize',14,'FontWeight','bold');
-% title('1-Back Comparison Speed Predicts 2-Back Recognition','FontSize',12);
-% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rrc,p_rrc), ...
-%     sprintf('isolated (r=%.2f, p=%.3f)',r_rri,p_rri), sprintf('novel (r=%.2f, p=%.3f)',r_rrn,p_rrn)}, ...
+% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back RT(s)','FontSize',14,'FontWeight','bold');
+% title('1-Back Comparison Speed Predicts 2-Back Speed','FontSize',12);
+% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rrc,p_rrc),sprintf('isolated (r=%.2f, p=%.3f)',r_rri,p_rri),sprintf('novel (r=%.2f, p=%.3f)',r_rrn,p_rrn)}, ...
+%     'Location','northeast','FontSize',10);
+% grid off; set(gca,'GridAlpha',0.1); box off;
+% 
+% subplot(2,2,4); hold on; 
+% s_c = plot_layer(x_acc, y_r_c, c_comp, 60, 0.5, 2);
+% s_i = plot_layer(x_acc, y_r_i, c_iso, 60, 0.5, 2);
+% s_n = plot_layer(x_acc, y_r_n, c_nov, 60, 0.5, 2);
+% xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back RT (s)','FontSize',14,'FontWeight','bold');
+% title('1-Back Comparison Predicts 2-Back Speed','FontSize',12);
+% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_lrc,p_lrc), ...
+%     sprintf('isolated (r=%.2f, p=%.3f)',r_lri,p_lri), sprintf('novel (r=%.2f, p=%.3f)',r_lrn,p_lrn)}, ...
 %     'Location','northeast','FontSize',10);
 % grid off; set(gca,'GridAlpha',0.1); box off;
 

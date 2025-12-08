@@ -1,199 +1,153 @@
-clear;
-clc;
-close all;
-subj_id = 501;
-base_dir = '..';
-subj_folder = sprintf('sub%03d', subj_id); 
-results_dir = fullfile(base_dir, 'data', subj_folder);
-b = 2;
+clear; clc; close all;
 
-% define tasks to load
+% config
+sub_list = [501, 601, 602, 603, 604, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 617];
 tasks = [1, 2];
-task_labels = {'1_back', '2_back'};
+task_lbls = {'1_back', '2_back'};
+base_dir = '..';
+out_dir = fullfile(base_dir, 'data', 'eye_movement_data');
+if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
-% combined eye_data struct
-all_eye_data = struct([]);
-global_trial_idx = 0;
+% containers
+[all_fix, all_sac, all_blk, all_sum] = deal({});
 
-% loop through each task
-for t_idx = 1:length(tasks)
-    t = tasks(t_idx);
-    task_label = task_labels{t_idx};
+% loop subjects
+for s_idx = 1:length(sub_list)
+    sid = sub_list(s_idx);
+    s_fldr = sprintf('sub%03d', sid);
+    f_path = fullfile(base_dir, 'data', s_fldr);
     
-    asc_file = fullfile(results_dir, sprintf('%03d_%01d_%01d.asc', subj_id, t, b));
+    % trial accumulators reset per subject, persist per task across blocks
+    acc_tr_t1 = 0; % 1-back accumulator
+    acc_tr_t2 = 0; % 2-back accumulator
     
-    fid = fopen(asc_file);
-    if fid == -1
-        warning('File not found: %s', asc_file);
-        continue;
-    end
-    fprintf('Processing task %d (%s)...\n', t, task_label);
-    
-    % pre-allocate a struct
-    max_trials = 200;
-    eye_data(max_trials).trial_id = [];
-    eye_data(max_trials).task = '';
-    eye_data(max_trials).stim_id = 'NA';
-    eye_data(max_trials).stim_onset_time = NaN;
-    eye_data(max_trials).fixations = [];
-    eye_data(max_trials).saccades = [];
-    eye_data(max_trials).blinks = [];
-    
-    % per-trial counters
-    current_trial_num = 0;
-    fix_count = 0;
-    sac_count = 0;
-    blink_count = 0;
-    
-    fix_table_vars = {'eye', 'onset', 'offset', 'duration', 'x', 'y', 'pupil_size'};
-    fix_table_types = {'char', 'double', 'double', 'double', 'double', 'double', 'double'};
-    sac_table_vars = {'eye', 'onset', 'offset', 'duration', 'start_x', 'start_y', 'end_x', 'end_y'};
-    sac_table_types = {'char', 'double', 'double', 'double', 'double', 'double', 'double', 'double'};
-    blink_table_vars = {'eye', 'onset', 'offset', 'duration'};
-    blink_table_types = {'char', 'double', 'double', 'double'};
-    
-    tline = fgetl(fid);
-    
-    while ischar(tline)
+    % loop blocks
+    for b = 1:4
         
-        % find the start of a trial
-        if startsWith(tline, 'MSG') && contains(tline, 'TRIALID')
+        % loop tasks
+        for t_idx = 1:length(tasks)
+            tsk = tasks(t_idx);
+            t_lbl = task_lbls{t_idx};
+            fn = fullfile(f_path, sprintf('%03d_%01d_%01d.asc', sid, tsk, b));
             
-            % clean up the *previous* trial's tables
-            if current_trial_num > 0
-                eye_data(current_trial_num).fixations = eye_data(current_trial_num).fixations(1:fix_count, :);
-                eye_data(current_trial_num).saccades = eye_data(current_trial_num).saccades(1:sac_count, :);
-                eye_data(current_trial_num).blinks = eye_data(current_trial_num).blinks(1:blink_count, :);
+            if ~isfile(fn), continue; end
+            fid = fopen(fn);
+            
+            % dense parsing
+            [f_dat, s_dat, b_dat] = deal(cell(2000,1)); 
+            [n_f, n_s, n_b, blk_max_raw_tr] = deal(0); % blk_max_raw_tr tracks max trial in this file
+            [curr_tr, st_t, st_id] = deal(0, NaN, 'NA');
+            
+            while ~feof(fid)
+                ln = fgetl(fid);
+                if startsWith(ln, 'MSG')
+                    if contains(ln, 'TRIALID')
+                        raw_tr = sscanf(ln, 'MSG %*d TRIALID %d');
+                        if raw_tr > 0
+                            blk_max_raw_tr = max(blk_max_raw_tr, raw_tr); % update max raw trial for this file
+                            
+                            % apply task-specific accumulation
+                            if tsk == 1 
+                                curr_tr = raw_tr + acc_tr_t1;
+                            else % tsk == 2
+                                curr_tr = raw_tr + acc_tr_t2;
+                            end
+                            
+                            all_sum{end+1,1} = {sid, b, t_lbl, curr_tr, 'NA', NaN, 0, 0, 0};
+                        end
+                    elseif contains(ln, 'STIM_ONSET') && curr_tr > 0
+                        tmp = textscan(ln, '%*s %f %*s %s');
+                        st_t = tmp{1}; st_id = tmp{2}{1};
+                        all_sum{end,1}{5} = st_id; all_sum{end,1}{6} = st_t;
+                    end
+                elseif curr_tr > 0
+                    if startsWith(ln, 'EFIX')
+                        d = sscanf(ln, 'EFIX %c %d %d %d %f %f %d');
+                        if numel(d) == 7
+                            n_f = n_f+1;
+                            f_dat{n_f} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7)};
+                            all_sum{end,1}{7} = all_sum{end,1}{7} + 1;
+                        end
+                    elseif startsWith(ln, 'ESACC')
+                        d = sscanf(strrep(ln, '.', 'NaN'), 'ESACC %c %d %d %d %f %f %f %f'); 
+                        if numel(d) == 8
+                            n_s = n_s+1;
+                            s_dat{n_s} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7), d(8)};
+                            all_sum{end,1}{8} = all_sum{end,1}{8} + 1;
+                        end
+                    elseif startsWith(ln, 'EBLINK')
+                        d = sscanf(ln, 'EBLINK %c %d %d %d');
+                        if numel(d) == 4
+                            n_b = n_b+1;
+                            b_dat{n_b} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4)};
+                            all_sum{end,1}{9} = all_sum{end,1}{9} + 1;
+                        end
+                    end
+                end
+            end
+            fclose(fid);
+            
+            % update task-specific accumulator for next block
+            if tsk == 1
+                acc_tr_t1 = acc_tr_t1 + blk_max_raw_tr;
+            else % tsk == 2
+                acc_tr_t2 = acc_tr_t2 + blk_max_raw_tr;
             end
             
-            % now start the new trial
-            current_trial_num = sscanf(tline, 'MSG %*d TRIALID %d');
-            if current_trial_num == 0, continue; end % skip trial 0
-            
-            eye_data(current_trial_num).trial_id = current_trial_num;
-            eye_data(current_trial_num).task = task_label;
-            
-            % reset per-trial counters
-            fix_count = 0;
-            sac_count = 0;
-            blink_count = 0;
-            
-            % pre-allocate event tables with correct types
-            eye_data(current_trial_num).fixations = table('Size', [50, 7], ...
-                'VariableTypes', fix_table_types, 'VariableNames', fix_table_vars);
-            eye_data(current_trial_num).saccades = table('Size', [50, 8], ...
-                'VariableTypes', sac_table_types, 'VariableNames', sac_table_vars);
-            eye_data(current_trial_num).blinks = table('Size', [20, 4], ...
-                'VariableTypes', blink_table_types, 'VariableNames', blink_table_vars);
-        
-        % find the stim onset time for this trial
-        elseif current_trial_num > 0 && startsWith(tline, 'MSG') && contains(tline, 'STIM_ONSET')
-            parts = split(tline);
-            eye_data(current_trial_num).stim_onset_time = str2double(parts{2});
-            eye_data(current_trial_num).stim_id = parts{4};
-            
-        % if we are in a trial, grab all events
-        elseif current_trial_num > 0
-            
-            % --- parse fixations ---
-            if startsWith(tline, 'EFIX')
-                fix_data = sscanf(tline, 'EFIX %c %d %d %d %f %f %d');
-                fix_count = fix_count + 1;
-                eye_data(current_trial_num).fixations(fix_count,:) = {
-                    char(fix_data(1)), fix_data(2), fix_data(3), fix_data(4), ...
-                    fix_data(5), fix_data(6), fix_data(7)
-                };
-                
-            % --- parse saccades ---
-            elseif startsWith(tline, 'ESACC')
-                sac_data = sscanf(tline, 'ESACC %c %d %d %d %f %f %f %f %*f %*d');
-                sac_count = sac_count + 1;
-                eye_data(current_trial_num).saccades(sac_count,:) = {
-                    char(sac_data(1)), sac_data(2), sac_data(3), sac_data(4), ...
-                    sac_data(5), sac_data(6), sac_data(7), sac_data(8)
-                };
-            
-            % parse blinks
-            elseif startsWith(tline, 'EBLINK')
-                blink_data = sscanf(tline, 'EBLINK %c %d %d %d');
-                blink_count = blink_count + 1;
-                eye_data(current_trial_num).blinks(blink_count,:) = {
-                    char(blink_data(1)), blink_data(2), blink_data(3), blink_data(4)
-                };
-            end
+            % append to master
+            if n_f > 0, all_fix = [all_fix; f_dat(1:n_f)]; end
+            if n_s > 0, all_sac = [all_sac; s_dat(1:n_s)]; end
+            if n_b > 0, all_blk = [all_blk; b_dat(1:n_b)]; end
         end
-        
-        tline = fgetl(fid); 
     end
-    fclose(fid);
+
+    % Define variable names for saving
+    v_fix = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','x','y','pupil'};
+    v_sac = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','sx','sy','ex','ey'};
+    v_blk = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur'};
+    v_sum = {'subj_id','block','task','trial_id','stim_id','onset_time','n_fix','n_sac','n_blink'};
     
-    % clean up the struct
-    if current_trial_num > 0
-        eye_data(current_trial_num).fixations = eye_data(current_trial_num).fixations(1:fix_count, :);
-        eye_data(current_trial_num).saccades = eye_data(current_trial_num).saccades(1:sac_count, :);
-        eye_data(current_trial_num).blinks = eye_data(current_trial_num).blinks(1:blink_count, :);
+    % convert and save for the current subject
+    if ~isempty(all_fix)
+        T = cell2table(vertcat(all_fix{:}), 'Var', v_fix);
+        writetable(T, fullfile(out_dir, sprintf('sub%03d_fixations.csv', sid)));
     end
-    eye_data = eye_data(1:current_trial_num);
     
-    % append to combined data
-    all_eye_data = [all_eye_data, eye_data];
+    if ~isempty(all_sac)
+        T = cell2table(vertcat(all_sac{:}), 'Var', v_sac);
+        writetable(T, fullfile(out_dir, sprintf('sub%03d_saccades.csv', sid)));
+    end
     
-    fprintf('Task %d (%s) complete: %d trials loaded\n', t, task_label, current_trial_num);
-end
-
-% rename for consistency
-eye_data = all_eye_data;
-
-fprintf('\nTotal trials loaded: %d\n', length(eye_data));
-
-
-% create trial-level summary table
-trial_summary = table();
-for i = 1:length(eye_data)
-    trial_summary = [trial_summary; {eye_data(i).trial_id, eye_data(i).task, ...
-        eye_data(i).stim_id, eye_data(i).stim_onset_time, ...
-        height(eye_data(i).fixations), height(eye_data(i).saccades), height(eye_data(i).blinks)}];
-end
-trial_summary.Properties.VariableNames = {'trial_id', 'task', 'stim_id', 'stim_onset_time', ...
-    'n_fixations', 'n_saccades', 'n_blinks'};
-
-writetable(trial_summary, fullfile(results_dir, sprintf('sub%03d_trial_summary.csv', subj_id)));
-
-% save all fixations
-all_fixations = table();
-for i = 1:length(eye_data)
-    if height(eye_data(i).fixations) > 0
-        trial_fix = eye_data(i).fixations;
-        trial_fix.trial_id = repmat(eye_data(i).trial_id, height(trial_fix), 1);
-        trial_fix.task = repmat({eye_data(i).task}, height(trial_fix), 1);
-        trial_fix.stim_id = repmat({eye_data(i).stim_id}, height(trial_fix), 1);
-        all_fixations = [all_fixations; trial_fix];
+    if ~isempty(all_blk)
+        T = cell2table(vertcat(all_blk{:}), 'Var', v_blk);
+        writetable(T, fullfile(out_dir, sprintf('sub%03d_blinks.csv', sid)));
     end
-end
-writetable(all_fixations, fullfile(results_dir, sprintf('sub%03d_fixations.csv', subj_id)));
-
-% save all saccades
-all_saccades = table();
-for i = 1:length(eye_data)
-    if height(eye_data(i).saccades) > 0
-        trial_sac = eye_data(i).saccades;
-        trial_sac.trial_id = repmat(eye_data(i).trial_id, height(trial_sac), 1);
-        trial_sac.task = repmat({eye_data(i).task}, height(trial_sac), 1);
-        trial_sac.stim_id = repmat({eye_data(i).stim_id}, height(trial_sac), 1);
-        all_saccades = [all_saccades; trial_sac];
+    
+    if ~isempty(all_sum)
+        T = cell2table(vertcat(all_sum{:}), 'Var', v_sum);
+        writetable(T, fullfile(out_dir, sprintf('sub%03d_summary.csv', sid)));
     end
+    
+    [all_fix, all_sac, all_blk, all_sum] = deal({});
+    fprintf('sub%03d done. 1-back trials accumulated up to %d, 2-back trials up to %d.\n', sid, acc_tr_t1, acc_tr_t2);
 end
-writetable(all_saccades, fullfile(results_dir, sprintf('sub%03d_saccades.csv', subj_id)));
 
-% save all blinks
-all_blinks = table();
-for i = 1:length(eye_data)
-    if height(eye_data(i).blinks) > 0
-        trial_blink = eye_data(i).blinks;
-        trial_blink.trial_id = repmat(eye_data(i).trial_id, height(trial_blink), 1);
-        trial_blink.task = repmat({eye_data(i).task}, height(trial_blink), 1);
-        trial_blink.stim_id = repmat({eye_data(i).stim_id}, height(trial_blink), 1);
-        all_blinks = [all_blinks; trial_blink];
+
+% define file types to stack
+ftypes = {'fixations.csv', 'saccades.csv', 'blinks.csv', 'summary.csv'};
+
+for i = 1:length(ftypes)
+    pattern = ['*' ftypes{i}];
+    flist = dir(fullfile(out_dir, pattern));
+    
+    if isempty(flist), continue; end
+    
+    alltables = cell(length(flist), 1);
+    for k = 1:length(flist)
+        alltables{k} = readtable(fullfile(out_dir, flist(k).name), 'PreserveVariableNames', true);
     end
+    
+    Tmaster = vertcat(alltables{:});
+    
+    writetable(Tmaster, fullfile(out_dir, ['group_' ftypes{i}]));
 end
-writetable(all_blinks, fullfile(results_dir, sprintf('sub%03d_blinks.csv', subj_id)));
