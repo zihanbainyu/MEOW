@@ -5,11 +5,11 @@ close all;
 
 
 %% Set up
-subj_id = 617;
+subj_id = 601;
 base_dir = '..';
 subj_folder = sprintf('sub%03d', subj_id); 
 results_dir = fullfile(base_dir, 'data', subj_folder);
-concat_file = fullfile(results_dir, sprintf('sub%03d_concat.mat', subj_id));
+concat_file = fullfile(results_dir, sprintf('sub%03d_concat_f.mat', subj_id));
 % concat_file = fullfile(results_dir, sprintf('example.mat', subj_id));
 rec_file = fullfile(results_dir, sprintf('sub%03d_rec.mat', subj_id)); 
 
@@ -106,69 +106,69 @@ fprintf('accuracy hit-similar: %f\n', subj_stats.oneback.acc_hit_similar);
 fprintf('accuracy cr: %f\n', subj_stats.oneback.acc_cr_new);
 
 %% Plots. 1-Back
-figure('color', 'white'); 
-
-% 1-Back accuracy
-h_ax1 = subplot(1, 3, 1);
-acc_data = [subj_stats.oneback.acc_hit_same, subj_stats.oneback.acc_hit_similar, subj_stats.oneback.acc_cr_new];
-b1 = bar(acc_data, 'FaceColor', 'flat');
-b1.CData(1,:) = plot_color_same;
-b1.CData(2,:) = plot_color_similar;
-b1.CData(3,:) = plot_color_new;
-grid off;
-box off;
-ylabel('Accuracy', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax1, 'XTickLabel', {'Hit (Same)', 'Hit (Similar)', 'CR (New)'}, 'FontName', 'Helvetica', 'FontSize', plot_font_size_axis);
-xtickangle(h_ax1, 45);
-ylim([0, 1.05]);
-
-% 1-Back RT
-h_ax2 = subplot(1, 3, 2);
-rt_data = [subj_stats.oneback.rt_hit_same, subj_stats.oneback.rt_hit_similar];
-b2 = bar(rt_data, 'FaceColor', 'flat');
-b2.CData(1,:) = plot_color_same;
-b2.CData(2,:) = plot_color_similar;
-grid off;
-box off;
-ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax2, 'XTickLabel', {'Hit (Same)', 'Hit (Similar)'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-xtickangle(h_ax2, 45);
-ylim([0, 1.05]);
-if all(~isnan(rt_data)), ylim(h_ax2, [0, max(rt_data) * 1.2]); end
-
-% 1-Back response proportions (incorrect trials)
-h_ax3 = subplot(1, 3, 3);
-Y_full = [
-    subj_stats.oneback.acc_hit_same, subj_stats.oneback.err_rep_as_similar, subj_stats.oneback.err_rep_as_new; ...
-    subj_stats.oneback.err_comp_as_same, subj_stats.oneback.acc_hit_similar, subj_stats.oneback.err_comp_as_new; ...
-    subj_stats.oneback.err_new_as_same, subj_stats.oneback.err_new_as_similar, subj_stats.oneback.acc_cr_new];
-plot_data = [Y_full(1,1), Y_full(1,2), Y_full(1,3); ...
-    Y_full(2,2), Y_full(2,1), Y_full(2,3); ...
-    Y_full(3,3), Y_full(3,1), Y_full(3,2)];
-b_stack = bar(plot_data, 'stacked', 'FaceColor', 'flat');
-b_stack(1).CData(1,:) = plot_color_same; 
-b_stack(1).CData(2,:) = plot_color_similar;
-b_stack(1).CData(3,:) = plot_color_new;
-b_stack(2).CData(1,:) = plot_color_similar;
-b_stack(2).CData(2,:) = plot_color_same;
-b_stack(2).CData(3,:) = plot_color_same;
-b_stack(3).CData(1,:) = plot_color_new;
-b_stack(3).CData(2,:) = plot_color_new;
-b_stack(3).CData(3,:) = plot_color_similar;
-box off;
-grid off;
-set(h_ax3, 'XTickLabel', {'Expected Same', 'Expected Similar', 'Expected New'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-ylabel('Response Proportions', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-xtickangle(h_ax3, 45);
-ylim([0, 1.07]);
-hold(h_ax3, 'on');
-h_same    = bar(NaN, 'FaceColor', plot_color_same);
-h_similar = bar(NaN, 'FaceColor', plot_color_similar);
-h_new     = bar(NaN, 'FaceColor', plot_color_new);
-hold(h_ax3, 'off');
-
-% Apply one main title to the entire figure
-sgtitle('1-Back Task', 'FontSize', plot_font_size_sgtitle, 'FontName', plot_font_name);
+% figure('color', 'white'); 
+% 
+% % 1-Back accuracy
+% h_ax1 = subplot(1, 3, 1);
+% acc_data = [subj_stats.oneback.acc_hit_same, subj_stats.oneback.acc_hit_similar, subj_stats.oneback.acc_cr_new];
+% b1 = bar(acc_data, 'FaceColor', 'flat');
+% b1.CData(1,:) = plot_color_same;
+% b1.CData(2,:) = plot_color_similar;
+% b1.CData(3,:) = plot_color_new;
+% grid off;
+% box off;
+% ylabel('Accuracy', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(h_ax1, 'XTickLabel', {'Hit (Same)', 'Hit (Similar)', 'CR (New)'}, 'FontName', 'Helvetica', 'FontSize', plot_font_size_axis);
+% xtickangle(h_ax1, 45);
+% ylim([0, 1.05]);
+% 
+% % 1-Back RT
+% h_ax2 = subplot(1, 3, 2);
+% rt_data = [subj_stats.oneback.rt_hit_same, subj_stats.oneback.rt_hit_similar];
+% b2 = bar(rt_data, 'FaceColor', 'flat');
+% b2.CData(1,:) = plot_color_same;
+% b2.CData(2,:) = plot_color_similar;
+% grid off;
+% box off;
+% ylabel('RT (s)', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(h_ax2, 'XTickLabel', {'Hit (Same)', 'Hit (Similar)'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% xtickangle(h_ax2, 45);
+% ylim([0, 1.05]);
+% if all(~isnan(rt_data)), ylim(h_ax2, [0, max(rt_data) * 1.2]); end
+% 
+% % 1-Back response proportions (incorrect trials)
+% h_ax3 = subplot(1, 3, 3);
+% Y_full = [
+%     subj_stats.oneback.acc_hit_same, subj_stats.oneback.err_rep_as_similar, subj_stats.oneback.err_rep_as_new; ...
+%     subj_stats.oneback.err_comp_as_same, subj_stats.oneback.acc_hit_similar, subj_stats.oneback.err_comp_as_new; ...
+%     subj_stats.oneback.err_new_as_same, subj_stats.oneback.err_new_as_similar, subj_stats.oneback.acc_cr_new];
+% plot_data = [Y_full(1,1), Y_full(1,2), Y_full(1,3); ...
+%     Y_full(2,2), Y_full(2,1), Y_full(2,3); ...
+%     Y_full(3,3), Y_full(3,1), Y_full(3,2)];
+% b_stack = bar(plot_data, 'stacked', 'FaceColor', 'flat');
+% b_stack(1).CData(1,:) = plot_color_same; 
+% b_stack(1).CData(2,:) = plot_color_similar;
+% b_stack(1).CData(3,:) = plot_color_new;
+% b_stack(2).CData(1,:) = plot_color_similar;
+% b_stack(2).CData(2,:) = plot_color_same;
+% b_stack(2).CData(3,:) = plot_color_same;
+% b_stack(3).CData(1,:) = plot_color_new;
+% b_stack(3).CData(2,:) = plot_color_new;
+% b_stack(3).CData(3,:) = plot_color_similar;
+% box off;
+% grid off;
+% set(h_ax3, 'XTickLabel', {'Expected Same', 'Expected Similar', 'Expected New'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% ylabel('Response Proportions', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% xtickangle(h_ax3, 45);
+% ylim([0, 1.07]);
+% hold(h_ax3, 'on');
+% h_same    = bar(NaN, 'FaceColor', plot_color_same);
+% h_similar = bar(NaN, 'FaceColor', plot_color_similar);
+% h_new     = bar(NaN, 'FaceColor', plot_color_new);
+% hold(h_ax3, 'off');
+% 
+% % Apply one main title to the entire figure
+% sgtitle('1-Back Task', 'FontSize', plot_font_size_sgtitle, 'FontName', plot_font_name);
 
 % print(gcf, '1Back_Figure_HighRes.tiff', '-dtiff', '-r300'); 
 % disp('Saved figure as 1Back_Figure_HighRes.tiff (300 DPI)');
@@ -206,13 +206,13 @@ real_trials_idx = ~contains(results_2_back.goal, "JUNK");
 valid_rt_idx = results_2_back.rt > MIN_RT_CUTOFF;
 all_valid_rts = results_2_back.rt(valid_rt_idx);
 
-figure('color', 'white');
-histogram(all_valid_rts, 50, 'FaceColor', [0.5 0.5 0.5]);
-title(sprintf('2-Back: RT Distribution (RTs > %.3fs)', MIN_RT_CUTOFF));
-xlabel('RT (s)');
-ylabel('Count');
-grid on;
-box off;
+% figure('color', 'white');
+% histogram(all_valid_rts, 50, 'FaceColor', [0.5 0.5 0.5]);
+% title(sprintf('2-Back: RT Distribution (RTs > %.3fs)', MIN_RT_CUTOFF));
+% xlabel('RT (s)');
+% ylabel('Count');
+% grid on;
+% box off;
 
 aa_idx = real_trials_idx & strcmp(results_2_back.goal, 'A-A');
 ab_idx = real_trials_idx & strcmp(results_2_back.goal, 'A-B'); 
@@ -327,72 +327,72 @@ legend({'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'Box', 'of
 
 
 %% 2-Back response proportions (A-B trials)
-figure('color', 'white');
-
-% Subplot 1: A-A trials
-h_ax1 = subplot(1, 3, 1);
-Y_AA = [
-    subj_stats.twoback.acc_AA_comp, subj_stats.twoback.err_AA_comp_as_k, subj_stats.twoback.err_AA_comp_as_none; ...
-    subj_stats.twoback.acc_AA_iso, subj_stats.twoback.err_AA_iso_as_k, subj_stats.twoback.err_AA_iso_as_none; ...
-    subj_stats.twoback.acc_AA_nov, subj_stats.twoback.err_AA_nov_as_k, subj_stats.twoback.err_AA_nov_as_none
-];
-b_AA = bar(Y_AA, 'stacked', 'FaceColor', 'flat');
-b_AA(1).FaceColor = plot_color_same;      % Resp: same (bottom)
-b_AA(2).FaceColor = plot_color_similar;   % Resp: similar
-b_AA(3).FaceColor = plot_color_new;       % Resp: new
-box off;
-grid off;
-title('A-A', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-ylabel('Response Proportions', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
-set(h_ax1, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-xtickangle(h_ax1, 45);
-ylim([0, 1.05]);
-
-% Subplot 2: A-B trials
-h_ax2 = subplot(1, 3, 2);
-Y_AB = [
-    subj_stats.twoback.acc_AB_comp, subj_stats.twoback.err_AB_comp_as_j, subj_stats.twoback.err_AB_comp_as_none; ...
-    subj_stats.twoback.acc_AB_iso, subj_stats.twoback.err_AB_iso_as_j, subj_stats.twoback.err_AB_iso_as_none; ...
-    subj_stats.twoback.acc_AB_nov, subj_stats.twoback.err_AB_nov_as_j, subj_stats.twoback.err_AB_nov_as_none
-];
-b_AB = bar(Y_AB, 'stacked', 'FaceColor', 'flat');
-b_AB(1).FaceColor = plot_color_similar;   % Resp: similar (bottom)
-b_AB(2).FaceColor = plot_color_same;      % Resp: same
-b_AB(3).FaceColor = plot_color_new;       % Resp: new
-box off;
-grid off;
-title('A-B', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-set(h_ax2, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-xtickangle(h_ax2, 45);
-ylim([0, 1.05]);
-
-% Subplot 3: A-N trials
-h_ax3 = subplot(1, 3, 3);
-Y_AN = [
-    subj_stats.twoback.acc_AN_comp, subj_stats.twoback.err_AN_comp_as_j, subj_stats.twoback.err_AN_comp_as_k; ...
-    subj_stats.twoback.acc_AN_iso, subj_stats.twoback.err_AN_iso_as_j, subj_stats.twoback.err_AN_iso_as_k; ...
-    subj_stats.twoback.acc_AN_nov, subj_stats.twoback.err_AN_nov_as_j, subj_stats.twoback.err_AN_nov_as_k
-];
-b_AN = bar(Y_AN, 'stacked', 'FaceColor', 'flat');
-b_AN(1).FaceColor = plot_color_new;       % Resp: new (bottom)
-b_AN(2).FaceColor = plot_color_same;      % Resp: same
-b_AN(3).FaceColor = plot_color_similar;   % Resp: similar
-box off;
-grid off;
-title('A-N', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
-set(h_ax3, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
-xtickangle(h_ax3, 45);
-ylim([0, 1.05]);
-
-% Create a unified legend
-hold(h_ax3, 'on');
-
-h_same_resp = bar(NaN, 'FaceColor', plot_color_same);
-h_similar_resp = bar(NaN, 'FaceColor', plot_color_similar);
-h_new_resp = bar(NaN, 'FaceColor', plot_color_new);
-legend([h_same_resp, h_similar_resp, h_new_resp], ...
-    {'Same', 'Similar', 'New'}, 'Location', 'east', 'FontName', plot_font_name, 'Box', 'off');
-hold(h_ax3, 'off');
+% figure('color', 'white');
+% 
+% % Subplot 1: A-A trials
+% h_ax1 = subplot(1, 3, 1);
+% Y_AA = [
+%     subj_stats.twoback.acc_AA_comp, subj_stats.twoback.err_AA_comp_as_k, subj_stats.twoback.err_AA_comp_as_none; ...
+%     subj_stats.twoback.acc_AA_iso, subj_stats.twoback.err_AA_iso_as_k, subj_stats.twoback.err_AA_iso_as_none; ...
+%     subj_stats.twoback.acc_AA_nov, subj_stats.twoback.err_AA_nov_as_k, subj_stats.twoback.err_AA_nov_as_none
+% ];
+% b_AA = bar(Y_AA, 'stacked', 'FaceColor', 'flat');
+% b_AA(1).FaceColor = plot_color_same;      % Resp: same (bottom)
+% b_AA(2).FaceColor = plot_color_similar;   % Resp: similar
+% b_AA(3).FaceColor = plot_color_new;       % Resp: new
+% box off;
+% grid off;
+% title('A-A', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% ylabel('Response Proportions', 'FontSize', plot_font_size_axis, 'FontName', plot_font_name);
+% set(h_ax1, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% xtickangle(h_ax1, 45);
+% ylim([0, 1.05]);
+% 
+% % Subplot 2: A-B trials
+% h_ax2 = subplot(1, 3, 2);
+% Y_AB = [
+%     subj_stats.twoback.acc_AB_comp, subj_stats.twoback.err_AB_comp_as_j, subj_stats.twoback.err_AB_comp_as_none; ...
+%     subj_stats.twoback.acc_AB_iso, subj_stats.twoback.err_AB_iso_as_j, subj_stats.twoback.err_AB_iso_as_none; ...
+%     subj_stats.twoback.acc_AB_nov, subj_stats.twoback.err_AB_nov_as_j, subj_stats.twoback.err_AB_nov_as_none
+% ];
+% b_AB = bar(Y_AB, 'stacked', 'FaceColor', 'flat');
+% b_AB(1).FaceColor = plot_color_similar;   % Resp: similar (bottom)
+% b_AB(2).FaceColor = plot_color_same;      % Resp: same
+% b_AB(3).FaceColor = plot_color_new;       % Resp: new
+% box off;
+% grid off;
+% title('A-B', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% set(h_ax2, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% xtickangle(h_ax2, 45);
+% ylim([0, 1.05]);
+% 
+% % Subplot 3: A-N trials
+% h_ax3 = subplot(1, 3, 3);
+% Y_AN = [
+%     subj_stats.twoback.acc_AN_comp, subj_stats.twoback.err_AN_comp_as_j, subj_stats.twoback.err_AN_comp_as_k; ...
+%     subj_stats.twoback.acc_AN_iso, subj_stats.twoback.err_AN_iso_as_j, subj_stats.twoback.err_AN_iso_as_k; ...
+%     subj_stats.twoback.acc_AN_nov, subj_stats.twoback.err_AN_nov_as_j, subj_stats.twoback.err_AN_nov_as_k
+% ];
+% b_AN = bar(Y_AN, 'stacked', 'FaceColor', 'flat');
+% b_AN(1).FaceColor = plot_color_new;       % Resp: new (bottom)
+% b_AN(2).FaceColor = plot_color_same;      % Resp: same
+% b_AN(3).FaceColor = plot_color_similar;   % Resp: similar
+% box off;
+% grid off;
+% title('A-N', 'FontSize', plot_font_size_title, 'FontName', plot_font_name);
+% set(h_ax3, 'XTickLabel', {'Compared', 'Isolated', 'Novel'}, 'FontName', plot_font_name, 'FontSize', plot_font_size_axis);
+% xtickangle(h_ax3, 45);
+% ylim([0, 1.05]);
+% 
+% % Create a unified legend
+% hold(h_ax3, 'on');
+% 
+% h_same_resp = bar(NaN, 'FaceColor', plot_color_same);
+% h_similar_resp = bar(NaN, 'FaceColor', plot_color_similar);
+% h_new_resp = bar(NaN, 'FaceColor', plot_color_new);
+% legend([h_same_resp, h_similar_resp, h_new_resp], ...
+%     {'Same', 'Similar', 'New'}, 'Location', 'east', 'FontName', plot_font_name, 'Box', 'off');
+% hold(h_ax3, 'off');
 
 % print(gcf, '2Back_Figure_Resp.tiff', '-dtiff', '-r300'); 
 
