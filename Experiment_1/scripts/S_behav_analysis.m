@@ -5,11 +5,11 @@ close all;
 
 
 %% Set up
-subj_id = 601;
+subj_id = 604;
 base_dir = '..';
 subj_folder = sprintf('sub%03d', subj_id); 
 results_dir = fullfile(base_dir, 'data', subj_folder);
-concat_file = fullfile(results_dir, sprintf('sub%03d_concat_f.mat', subj_id));
+concat_file = fullfile(results_dir, sprintf('sub%03d_concat.mat', subj_id));
 % concat_file = fullfile(results_dir, sprintf('example.mat', subj_id));
 rec_file = fullfile(results_dir, sprintf('sub%03d_rec.mat', subj_id)); 
 
