@@ -5,12 +5,14 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617];
 base_dir = '..'; 
+out_dir = fullfile(base_dir, 'data');
 min_rt = 0.150;
 % colors
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
 c_pts = [100 100 100]/255; c_reg = [180 174 211]/255; 
 all_subjs = struct(); 
+beh_accum = {};
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % math
@@ -24,6 +26,8 @@ for s = 1:length(subj_ids)
     
     r1 = final_data_output.results_1_back_all;
     r2 = final_data_output.results_2_back_all;
+    % f_setup = fullfile(subj_dir, sprintf('sub%03d_setup.mat', curr_id));
+    % d_setup = load(f_setup);
     stats = [];
 
     %%%%%%%%%%%%%%%%%%%%%%%
@@ -152,8 +156,21 @@ for s = 1:length(subj_ids)
         stats.rec.d_iso = NaN;
     end
     all_subjs(s).stats = stats;
+    r1.subj_id = repmat(curr_id, height(r1), 1); r1.task = repmat({'1_back'}, height(r1), 1); 
+    r1.trial_id = (1:height(r1))'; 
+    if ~ismember('goal', r1.Properties.VariableNames), r1.goal = repmat({'NA'}, height(r1), 1); end
+    
+    r2.subj_id = repmat(curr_id, height(r2), 1); r2.task = repmat({'2_back'}, height(r2), 1); 
+    r2.trial_id = (1:height(r2))';
+    
+    c_vars = intersect(r1.Properties.VariableNames, r2.Properties.VariableNames);
+    beh_accum{end+1} = [r1(:, c_vars); r2(:, c_vars)];
 end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+if ~isempty(beh_accum)
+    writetable(vertcat(beh_accum{:}), fullfile(out_dir, 'group_behavior.csv'));
+    fprintf('Saved group_behavior.csv to %s\n', out_dir);
+end
 
 %% visualization
 
