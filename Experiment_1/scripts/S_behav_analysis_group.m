@@ -287,10 +287,10 @@ yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
 raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
 add_sig(data, [1 0; 2 3]);
 [~,p_t,~,s_t] = ttest(d_tot); [~,p_d,~,s_d] = ttest(d_c, d_i);
-msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t), ...
-       sprintf('\\bfcompared vs isolated:\\rm t(%d)=%.2f, p=%.3f', s_d.df, s_d.tstat, p_d)};
-text(3.4, max(data(:)), msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
-     'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
+% msg = {sprintf('\\bfoverall > 0:\\rm t(%d)=%.2f, p=%.3f', s_t.df, s_t.tstat, p_t), ...
+%        sprintf('\\bfcompared vs isolated:\\rm t(%d)=%.2f, p=%.3f', s_d.df, s_d.tstat, p_d)};
+% text(3.4, max(data(:)), msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
+%      'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
 print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
 %% %%%%%%%%%%%%%%%%%%%%%
 % Stats Summary Output
@@ -393,7 +393,7 @@ figure('color','w','Position',[100 100 600 500]); hold on;
 fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
 yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
 data = [gz_comp, gz_iso];
-raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement in Lure Discrimination');
+raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
 add_sig(data, [1 2; 1 0; 2 0]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
@@ -431,15 +431,14 @@ function add_sig(data, pairs)
     for i = 1:size(pairs,1)
         c1 = pairs(i,1); c2 = pairs(i,2);
         if c2==0, [~, p]=ttest(data(:,c1)); paired=false; else, [~, p]=ttest(data(:,c1),data(:,c2)); paired=true; end
-        if p < 0.10  % Changed from 0.05 to 0.10
+        if p < 0.05  % Changed from 0.05 to 0.10
             line_lvl=line_lvl+1; y_p = base + (line_lvl*step);
-            if p < 0.001, txt = '***'; fs = 16;
-            elseif p < 0.01, txt = '**'; fs = 16;
-            elseif p < 0.05, txt = '*'; fs = 16;
-            else, txt = sprintf('p=%.3f', p); fs = 5; end
+            if p < 0.001, txt = '***';
+            elseif p < 0.01, txt = '**';
+            elseif p < 0.05, txt = '*'; end;
             if paired, plot([c1,c1,c2,c2],[y_p-step*0.3,y_p,y_p,y_p-step*0.3],'k-','LineWidth',1.2);
                text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',14,'FontWeight','bold');
-            else, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',fs,'FontWeight','bold'); end
+            else, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold'); end
         end
     end
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end; hold off;
@@ -458,6 +457,7 @@ function draw_matrix(mat, cols, ylbl, xlbl)
     end 
     axis ij equal; xlim([0.2 3.8]); ylim([0.3 3.5]); set(gca, 'XTick', [], 'YTick', [], 'XColor', 'none', 'YColor', 'none'); hold off;
 end
+
 function s = plot_layer(x, y, c, sz, alph, lw)
     s = scatter(x, y, sz, c, 'filled', 'MarkerFaceAlpha', alph);
     p = polyfit(x, y, 1); x_r = linspace(min(x), max(x), 100);
