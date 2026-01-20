@@ -1,0 +1,177 @@
+clear; clc; close all;
+
+sub_list = [501, 601, 602, 603, 604, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 617];
+tasks = [1, 2]; task_lbls = {'1_back', '2_back'};
+base_dir = '..'; out_dir = fullfile(base_dir, 'data', 'eye_movement_data'); behav_dir = fullfile(base_dir, 'data');
+
+[all_fix, all_sac, all_blk, all_sum, all_behav] = deal({});
+
+for s_idx = 1:length(sub_list)
+    sid = sub_list(s_idx); fprintf('subj %d\n', sid);
+    s_fldr = sprintf('sub%03d', sid); f_path = fullfile(behav_dir, s_fldr);
+    
+    mat_file = fullfile(f_path, sprintf('sub%03d_concat.mat', sid));
+    if isfile(mat_file)
+        load(mat_file, 'final_data_output');
+        r1 = final_data_output.results_1_back_all;
+        r1.task = repmat({'1_back'}, height(r1), 1); r1.subj_id = repmat(sid, height(r1), 1); r1.trial_id = (1:height(r1))';
+        r2 = final_data_output.results_2_back_all;
+        r2.task = repmat({'2_back'}, height(r2), 1); r2.subj_id = repmat(sid, height(r2), 1); r2.trial_id = (1:height(r2))';
+        
+        f1 = fieldnames(r1); f2 = fieldnames(r2); all_f = unique([f1; f2]);
+        for i = 1:length(all_f)
+            if ~ismember(all_f{i}, f1), r1.(all_f{i}) = repmat({''}, height(r1), 1); end
+            if ~ismember(all_f{i}, f2), r2.(all_f{i}) = repmat({''}, height(r2), 1); end
+        end
+        all_behav = [all_behav; {r1}; {r2}];
+    end
+    
+    acc_tr_t1 = 0; acc_tr_t2 = 0;
+    for b = 1:4
+        for t_idx = 1:length(tasks)
+            tsk = tasks(t_idx); t_lbl = task_lbls{t_idx};
+            fn = fullfile(f_path, sprintf('%03d_%01d_%01d.asc', sid, tsk, b));
+            if ~isfile(fn), continue; end
+            
+            fid = fopen(fn); [f_dat, s_dat, b_dat] = deal(cell(2000,1));
+            [n_f, n_s, n_b, blk_max_raw_tr] = deal(0); [curr_tr, st_t, st_id] = deal(0, -1, 'NA');
+            
+            while ~feof(fid)
+                ln = fgetl(fid);
+                if startsWith(ln, 'MSG')
+                    if contains(ln, 'TRIALID')
+                        raw_tr = sscanf(ln, 'MSG %*d TRIALID %d');
+                        if raw_tr > 0
+                            blk_max_raw_tr = max(blk_max_raw_tr, raw_tr);
+                            curr_tr = raw_tr + (tsk==1)*acc_tr_t1 + (tsk==2)*acc_tr_t2;
+                            all_sum{end+1,1} = {sid, b, t_lbl, curr_tr, 'NA', NaN, 0, 0, 0}; st_t = -1;
+                        end
+                    elseif contains(ln, 'STIM_ONSET') && curr_tr > 0
+                        tmp = textscan(ln, '%*s %f %*s %s'); st_t = tmp{1}; st_id = tmp{2}{1};
+                        all_sum{end,1}{5} = st_id; all_sum{end,1}{6} = st_t;
+                    end
+                elseif curr_tr > 0 && st_t > 0
+                    if startsWith(ln, 'EFIX')
+                        d = sscanf(ln, 'EFIX %c %d %d %d %f %f %d');
+                        if numel(d) == 7
+                            n_f = n_f+1; f_dat{n_f} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7)};
+                            all_sum{end,1}{7} = all_sum{end,1}{7} + 1;
+                        end
+                    elseif startsWith(ln, 'ESACC')
+                        d = sscanf(strrep(ln, '.', 'NaN'), 'ESACC %c %d %d %d %f %f %f %f');
+                        if numel(d) == 8
+                            n_s = n_s+1; s_dat{n_s} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7), d(8)};
+                            all_sum{end,1}{8} = all_sum{end,1}{8} + 1;
+                        end
+                    elseif startsWith(ln, 'EBLINK')
+                        d = sscanf(ln, 'EBLINK %c %d %d %d');
+                        if numel(d) == 4
+                            n_b = n_b+1; b_dat{n_b} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4)};
+                            all_sum{end,1}{9} = all_sum{end,1}{9} + 1;
+                        end
+                    end
+                end
+            end
+            fclose(fid);
+            
+            if tsk == 1, acc_tr_t1 = acc_tr_t1 + blk_max_raw_tr; else, acc_tr_t2 = acc_tr_t2 + blk_max_raw_tr; end
+            if n_f > 0, all_fix = [all_fix; f_dat(1:n_f)]; end
+            if n_s > 0, all_sac = [all_sac; s_dat(1:n_s)]; end
+            if n_b > 0, all_blk = [all_blk; b_dat(1:n_b)]; end
+        end
+    end
+end
+
+v_fix = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','x','y','pupil'};
+v_sac = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','sx','sy','ex','ey'};
+v_blk = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur'};
+v_sum = {'subj_id','block','task','trial_id','stim_id','onset_time','n_fix','n_sac','n_blink'};
+
+fix = cell2table(vertcat(all_fix{:}), 'VariableNames', v_fix);
+sac = cell2table(vertcat(all_sac{:}), 'VariableNames', v_sac);
+blk = cell2table(vertcat(all_blk{:}), 'VariableNames', v_blk);
+sum_tab = cell2table(vertcat(all_sum{:}), 'VariableNames', v_sum);
+
+all_behav = vertcat(all_behav{:});
+M = outerjoin(fix, all_behav, 'Keys', {'subj_id','task','trial_id','block'}, 'MergeKeys', true, 'Type', 'inner');
+M = removevars(M, 'stim_id_all_behav'); M = renamevars(M, 'stim_id_fix', 'stim_id');
+
+eye_data = struct(); eye_data.fixations = fix; eye_data.saccades = sac; eye_data.blinks = blk; eye_data.summary = sum_tab;
+eye_data.merged = M; eye_data.merged.resp_key = cellstr(eye_data.merged.resp_key);
+eye_data.merged.resp_key(strcmp(eye_data.merged.resp_key,'NA')) = {'none'};
+eye_data.merged.correct = strcmp(cellstr(eye_data.merged.corr_resp), eye_data.merged.resp_key);
+save(fullfile(out_dir, 'group_eye_movement.mat'), 'eye_data', '-v7.3');
+fprintf('Eye data saved.\n');
+
+
+%% 
+Mw = eye_data.merged(~contains(eye_data.merged.goal, "JUNK"), :);
+comp_idx = strcmp(Mw.condition, 'compared'); iso_idx = strcmp(Mw.condition, 'isolated');
+ab_idx = strcmp(Mw.goal, 'A-B'); b_idx = strcmp(Mw.identity, 'B');
+task_1b_idx = strcmp(Mw.task, '1_back'); task_2b_idx = strcmp(Mw.task, '2_back');
+
+one_b_comp_idx = task_1b_idx & b_idx & comp_idx; one_b_iso_idx = task_1b_idx & b_idx & iso_idx;
+two_b_comp_idx = task_2b_idx & ab_idx & b_idx & comp_idx; two_b_iso_idx = task_2b_idx & ab_idx & b_idx & iso_idx;
+
+tr_one_b_comp = unique(Mw(one_b_comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_one_b_iso = unique(Mw(one_b_iso_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_comp = unique(Mw(two_b_comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_iso = unique(Mw(two_b_iso_idx, {'subj_id','trial_id','stim_id'}));
+
+pairs_comp = innerjoin(tr_one_b_comp, tr_two_b_comp, 'Keys', {'subj_id','stim_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
+pairs_comp.Properties.VariableNames = {'subj_id','tr_one_b','stim_id','tr_two_b'};
+
+pairs_iso = innerjoin(tr_one_b_iso, tr_two_b_iso, 'Keys', {'subj_id','stim_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
+pairs_iso.Properties.VariableNames = {'subj_id','tr_one_b','stim_id','tr_two_b'};
+
+fprintf('\n=== DATASET SUMMARY ===\n');
+fprintf('Valid fixations: %d\n', height(Mw));
+fprintf('1B encoding: Comp=%d, Iso=%d trials\n', height(tr_one_b_comp), height(tr_one_b_iso));
+fprintf('2B lures: Comp=%d, Iso=%d trials\n', height(tr_two_b_comp), height(tr_two_b_iso));
+fprintf('Matched pairs: Comp=%d, Iso=%d\n\n', height(pairs_comp), height(pairs_iso));
+
+ScanMatchInfo.Xres = 1920; ScanMatchInfo.Yres = 1080; ScanMatchInfo.Xbin = 8; ScanMatchInfo.Ybin = 8;
+ScanMatchInfo.RoiModulus = 12; ScanMatchInfo.Threshold = 3.5; ScanMatchInfo.GapValue = 0; ScanMatchInfo.TempBin = 0;
+ScanMatchInfo.mask = ScanMatch_GridMask(ScanMatchInfo.Xres, ScanMatchInfo.Yres, ScanMatchInfo.Xbin, ScanMatchInfo.Ybin);
+ScanMatchInfo.SubMatrix = ScanMatch_CreateSubMatrix(ScanMatchInfo.Xbin, ScanMatchInfo.Ybin, ScanMatchInfo.Threshold);
+
+results_comp = table(); results_iso = table();
+
+for i = 1:height(pairs_comp)
+    pair = pairs_comp(i,:);
+    fix_1b = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
+    fix_2b = Mw(strcmp(Mw.task, '2_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
+    if height(fix_1b) < 2 || height(fix_2b) < 2, continue; end
+    data_1b = [fix_1b.x, fix_1b.y, fix_1b.dur/1000]; data_2b = [fix_2b.x, fix_2b.y, fix_2b.dur/1000];
+    seq_1b = ScanMatch_FixationToSequence(data_1b, ScanMatchInfo);
+    seq_2b = ScanMatch_FixationToSequence(data_2b, ScanMatchInfo);
+    Score = ScanMatch(seq_1b, seq_2b, ScanMatchInfo);
+    results_comp = [results_comp; {pair.subj_id, pair.tr_one_b, pair.tr_two_b, pair.stim_id{1}, Score}];
+    if mod(i, 100) == 0, fprintf('Compared: %d/%d\n', i, height(pairs_comp)); end
+end
+results_comp.Properties.VariableNames = {'subj_id','tr_1b','tr_2b','stim_id','reinst_score'};
+
+for i = 1:height(pairs_iso)
+    pair = pairs_iso(i,:);
+    fix_1b = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
+    fix_2b = Mw(strcmp(Mw.task, '2_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
+    if height(fix_1b) < 2 || height(fix_2b) < 2, continue; end
+    data_1b = [fix_1b.x, fix_1b.y, fix_1b.dur/1000]; data_2b = [fix_2b.x, fix_2b.y, fix_2b.dur/1000];
+    seq_1b = ScanMatch_FixationToSequence(data_1b, ScanMatchInfo);
+    seq_2b = ScanMatch_FixationToSequence(data_2b, ScanMatchInfo);
+    Score = ScanMatch(seq_1b, seq_2b, ScanMatchInfo);
+    results_iso = [results_iso; {pair.subj_id, pair.tr_one_b, pair.tr_two_b, pair.stim_id{1}, Score}];
+    if mod(i, 100) == 0, fprintf('Isolated: %d/%d\n', i, height(pairs_iso)); end
+end
+results_iso.Properties.VariableNames = {'subj_id','tr_1b','tr_2b','stim_id','reinst_score'};
+
+fprintf('\n=== REINSTATEMENT RESULTS ===\n');
+fprintf('Compared: M=%.3f (SD=%.3f), n=%d\n', mean(results_comp.reinst_score), std(results_comp.reinst_score), height(results_comp));
+fprintf('Isolated: M=%.3f (SD=%.3f), n=%d\n', mean(results_iso.reinst_score), std(results_iso.reinst_score), height(results_iso));
+
+reinstatement_results = struct(); reinstatement_results.compared = results_comp;
+reinstatement_results.isolated = results_iso; reinstatement_results.ScanMatchInfo = ScanMatchInfo;
+save(fullfile(out_dir, 'gaze_reinstatement_resuls.mat'), 'reinstatement_results');
+fprintf('Done.\n');

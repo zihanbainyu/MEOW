@@ -4,6 +4,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616];
 base_dir = '..'; 
+out_dir = fullfile(base_dir, 'data', 'eye_movement_data');
 min_rt = 0.150;
 % colors
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
@@ -222,57 +223,57 @@ draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {
 title('novel', 'FontSize', 14);
 sgtitle('2-Back Task Performance', 'FontSize', 16);
 % print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
-%%%%%%%%%%%%%%%%%%%%%%%
-% predicts 2-back performance from 1-back
-%%%%%%%%%%%%%%%%%%%%%%%
-x_rt_sim  = get_v('one', 'rt_sim')';
-x_acc = get_v('one','acc_sim')';
-y_d_c = get_v('two','dprime_comp')';
-y_d_i = get_v('two','dprime_iso')';
-y_d_n = get_v('two','dprime_nov')';
-y_d_o = (y_d_c+y_d_i)/2;
-y_l_c = get_v('two','ldi_comp')'; 
-y_l_i = get_v('two','ldi_iso')'; 
-y_l_n = get_v('two','ldi_nov')'; 
-ldi_delta = y_l_c - y_l_n;
-y_l_o = (y_l_c+y_l_i)/2;
-y_r_c = get_v('two','rt_AB_comp')';
-y_r_i = get_v('two','rt_AB_iso')';
-y_r_n = get_v('two','rt_AB_nov')';
-% acc ~ ldi
-[r_lo, p_lo] = corr(x_acc, y_l_o); 
-[r_lc, p_lc] = corr(x_acc, y_l_c); 
-[r_li, p_li] = corr(x_acc, y_l_i);
-[r_ln, p_ln] = corr(x_acc, y_l_n);
-% rt ~ ldi/dprime
-[r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
-[r_rli, p_rli] = corr(x_rt_sim, y_l_i);
-[r_rln, p_rln] = corr(x_rt_sim, y_l_n);
-[r_rlo, p_rlo] = corr(x_rt_sim, y_l_o);
-[r_do, p_do] = corr(x_rt_sim, y_d_o);
-[r_dc, p_dc] = corr(x_rt_sim, y_d_c);
-[r_di, p_di] = corr(x_rt_sim, y_d_i);
-% rt ~ rt
-[r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
-[r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
-[r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
-figure('color','w','Position',[100 100 800 400]);
-subplot(1,2,1); hold on; 
-s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
-s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
-s_n2 = plot_layer(x_acc, y_l_n, c_nov, 60, 0.5, 2);
-xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
-legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
-    'Location','southeast','FontSize',10);
-subplot(1,2,2); hold on; 
-s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
-s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
-s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
-xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
-legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
-    'Location','northeast','FontSize',10);
-grid off; set(gca,'GridAlpha',0.1); box off;
-sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
+% %%%%%%%%%%%%%%%%%%%%%%%
+% % predicts 2-back performance from 1-back
+% %%%%%%%%%%%%%%%%%%%%%%%
+% x_rt_sim  = get_v('one', 'rt_sim')';
+% x_acc = get_v('one','acc_sim')';
+% y_d_c = get_v('two','dprime_comp')';
+% y_d_i = get_v('two','dprime_iso')';
+% y_d_n = get_v('two','dprime_nov')';
+% y_d_o = (y_d_c+y_d_i)/2;
+% y_l_c = get_v('two','ldi_comp')'; 
+% y_l_i = get_v('two','ldi_iso')'; 
+% y_l_n = get_v('two','ldi_nov')'; 
+% ldi_delta = y_l_c - y_l_n;
+% y_l_o = (y_l_c+y_l_i)/2;
+% y_r_c = get_v('two','rt_AB_comp')';
+% y_r_i = get_v('two','rt_AB_iso')';
+% y_r_n = get_v('two','rt_AB_nov')';
+% % acc ~ ldi
+% [r_lo, p_lo] = corr(x_acc, y_l_o); 
+% [r_lc, p_lc] = corr(x_acc, y_l_c); 
+% [r_li, p_li] = corr(x_acc, y_l_i);
+% [r_ln, p_ln] = corr(x_acc, y_l_n);
+% % rt ~ ldi/dprime
+% [r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
+% [r_rli, p_rli] = corr(x_rt_sim, y_l_i);
+% [r_rln, p_rln] = corr(x_rt_sim, y_l_n);
+% [r_rlo, p_rlo] = corr(x_rt_sim, y_l_o);
+% [r_do, p_do] = corr(x_rt_sim, y_d_o);
+% [r_dc, p_dc] = corr(x_rt_sim, y_d_c);
+% [r_di, p_di] = corr(x_rt_sim, y_d_i);
+% % rt ~ rt
+% [r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
+% [r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
+% [r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
+% figure('color','w','Position',[100 100 800 400]);
+% subplot(1,2,1); hold on; 
+% s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
+% s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
+% s_n2 = plot_layer(x_acc, y_l_n, c_nov, 60, 0.5, 2);
+% xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
+% legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
+%     'Location','southeast','FontSize',10);
+% subplot(1,2,2); hold on; 
+% s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
+% s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
+% s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
+% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
+% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
+%     'Location','northeast','FontSize',10);
+% grid off; set(gca,'GridAlpha',0.1); box off;
+% sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
 % print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
 % %%%%%%%%%%%%%%%%%%%%%%%
 % % episodic memory
@@ -353,6 +354,50 @@ fprintf('\n--- PREDICTIVE CORRELATIONS ---\n');
 run_corr(b1_acc_sim, b2_ldi_c, 'Acc(Sim) -> LDI(Comp)'); run_corr(b1_rt_sim, b2_ldi_c, 'RT(Sim) -> LDI(Comp)');
 fprintf('\n=================================================================\n');
 
+%% Gaze Reinstatement Analysis
+load(fullfile(out_dir, 'gaze_reinstatement_results.mat'));
+comp = reinstatement_results.compared;
+iso = reinstatement_results.isolated;
+
+comp_subj = grpstats(comp, 'subj_id', 'mean', 'DataVars', 'reinst_score');
+iso_subj = grpstats(iso, 'subj_id', 'mean', 'DataVars', 'reinst_score');
+
+common_subj = intersect(comp_subj.subj_id, iso_subj.subj_id);
+comp_matched = comp_subj(ismember(comp_subj.subj_id, common_subj), :);
+iso_matched = iso_subj(ismember(iso_subj.subj_id, common_subj), :);
+
+[~, idx_c] = sort(comp_matched.subj_id); [~, idx_i] = sort(iso_matched.subj_id);
+comp_matched = comp_matched(idx_c, :); iso_matched = iso_matched(idx_i, :);
+
+gz_comp = comp_matched.mean_reinst_score; gz_iso = iso_matched.mean_reinst_score; gz_nov = zeros(size(gz_comp));
+
+fprintf('Gaze reinstatement score:\n  compared:  %s\n  isolated:  %s\n', ...
+    fmt_desc(gz_comp), fmt_desc(gz_iso));
+
+[~, p_comp] = ttest(gz_comp, 0.5);
+[~, p_iso] = ttest(gz_iso, 0.5);
+t_comp = (mean(gz_comp)-0.5)/(std(gz_comp)/sqrt(length(gz_comp)));
+t_iso = (mean(gz_iso)-0.5)/(std(gz_iso)/sqrt(length(gz_iso)));
+
+sig_comp = ''; if p_comp<0.001, sig_comp='***'; elseif p_comp<0.01, sig_comp='**'; elseif p_comp<0.05, sig_comp='*'; end
+sig_iso = ''; if p_iso<0.001, sig_iso='***'; elseif p_iso<0.01, sig_iso='**'; elseif p_iso<0.05, sig_iso='*'; end
+
+fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Comp > 0.5', length(gz_comp)-1, t_comp, p_comp, sig_comp);
+fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Iso > 0.5', length(gz_iso)-1, t_iso, p_iso, sig_iso);
+
+run_ttest(gz_comp, gz_iso, 'comp vs iso');
+run_ttest(gz_comp, gz_nov, 'comp vs nov');
+run_ttest(gz_iso, gz_nov, 'iso vs nov');
+
+figure('color','w','Position',[100 100 600 500]); hold on;
+fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
+yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+data = [gz_comp, gz_iso];
+raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement in Lure Discrimination');
+add_sig(data, [1 2; 1 0; 2 0]);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
+
 %% functions
 function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
     [n_rows, n_grps] = size(mat); hold on;
@@ -386,12 +431,15 @@ function add_sig(data, pairs)
     for i = 1:size(pairs,1)
         c1 = pairs(i,1); c2 = pairs(i,2);
         if c2==0, [~, p]=ttest(data(:,c1)); paired=false; else, [~, p]=ttest(data(:,c1),data(:,c2)); paired=true; end
-        if p < 0.05
+        if p < 0.10  % Changed from 0.05 to 0.10
             line_lvl=line_lvl+1; y_p = base + (line_lvl*step);
-            txt = '*'; if p<0.001, txt='***'; elseif p<0.01, txt='**'; end
-            if paired, plot([c1,c1,c2,c2],[y_p-step*0.3,y_p,y_p,y_p-step*0.3],'k-','LineWidth',1.2); 
+            if p < 0.001, txt = '***'; fs = 16;
+            elseif p < 0.01, txt = '**'; fs = 16;
+            elseif p < 0.05, txt = '*'; fs = 16;
+            else, txt = sprintf('p=%.3f', p); fs = 5; end
+            if paired, plot([c1,c1,c2,c2],[y_p-step*0.3,y_p,y_p,y_p-step*0.3],'k-','LineWidth',1.2);
                text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',14,'FontWeight','bold');
-            else, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold'); end
+            else, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',fs,'FontWeight','bold'); end
         end
     end
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end; hold off;
