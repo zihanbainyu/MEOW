@@ -128,8 +128,8 @@ pairs_iso.Properties.VariableNames = {'subj_id','tr_one_b','stim_id','tr_two_b'}
 
 fprintf('\n=== DATASET SUMMARY ===\n');
 fprintf('Valid fixations: %d\n', height(Mw));
-fprintf('1B encoding: Comp=%d, Iso=%d trials\n', height(tr_one_b_comp), height(tr_one_b_iso));
-fprintf('2B lures: Comp=%d, Iso=%d trials\n', height(tr_two_b_comp), height(tr_two_b_iso));
+fprintf('1B: Comp=%d, Iso=%d trials\n', height(tr_one_b_comp), height(tr_one_b_iso));
+fprintf('2B: Comp=%d, Iso=%d trials\n', height(tr_two_b_comp), height(tr_two_b_iso));
 fprintf('Matched pairs: Comp=%d, Iso=%d\n\n', height(pairs_comp), height(pairs_iso));
 
 ScanMatchInfo.Xres = 1920; ScanMatchInfo.Yres = 1080; ScanMatchInfo.Xbin = 8; ScanMatchInfo.Ybin = 8;

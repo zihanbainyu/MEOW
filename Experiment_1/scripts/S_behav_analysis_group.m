@@ -5,6 +5,7 @@ clear; clc; close all;
 subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616];
 base_dir = '..'; 
 out_dir = fullfile(base_dir, 'data', 'eye_movement_data');
+res_dir = fullfile(base_dir, 'results');
 min_rt = 0.150;
 % colors
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
@@ -120,7 +121,6 @@ for s = 1:length(subj_ids)
     stats.two.dprime_comp = calc_d(stats.two.acc_AA_comp, stats.two.err_AN_comp_as_j, n_AA_comp, n_AN_comp);
     stats.two.dprime_iso = calc_d(stats.two.acc_AA_iso, stats.two.err_AN_iso_as_j, n_AA_iso, n_AN_iso);
     stats.two.dprime_nov = calc_d(stats.two.acc_AA_nov, stats.two.err_AN_nov_as_j, n_AA_nov, n_AN_nov);
-    
     %%%%%%%%%%%%%%%%%%%%%%%
     % recognition stats
     %%%%%%%%%%%%%%%%%%%%%%%
@@ -144,6 +144,42 @@ for s = 1:length(subj_ids)
     all_subjs(s).stats = stats;
 end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+
+% predict 2-back from 1-back
+% x_rt_sim  = get_v('one', 'rt_sim')';
+% x_acc = get_v('one','acc_sim')';
+% y_d_c = get_v('two','dprime_comp')';
+% y_d_i = get_v('two','dprime_iso')';
+% y_d_n = get_v('two','dprime_nov')';
+% y_d_o = (y_d_c+y_d_i)/2;
+% y_l_c = get_v('two','ldi_comp')'; 
+% y_l_i = get_v('two','ldi_iso')'; 
+% y_l_n = get_v('two','ldi_nov')'; 
+% ldi_delta = y_l_c - y_l_n;
+% y_l_o = (y_l_c+y_l_i)/2;
+% y_r_c = get_v('two','rt_AB_comp')';
+% y_r_i = get_v('two','rt_AB_iso')';
+% y_r_n = get_v('two','rt_AB_nov')';
+% % acc ~ ldi
+% [r_lo, p_lo] = corr(x_acc, y_l_o); 
+% [r_lc, p_lc] = corr(x_acc, y_l_c); 
+% [r_li, p_li] = corr(x_acc, y_l_i);
+% [r_ln, p_ln] = corr(x_acc, y_l_n);
+% % rt ~ ldi/dprime
+% [r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
+% [r_rli, p_rli] = corr(x_rt_sim, y_l_i);
+% [r_rln, p_rln] = corr(x_rt_sim, y_l_n);
+% [r_rlo, p_rlo] = corr(x_rt_sim, y_l_o);
+% [r_do, p_do] = corr(x_rt_sim, y_d_o);
+% [r_dc, p_dc] = corr(x_rt_sim, y_d_c);
+% [r_di, p_di] = corr(x_rt_sim, y_d_i);
+% % rt ~ rt
+% [r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
+% [r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
+% [r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
+
+
+
 %% visualization
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 1-back
@@ -165,7 +201,7 @@ draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}
 title('Response matrix', 'FontSize', 12);
 sgtitle('1-Back Task Performance', 'FontSize', 16);
 set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, '1Back_Figures.tiff', '-dtiff', '-r300'); 
+print(gcf, '1Back_Figures.pdf', '-dpdf', '-r300'); 
 %%%%%%%%%%%%%%%%%%%%%%%
 % fig. 2-back
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -199,7 +235,6 @@ fig_pos = get(gcf, 'PaperPosition');
 set(gcf, 'PaperSize', [fig_pos(3) fig_pos(4)]);
 print('2Back_figure', '-dpdf', '-vector', '-painters');
 
-
 %%%%%%%%%%%%%%%%%%%%%%%
 % confusion matrix
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -222,62 +257,11 @@ mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k'))
 draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('novel', 'FontSize', 14);
 sgtitle('2-Back Task Performance', 'FontSize', 16);
-% print(gcf, '2Back_Figures.tiff', '-dtiff', '-r300'); 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% % predicts 2-back performance from 1-back
-% %%%%%%%%%%%%%%%%%%%%%%%
-% x_rt_sim  = get_v('one', 'rt_sim')';
-% x_acc = get_v('one','acc_sim')';
-% y_d_c = get_v('two','dprime_comp')';
-% y_d_i = get_v('two','dprime_iso')';
-% y_d_n = get_v('two','dprime_nov')';
-% y_d_o = (y_d_c+y_d_i)/2;
-% y_l_c = get_v('two','ldi_comp')'; 
-% y_l_i = get_v('two','ldi_iso')'; 
-% y_l_n = get_v('two','ldi_nov')'; 
-% ldi_delta = y_l_c - y_l_n;
-% y_l_o = (y_l_c+y_l_i)/2;
-% y_r_c = get_v('two','rt_AB_comp')';
-% y_r_i = get_v('two','rt_AB_iso')';
-% y_r_n = get_v('two','rt_AB_nov')';
-% % acc ~ ldi
-% [r_lo, p_lo] = corr(x_acc, y_l_o); 
-% [r_lc, p_lc] = corr(x_acc, y_l_c); 
-% [r_li, p_li] = corr(x_acc, y_l_i);
-% [r_ln, p_ln] = corr(x_acc, y_l_n);
-% % rt ~ ldi/dprime
-% [r_rlc, p_rlc] = corr(x_rt_sim, y_l_c); 
-% [r_rli, p_rli] = corr(x_rt_sim, y_l_i);
-% [r_rln, p_rln] = corr(x_rt_sim, y_l_n);
-% [r_rlo, p_rlo] = corr(x_rt_sim, y_l_o);
-% [r_do, p_do] = corr(x_rt_sim, y_d_o);
-% [r_dc, p_dc] = corr(x_rt_sim, y_d_c);
-% [r_di, p_di] = corr(x_rt_sim, y_d_i);
-% % rt ~ rt
-% [r_rrc, p_rrc] = corr(x_rt_sim, y_r_c); 
-% [r_rri, p_rri] = corr(x_rt_sim, y_r_i); 
-% [r_rrn, p_rrn] = corr(x_rt_sim, y_r_n); 
-% figure('color','w','Position',[100 100 800 400]);
-% subplot(1,2,1); hold on; 
-% s_i2 = plot_layer(x_acc, y_l_i, c_iso, 60, 0.5, 2);
-% s_c2 = plot_layer(x_acc, y_l_c, c_comp, 60, 0.5, 2);
-% s_n2 = plot_layer(x_acc, y_l_n, c_nov, 60, 0.5, 2);
-% xlabel('1-Back Accuracy (Similar)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
-% legend([s_c2, s_i2, s_n2], {sprintf('compared (r=%.2f, p=%.3f)',r_lc,p_lc), sprintf('isolated (r=%.2f, p=%.3f)',r_li,p_li), sprintf('novel (r=%.2f, p=%.3f)',r_ln,p_ln)}, ...
-%     'Location','southeast','FontSize',10);
-% subplot(1,2,2); hold on; 
-% s_i = plot_layer(x_rt_sim, y_l_i, c_iso, 60, 0.5, 2); 
-% s_c = plot_layer(x_rt_sim, y_l_c, c_comp, 60, 0.5, 2);
-% s_n = plot_layer(x_rt_sim, y_l_n, c_nov, 60, 0.5, 2);
-% xlabel('1-Back RT (s)','FontSize',14,'FontWeight','bold'); ylabel('2-Back LDI','FontSize',14,'FontWeight','bold');
-% legend([s_c, s_i, s_n], {sprintf('compared (r=%.2f, p=%.3f)',r_rlc,p_rlc), sprintf('isolated (r=%.2f, p=%.3f)',r_rli,p_rli), sprintf('novel (r=%.2f, p=%.3f)', r_rln,p_rln)}, ...
-%     'Location','northeast','FontSize',10);
-% grid off; set(gca,'GridAlpha',0.1); box off;
-% sgtitle('Predicting 2-back performance from 1-back','FontSize',16);
-% print(gcf, '2Back_1Back_Figures.tiff', '-dtiff', '-r300'); 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% % episodic memory
-% %%%%%%%%%%%%%%%%%%%%%%%
+ 
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% episodic memory
+%%%%%%%%%%%%%%%%%%%%%%%
 figure('color','w','Position',[100 100 600 500]);
 d_c = get_v('rec','d_comp'); d_i = get_v('rec','d_iso'); d_tot = (d_c+d_i)/2;
 data = [d_tot', d_c', d_i'];
@@ -292,189 +276,94 @@ add_sig(data, [1 0; 2 3]);
 % text(3.4, max(data(:)), msg, 'FontSize',10, 'BackgroundColor','w', 'EdgeColor','k', ...
 %      'Margin',5, 'HorizontalAlignment','right', 'VerticalAlignment','top');
 print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
-%% %%%%%%%%%%%%%%%%%%%%%
-% Stats Summary Output
-%%%%%%%%%%%%%%%%%%%%%%%
-fprintf('\n\n=================================================================\n');
-fprintf('                     STATISTICAL SUMMARY                         \n');
-fprintf('=================================================================\n');
-fmt_desc = @(x) sprintf('M = %.3f (SD = %.3f)', mean(x, 'omitnan'), std(x, 'omitnan'));
-run_ttest = @(x,y,n) do_ttest_print(x, y, n);
-run_corr = @(x,y,n) do_corr_print(x, y, n);
-% 1-Back
-fprintf('\n--- 1-BACK TASK ---\n');
-b1_acc_sim = get_v('one','acc_sim')'; b1_acc_sam = get_v('one','acc_same')'; b1_acc_new = get_v('one','acc_new')';
-b1_rt_sim  = get_v('one','rt_sim')'; b1_rt_sam  = get_v('one','rt_same')';
-fprintf('Accuracy:\n  Same:      %s\n  Similar:   %s\n  New:       %s\n', fmt_desc(b1_acc_sam), fmt_desc(b1_acc_sim), fmt_desc(b1_acc_new));
-run_ttest(b1_acc_sam, b1_acc_sim, 'Acc: Same vs Sim'); run_ttest(b1_acc_sim, b1_acc_new, 'Acc: Sim vs New');
-fprintf('RT:\n  Same:      %s\n  Similar:   %s\n', fmt_desc(b1_rt_sam), fmt_desc(b1_rt_sim));
-run_ttest(b1_rt_sam, b1_rt_sim, 'RT: Same vs Sim');
-% % 2-Back
-% fprintf('\n--- 2-BACK TASK ---\n');
-% b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
-% b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
-% b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
-% b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
-% fprintf('LDI:\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_ldi_c), fmt_desc(b2_ldi_i), fmt_desc(b2_ldi_n));
-% run_ttest(b2_ldi_c, b2_ldi_i, 'LDI: Comp vs Iso');
-% fprintf('d-prime:\n  Compared:  %s\n  Isolated:  %s\n', fmt_desc(b2_dp_c), fmt_desc(b2_dp_i));
-% run_ttest(b2_dp_c, b2_dp_i, 'd'': Comp vs Iso');
-% fprintf('RT (Lures - CR):\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_rt_l_c), fmt_desc(b2_rt_l_i), fmt_desc(b2_rt_l_n));
-% run_ttest(b2_rt_l_c, b2_rt_l_i, 'RT-Lure: Comp vs Iso'); run_ttest(b2_rt_l_c, b2_rt_l_n, 'RT-Lure: Comp vs Nov');
-% fprintf('RT (Targets - Hit):\n  Compared:  %s\n  Isolated:  %s\n', fmt_desc(b2_rt_t_c), fmt_desc(b2_rt_t_i));
-% run_ttest(b2_rt_t_c, b2_rt_t_i, 'RT-Targ: Comp vs Iso');
-% 2-Back
-fprintf('\n--- 2-BACK TASK ---\n');
-b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
-b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
-b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
-b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
 
-fprintf('LDI:\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_ldi_c), fmt_desc(b2_ldi_i), fmt_desc(b2_ldi_n));
-run_ttest(b2_ldi_c, b2_ldi_i, 'LDI: Comp vs Iso'); 
-run_ttest(b2_ldi_i, b2_ldi_n, 'LDI: Iso vs Nov'); 
-run_ttest(b2_ldi_c, b2_ldi_n, 'LDI: Comp vs Nov');
 
-fprintf('d-prime:\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_dp_c), fmt_desc(b2_dp_i), fmt_desc(b2_dp_n));
-run_ttest(b2_dp_c, b2_dp_i, 'd'': Comp vs Iso'); 
-run_ttest(b2_dp_i, b2_dp_n, 'd'': Iso vs Nov'); 
-run_ttest(b2_dp_c, b2_dp_n, 'd'': Comp vs Nov');
-
-fprintf('RT (Lures - CR):\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_rt_l_c), fmt_desc(b2_rt_l_i), fmt_desc(b2_rt_l_n));
-run_ttest(b2_rt_l_c, b2_rt_l_i, 'RT-Lure: Comp vs Iso'); 
-run_ttest(b2_rt_l_i, b2_rt_l_n, 'RT-Lure: Iso vs Nov'); 
-run_ttest(b2_rt_l_c, b2_rt_l_n, 'RT-Lure: Comp vs Nov');
-
-fprintf('RT (Targets - Hit):\n  Compared:  %s\n  Isolated:  %s\n  Novel:     %s\n', fmt_desc(b2_rt_t_c), fmt_desc(b2_rt_t_i), fmt_desc(b2_rt_t_n));
-run_ttest(b2_rt_t_c, b2_rt_t_i, 'RT-Targ: Comp vs Iso'); 
-run_ttest(b2_rt_t_i, b2_rt_t_n, 'RT-Targ: Iso vs Nov'); 
-run_ttest(b2_rt_t_c, b2_rt_t_n, 'RT-Targ: Comp vs Nov');
-% Correlations
-fprintf('\n--- PREDICTIVE CORRELATIONS ---\n');
-run_corr(b1_acc_sim, b2_ldi_c, 'Acc(Sim) -> LDI(Comp)'); run_corr(b1_rt_sim, b2_ldi_c, 'RT(Sim) -> LDI(Comp)');
-fprintf('\n=================================================================\n');
-
-%% Gaze Reinstatement Analysis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Gaze Reinstatement Analysis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% gaze reinstatement
 load(fullfile(out_dir, 'gaze_reinstatement_results.mat'));
-comp = reinstatement_results.compared;
-iso = reinstatement_results.isolated;
+comp_subj = grpstats(reinstatement_results.compared, 'subj_id', 'mean', 'DataVars', 'reinst_score');
+iso_subj = grpstats(reinstatement_results.isolated, 'subj_id', 'mean', 'DataVars', 'reinst_score');
+[~, ic, ii] = intersect(comp_subj.subj_id, iso_subj.subj_id);
+gz_comp = comp_subj.mean_reinst_score(ic); 
+gz_iso = iso_subj.mean_reinst_score(ii);
 
-comp_subj = grpstats(comp, 'subj_id', 'mean', 'DataVars', 'reinst_score');
-iso_subj = grpstats(iso, 'subj_id', 'mean', 'DataVars', 'reinst_score');
-
-common_subj = intersect(comp_subj.subj_id, iso_subj.subj_id);
-comp_matched = comp_subj(ismember(comp_subj.subj_id, common_subj), :);
-iso_matched = iso_subj(ismember(iso_subj.subj_id, common_subj), :);
-
-[~, idx_c] = sort(comp_matched.subj_id); [~, idx_i] = sort(iso_matched.subj_id);
-comp_matched = comp_matched(idx_c, :); iso_matched = iso_matched(idx_i, :);
-
-gz_comp = comp_matched.mean_reinst_score; gz_iso = iso_matched.mean_reinst_score; gz_nov = zeros(size(gz_comp));
-
-fprintf('Gaze reinstatement score:\n  compared:  %s\n  isolated:  %s\n', ...
-    fmt_desc(gz_comp), fmt_desc(gz_iso));
-
-% [~, p_comp] = ttest(gz_comp, 0.5);
-% [~, p_iso] = ttest(gz_iso, 0.5);
-% t_comp = (mean(gz_comp)-0.5)/(std(gz_comp)/sqrt(length(gz_comp)));
-% t_iso = (mean(gz_iso)-0.5)/(std(gz_iso)/sqrt(length(gz_iso)));
-% 
-% sig_comp = ''; if p_comp<0.001, sig_comp='***'; elseif p_comp<0.01, sig_comp='**'; elseif p_comp<0.05, sig_comp='*'; end
-% sig_iso = ''; if p_iso<0.001, sig_iso='***'; elseif p_iso<0.01, sig_iso='**'; elseif p_iso<0.05, sig_iso='*'; end
-% 
-% fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Comp > 0.5', length(gz_comp)-1, t_comp, p_comp, sig_comp);
-% fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Iso > 0.5', length(gz_iso)-1, t_iso, p_iso, sig_iso);
-% 
-% run_ttest(gz_comp, gz_iso, 'comp vs iso');
-% run_ttest(gz_comp, gz_nov, 'comp vs nov');
-% run_ttest(gz_iso, gz_nov, 'iso vs nov');
-% 
-% figure('color','w','Position',[100 100 600 500]); hold on;
-% fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
-% yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-% data = [gz_comp, gz_iso];
-% raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
-% add_sig(data, [1 2; 1 0; 2 0]);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
+fprintf('gaze reinstatement: comp %s, iso %s\n', fmt_desc(gz_comp), fmt_desc(gz_iso));
 n_perms = 1000;
-do_perm = @(x, y) run_permutation(x, y, n_perms);
+[p_c, d_c] = run_permutation(gz_comp, 0.5, n_perms);
+[p_i, d_i] = run_permutation(gz_iso, 0.5, n_perms);
+[p_ci, d_ci] = run_permutation(gz_comp, gz_iso, n_perms);
+sig_str = @(p) repmat('*', 1, (p<0.05)+(p<0.01)+(p<0.001));
+fprintf('  comp>0.5: diff=%.3f p=%.4f %s\n', d_c, p_c, sig_str(p_c));
+fprintf('  iso>0.5: diff=%.3f p=%.4f %s\n', d_i, p_i, sig_str(p_i));
+fprintf('  comp vs iso: diff=%.3f p=%.4f %s\n', d_ci, p_ci, sig_str(p_ci));
 
-% Run stats
-[p_comp_vs_chance, diff_obs_c] = do_perm(gz_comp, 0.5); % One-sample vs chance
-[p_iso_vs_chance, diff_obs_i]  = do_perm(gz_iso, 0.5);  % One-sample vs chance
-[p_comp_vs_iso, diff_obs_ci]   = do_perm(gz_comp, gz_iso); % Paired
-
-% Output
-sig_str = @(p) char('*'*(p<0.05) + '*'*(p<0.01) + '*'*(p<0.001));
-
-fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Comp > 0.5', diff_obs_c, p_comp_vs_chance, sig_str(p_comp_vs_chance));
-fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Iso > 0.5', diff_obs_i, p_iso_vs_chance, sig_str(p_iso_vs_chance));
-fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Comp vs Iso', diff_obs_ci, p_comp_vs_iso, sig_str(p_comp_vs_iso));
-
-% Visualization (Existing code)
 figure('color','w','Position',[100 100 600 500]); hold on;
-fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
+fill([0 3 3 0], [0.5 0.5 0 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
 yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
 data = [gz_comp, gz_iso];
 raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
-
-% Custom significance lines for permutation results
-sig_pairs = [];
-if p_comp_vs_chance < 0.05, sig_pairs = [sig_pairs; 1 0]; end
-if p_iso_vs_chance < 0.05,  sig_pairs = [sig_pairs; 2 0]; end
-if p_comp_vs_iso < 0.05,    sig_pairs = [sig_pairs; 1 2]; end
-% Note: You might need to adjust your add_sig function to accept custom p-values
-% or just draw lines manually if add_sig relies on ttest internally.
-add_sig(data, sig_pairs); 
-
-set(gcf, 'PaperPositionMode', 'auto');
+add_sig_perm(data, [1 0; 2 0; 1 2], [p_c; p_i; p_ci]);
 print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
 
 diffs = gz_comp - gz_iso;
-
-figure('Color','w');
-yline(0, 'k--'); hold on;
-% Plot individual differences
+figure('Color','w'); yline(0, 'k--'); hold on;
 swarmchart(ones(size(diffs)), diffs, 50, 'k', 'filled', 'MarkerFaceAlpha', 0.5);
 boxplot(diffs, 'Colors', 'k', 'Symbol', '');
-title(sprintf('Individual Differences (Comp - Iso)\n%d / %d subjects positive', sum(diffs>0), length(diffs)));
-ylabel('Reinstatement Difference');
-xlim([0.5 1.5]);
-set(gca, 'XTick', []);
+title(sprintf('indiv diff (comp-iso): %d/%d positive', sum(diffs>0), length(diffs)));
+ylabel('Reinstatement Difference'); xlim([0.5 1.5]); set(gca, 'XTick', []);
 
-%% Add this helper function at the bottom of your script
-function [p_val, obs_diff] = run_permutation(cond_A, cond_B, n_perms)
-    % Handles both paired (vector vs vector) and one-sample (vector vs scalar)
-    
-    if isscalar(cond_B) % One-sample test against chance (e.g., 0.5)
-        diffs = cond_A - cond_B;
-        obs_diff = mean(diffs);
-        null_dist = zeros(n_perms, 1);
-        for i = 1:n_perms
-            % Randomly flip signs
-            signs = sign(rand(size(diffs)) - 0.5);
-            null_dist(i) = mean(diffs .* signs);
-        end
-    else % Paired test
-        diffs = cond_A - cond_B;
-        obs_diff = mean(diffs);
-        null_dist = zeros(n_perms, 1);
-        for i = 1:n_perms
-            % Randomly flip signs of the difference
-            signs = sign(rand(size(diffs)) - 0.5);
-            null_dist(i) = mean(diffs .* signs);
-        end
-    end
-    
-    % Two-tailed p-value
-    p_val = mean(abs(null_dist) >= abs(obs_diff));
-end
+
+%%%%%%%%%%%%%%%%
+% stats summary
+%%%%%%%%%%%%%%%%
+fprintf('\n=== stats summary ===\n');
+fmt_desc = @(x) sprintf('m=%.3f sd=%.3f', mean(x,'omitnan'), std(x,'omitnan'));
+
+fprintf('\n1-back\n');
+b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
+b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
+fprintf('acc: same %s, sim %s, new %s\n', fmt_desc(b1_acc_sam), fmt_desc(b1_acc_sim), fmt_desc(b1_acc_new));
+do_ttest_print(b1_acc_sam, b1_acc_sim, 'acc same v sim');
+do_ttest_print(b1_acc_sim, b1_acc_new, 'acc sim v new');
+fprintf('rt: same %s, sim %s\n', fmt_desc(b1_rt_sam), fmt_desc(b1_rt_sim));
+do_ttest_print(b1_rt_sam, b1_rt_sim, 'rt same v sim');
+
+fprintf('\n2-back\n');
+b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
+b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
+b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
+b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
+
+fprintf('ldi: comp %s, iso %s, nov %s\n', fmt_desc(b2_ldi_c), fmt_desc(b2_ldi_i), fmt_desc(b2_ldi_n));
+do_ttest_print(b2_ldi_c, b2_ldi_i, 'ldi comp v iso');
+do_ttest_print(b2_ldi_i, b2_ldi_n, 'ldi iso v nov');
+do_ttest_print(b2_ldi_c, b2_ldi_n, 'ldi comp v nov');
+
+fprintf('dprime: comp %s, iso %s, nov %s\n', fmt_desc(b2_dp_c), fmt_desc(b2_dp_i), fmt_desc(b2_dp_n));
+do_ttest_print(b2_dp_c, b2_dp_i, 'dp comp v iso');
+do_ttest_print(b2_dp_i, b2_dp_n, 'dp iso v nov');
+do_ttest_print(b2_dp_c, b2_dp_n, 'dp comp v nov');
+
+fprintf('rt lure: comp %s, iso %s, nov %s\n', fmt_desc(b2_rt_l_c), fmt_desc(b2_rt_l_i), fmt_desc(b2_rt_l_n));
+do_ttest_print(b2_rt_l_c, b2_rt_l_i, 'rt-lure comp v iso');
+do_ttest_print(b2_rt_l_i, b2_rt_l_n, 'rt-lure iso v nov');
+do_ttest_print(b2_rt_l_c, b2_rt_l_n, 'rt-lure comp v nov');
+
+fprintf('rt target: comp %s, iso %s, nov %s\n', fmt_desc(b2_rt_t_c), fmt_desc(b2_rt_t_i), fmt_desc(b2_rt_t_n));
+do_ttest_print(b2_rt_t_c, b2_rt_t_i, 'rt-targ comp v iso');
+do_ttest_print(b2_rt_t_i, b2_rt_t_n, 'rt-targ iso v nov');
+do_ttest_print(b2_rt_t_c, b2_rt_t_n, 'rt-targ comp v nov');
+
+fprintf('\ngaze reinstatement: comp %s, iso %s\n', fmt_desc(gz_comp), fmt_desc(gz_iso));
+fprintf('  comp>0.5: diff=%.3f p=%.4f %s\n', d_c, p_c, sig_str(p_c));
+fprintf('  iso>0.5: diff=%.3f p=%.4f %s\n', d_i, p_i, sig_str(p_i));
+fprintf('  comp v iso: diff=%.3f p=%.4f %s\n', d_ci, p_ci, sig_str(p_ci));
 
 %% functions
 function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
     [n_rows, n_grps] = size(mat); hold on;
-    % calc tight limits
     d_v = mat(:); d_v = d_v(~isnan(d_v)); 
     mn = min(d_v); mx = max(d_v); rng = mx-mn; if rng==0, rng=1; end
     auto_lim = [mn-(rng*0.15), mx+(rng*0.15)];
@@ -516,7 +405,6 @@ function add_sig(data, pairs)
     end
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end; hold off;
 end
-
 function draw_matrix(mat, cols, ylbl, xlbl)
     hold on;
     for r=1:3
@@ -537,12 +425,51 @@ function s = plot_layer(x, y, c, sz, alph, lw)
     plot(x_r, polyval(p, x_r), 'Color', c, 'LineWidth', lw);
 end
 function do_ttest_print(d1, d2, lbl)
-    df = d1-d2; df = df(~isnan(df)); [~, p, ~, s] = ttest(d1, d2);
-    sig = ''; if p<0.001, sig='***'; elseif p<0.01, sig='**'; elseif p<0.05, sig='*'; end
-    fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', lbl, s.df, s.tstat, p, sig);
+    [~, p, ~, s] = ttest(d1, d2);
+    sig = repmat('*', 1, (p<0.05)+(p<0.01)+(p<0.001));
+    fprintf('  %s: t(%d)=%.2f p=%.3f %s\n', lbl, s.df, s.tstat, p, sig);
 end
 function do_corr_print(x, y, lbl)
     idx = ~isnan(x) & ~isnan(y); [r, p] = corr(x(idx), y(idx));
     sig = ''; if p<0.001, sig='***'; elseif p<0.01, sig='**'; elseif p<0.05, sig='*'; end
     fprintf('%-22s: r=%6.2f, p=%.3f %s\n', lbl, r, p, sig);
+end
+function [p_val, obs_diff] = run_permutation(cond_A, cond_B, n_perms)
+    if isscalar(cond_B)
+        diffs = cond_A - cond_B;
+        obs_diff = mean(diffs);
+        null_dist = zeros(n_perms, 1);
+        for i = 1:n_perms
+            signs = sign(rand(size(diffs)) - 0.5);
+            null_dist(i) = mean(diffs .* signs);
+        end
+    else
+        diffs = cond_A - cond_B;
+        obs_diff = mean(diffs);
+        null_dist = zeros(n_perms, 1);
+        for i = 1:n_perms
+            signs = sign(rand(size(diffs)) - 0.5);
+            null_dist(i) = mean(diffs .* signs);
+        end
+    end
+    p_val = mean(abs(null_dist) >= abs(obs_diff));
+end
+function add_sig_perm(data, pairs, pvals)
+    cl = ylim; rng = cl(2)-cl(1); if rng==0, rng=1; end
+    step = rng * 0.08; line_lvl = 0; hold on;
+    base = max(cl(2), max(data(:)) + step*0.5);
+    for i = 1:size(pairs,1)
+        p = pvals(i); c1 = pairs(i,1); c2 = pairs(i,2);
+        if p >= 0.05, continue; end
+        line_lvl = line_lvl+1; y_p = base + (line_lvl*step);
+        if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
+        if c2 == 0
+            text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold');
+        else
+            plot([c1 c1 c2 c2], [y_p-step*0.3 y_p y_p y_p-step*0.3], 'k-', 'LineWidth', 1.2);
+            text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',14,'FontWeight','bold');
+        end
+    end
+    if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end
+    hold off;
 end
