@@ -374,29 +374,102 @@ gz_comp = comp_matched.mean_reinst_score; gz_iso = iso_matched.mean_reinst_score
 fprintf('Gaze reinstatement score:\n  compared:  %s\n  isolated:  %s\n', ...
     fmt_desc(gz_comp), fmt_desc(gz_iso));
 
-[~, p_comp] = ttest(gz_comp, 0.5);
-[~, p_iso] = ttest(gz_iso, 0.5);
-t_comp = (mean(gz_comp)-0.5)/(std(gz_comp)/sqrt(length(gz_comp)));
-t_iso = (mean(gz_iso)-0.5)/(std(gz_iso)/sqrt(length(gz_iso)));
+% [~, p_comp] = ttest(gz_comp, 0.5);
+% [~, p_iso] = ttest(gz_iso, 0.5);
+% t_comp = (mean(gz_comp)-0.5)/(std(gz_comp)/sqrt(length(gz_comp)));
+% t_iso = (mean(gz_iso)-0.5)/(std(gz_iso)/sqrt(length(gz_iso)));
+% 
+% sig_comp = ''; if p_comp<0.001, sig_comp='***'; elseif p_comp<0.01, sig_comp='**'; elseif p_comp<0.05, sig_comp='*'; end
+% sig_iso = ''; if p_iso<0.001, sig_iso='***'; elseif p_iso<0.01, sig_iso='**'; elseif p_iso<0.05, sig_iso='*'; end
+% 
+% fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Comp > 0.5', length(gz_comp)-1, t_comp, p_comp, sig_comp);
+% fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Iso > 0.5', length(gz_iso)-1, t_iso, p_iso, sig_iso);
+% 
+% run_ttest(gz_comp, gz_iso, 'comp vs iso');
+% run_ttest(gz_comp, gz_nov, 'comp vs nov');
+% run_ttest(gz_iso, gz_nov, 'iso vs nov');
+% 
+% figure('color','w','Position',[100 100 600 500]); hold on;
+% fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
+% yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+% data = [gz_comp, gz_iso];
+% raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
+% add_sig(data, [1 2; 1 0; 2 0]);
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
+n_perms = 1000;
+do_perm = @(x, y) run_permutation(x, y, n_perms);
 
-sig_comp = ''; if p_comp<0.001, sig_comp='***'; elseif p_comp<0.01, sig_comp='**'; elseif p_comp<0.05, sig_comp='*'; end
-sig_iso = ''; if p_iso<0.001, sig_iso='***'; elseif p_iso<0.01, sig_iso='**'; elseif p_iso<0.05, sig_iso='*'; end
+% Run stats
+[p_comp_vs_chance, diff_obs_c] = do_perm(gz_comp, 0.5); % One-sample vs chance
+[p_iso_vs_chance, diff_obs_i]  = do_perm(gz_iso, 0.5);  % One-sample vs chance
+[p_comp_vs_iso, diff_obs_ci]   = do_perm(gz_comp, gz_iso); % Paired
 
-fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Comp > 0.5', length(gz_comp)-1, t_comp, p_comp, sig_comp);
-fprintf('  %-20s: t(%d)=%6.2f, p=%.3f %s\n', 'Iso > 0.5', length(gz_iso)-1, t_iso, p_iso, sig_iso);
+% Output
+sig_str = @(p) char('*'*(p<0.05) + '*'*(p<0.01) + '*'*(p<0.001));
 
-run_ttest(gz_comp, gz_iso, 'comp vs iso');
-run_ttest(gz_comp, gz_nov, 'comp vs nov');
-run_ttest(gz_iso, gz_nov, 'iso vs nov');
+fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Comp > 0.5', diff_obs_c, p_comp_vs_chance, sig_str(p_comp_vs_chance));
+fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Iso > 0.5', diff_obs_i, p_iso_vs_chance, sig_str(p_iso_vs_chance));
+fprintf('  %-20s: Mean Diff=%.3f, p=%.4f %s\n', 'Comp vs Iso', diff_obs_ci, p_comp_vs_iso, sig_str(p_comp_vs_iso));
 
+% Visualization (Existing code)
 figure('color','w','Position',[100 100 600 500]); hold on;
 fill([0, 3, 3, 0], [0.5, 0.5, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
 yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
 data = [gz_comp, gz_iso];
 raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
-add_sig(data, [1 2; 1 0; 2 0]);
+
+% Custom significance lines for permutation results
+sig_pairs = [];
+if p_comp_vs_chance < 0.05, sig_pairs = [sig_pairs; 1 0]; end
+if p_iso_vs_chance < 0.05,  sig_pairs = [sig_pairs; 2 0]; end
+if p_comp_vs_iso < 0.05,    sig_pairs = [sig_pairs; 1 2]; end
+% Note: You might need to adjust your add_sig function to accept custom p-values
+% or just draw lines manually if add_sig relies on ttest internally.
+add_sig(data, sig_pairs); 
+
 set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
+
+diffs = gz_comp - gz_iso;
+
+figure('Color','w');
+yline(0, 'k--'); hold on;
+% Plot individual differences
+swarmchart(ones(size(diffs)), diffs, 50, 'k', 'filled', 'MarkerFaceAlpha', 0.5);
+boxplot(diffs, 'Colors', 'k', 'Symbol', '');
+title(sprintf('Individual Differences (Comp - Iso)\n%d / %d subjects positive', sum(diffs>0), length(diffs)));
+ylabel('Reinstatement Difference');
+xlim([0.5 1.5]);
+set(gca, 'XTick', []);
+
+%% Add this helper function at the bottom of your script
+function [p_val, obs_diff] = run_permutation(cond_A, cond_B, n_perms)
+    % Handles both paired (vector vs vector) and one-sample (vector vs scalar)
+    
+    if isscalar(cond_B) % One-sample test against chance (e.g., 0.5)
+        diffs = cond_A - cond_B;
+        obs_diff = mean(diffs);
+        null_dist = zeros(n_perms, 1);
+        for i = 1:n_perms
+            % Randomly flip signs
+            signs = sign(rand(size(diffs)) - 0.5);
+            null_dist(i) = mean(diffs .* signs);
+        end
+    else % Paired test
+        diffs = cond_A - cond_B;
+        obs_diff = mean(diffs);
+        null_dist = zeros(n_perms, 1);
+        for i = 1:n_perms
+            % Randomly flip signs of the difference
+            signs = sign(rand(size(diffs)) - 0.5);
+            null_dist(i) = mean(diffs .* signs);
+        end
+    end
+    
+    % Two-tailed p-value
+    p_val = mean(abs(null_dist) >= abs(obs_diff));
+end
 
 %% functions
 function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
