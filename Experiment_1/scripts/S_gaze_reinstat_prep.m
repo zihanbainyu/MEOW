@@ -244,6 +244,137 @@ reinstat_res.spatial_params = spatial_params;
 save(fullfile(out_dir, 'gaze_reinstat_res.mat'), 'reinstat_res');
 fprintf('Done.\n');
 
+fprintf('\n=== REINSTATEMENT RESULTS ===\n');
+fprintf('Compared (n=%d):\n', height(results_comp));
+fprintf('  Match: M=%.3f (SD=%.3f)\n', mean(results_comp.match_score, 'omitnan'), std(results_comp.match_score, 'omitnan'));
+fprintf('  Baseline: M=%.3f (SD=%.3f)\n', mean(results_comp.baseline_score, 'omitnan'), std(results_comp.baseline_score, 'omitnan'));
+fprintf('  Reinst Index: M=%.3f (SD=%.3f)\n', mean(results_comp.reinst_index, 'omitnan'), std(results_comp.reinst_index, 'omitnan'));
+[~,p_c,~,s_c] = ttest(results_comp.match_score, results_comp.baseline_score);
+fprintf('  Match vs Baseline: t(%d)=%.2f, p=%.4f%s\n', s_c.df, s_c.tstat, p_c, repmat('*',1,(p_c<0.05)+(p_c<0.01)+(p_c<0.001)));
+
+fprintf('\nIsolated (n=%d):\n', height(results_iso));
+fprintf('  Match: M=%.3f (SD=%.3f)\n', mean(results_iso.match_score, 'omitnan'), std(results_iso.match_score, 'omitnan'));
+fprintf('  Baseline: M=%.3f (SD=%.3f)\n', mean(results_iso.baseline_score, 'omitnan'), std(results_iso.baseline_score, 'omitnan'));
+fprintf('  Reinst Index: M=%.3f (SD=%.3f)\n', mean(results_iso.reinst_index, 'omitnan'), std(results_iso.reinst_index, 'omitnan'));
+[~,p_i,~,s_i] = ttest(results_iso.match_score, results_iso.baseline_score);
+fprintf('  Match vs Baseline: t(%d)=%.2f, p=%.4f%s\n', s_i.df, s_i.tstat, p_i, repmat('*',1,(p_i<0.05)+(p_i<0.01)+(p_i<0.001)));
+fprintf('\nCompared vs Isolated Reinst Index:\n');
+[~,p_ci,~,s_ci] = ttest2(results_comp.reinst_index, results_iso.reinst_index);
+fprintf('  t(%d)=%.2f, p=%.4f%s\n', s_ci.df, s_ci.tstat, p_ci, repmat('*',1,(p_ci<0.05)+(p_ci<0.01)+(p_ci<0.001)));
+
+n_perm = 1000;
+
+fprintf('\n=== PERMUTATION TESTS ===\n');
+
+% Test 1: Compared reinstatement exists
+diffs_c = results_comp.match_score - results_comp.baseline_score;
+diffs_c = diffs_c(~isnan(diffs_c));
+obs_c = mean(diffs_c);
+null_c = zeros(n_perm,1);
+for p = 1:n_perm
+    signs = (rand(size(diffs_c)) > 0.5)*2 - 1;
+    null_c(p) = mean(diffs_c .* signs);
+end
+p_c = mean(abs(null_c) >= abs(obs_c));
+fprintf('Compared reinst > 0: M=%.3f, p=%.4f%s\n', obs_c, p_c, repmat('*',1,(p_c<0.05)+(p_c<0.01)+(p_c<0.001)));
+
+% Test 2: Isolated reinstatement exists
+diffs_i = results_iso.match_score - results_iso.baseline_score;
+diffs_i = diffs_i(~isnan(diffs_i));
+obs_i = mean(diffs_i);
+null_i = zeros(n_perm,1);
+for p = 1:n_perm
+    signs = (rand(size(diffs_i)) > 0.5)*2 - 1;
+    null_i(p) = mean(diffs_i .* signs);
+end
+p_i = mean(abs(null_i) >= abs(obs_i));
+fprintf('Isolated reinst > 0: M=%.3f, p=%.4f%s\n', obs_i, p_i, repmat('*',1,(p_i<0.05)+(p_i<0.01)+(p_i<0.001)));
+
+% Test 3: Compared vs Isolated
+obs_diff = obs_c - obs_i;
+pooled = [diffs_c; diffs_i];
+n_c = length(diffs_c); n_i = length(diffs_i);
+null_diff = zeros(n_perm,1);
+for p = 1:n_perm
+    perm_idx = randperm(length(pooled));
+    null_diff(p) = mean(pooled(perm_idx(1:n_c))) - mean(pooled(perm_idx(n_c+1:end)));
+end
+p_diff = mean(abs(null_diff) >= abs(obs_diff));
+fprintf('Compared > Isolated: diff=%.3f, p=%.4f%s\n', obs_diff, p_diff, repmat('*',1,(p_diff<0.05)+(p_diff<0.01)+(p_diff<0.001)));
+
+% Merge behavioral accuracy
+results_comp_behav = results_comp;
+results_comp_behav.correct = nan(height(results_comp_behav), 1);
+for i = 1:height(results_comp_behav)
+    trial_data = Mw(Mw.subj_id == results_comp_behav.subj_id(i) & ...
+                    Mw.trial_id == results_comp_behav.tr_2b(i) & ...
+                    strcmp(Mw.task, '2_back'), :);
+    if height(trial_data) > 0
+        results_comp_behav.correct(i) = trial_data.correct(1);
+    end
+end
+results_comp_behav = results_comp_behav(~isnan(results_comp_behav.correct), :);
+
+results_iso_behav = results_iso;
+results_iso_behav.correct = nan(height(results_iso_behav), 1);
+for i = 1:height(results_iso_behav)
+    trial_data = Mw(Mw.subj_id == results_iso_behav.subj_id(i) & ...
+                    Mw.trial_id == results_iso_behav.tr_2b(i) & ...
+                    strcmp(Mw.task, '2_back'), :);
+    if height(trial_data) > 0
+        results_iso_behav.correct(i) = trial_data.correct(1);
+    end
+end
+results_iso_behav = results_iso_behav(~isnan(results_iso_behav.correct), :);
+
+fprintf('\n=== CORRECT VS INCORRECT ===\n');
+
+% Compared
+corr_c = results_comp_behav(results_comp_behav.correct==1, :);
+incorr_c = results_comp_behav(results_comp_behav.correct==0, :);
+fprintf('Compared:\n');
+fprintf('  Correct (n=%d): M=%.3f (SD=%.3f)\n', height(corr_c), mean(corr_c.reinst_index,'omitnan'), std(corr_c.reinst_index,'omitnan'));
+fprintf('  Incorrect (n=%d): M=%.3f (SD=%.3f)\n', height(incorr_c), mean(incorr_c.reinst_index,'omitnan'), std(incorr_c.reinst_index,'omitnan'));
+[~,p_cc,~,s_cc] = ttest2(corr_c.reinst_index, incorr_c.reinst_index);
+fprintf('  Correct > Incorrect: t(%d)=%.2f, p=%.4f%s\n', s_cc.df, s_cc.tstat, p_cc, repmat('*',1,(p_cc<0.05)+(p_cc<0.01)+(p_cc<0.001)));
+
+% Isolated
+corr_i = results_iso_behav(results_iso_behav.correct==1, :);
+incorr_i = results_iso_behav(results_iso_behav.correct==0, :);
+fprintf('Isolated:\n');
+fprintf('  Correct (n=%d): M=%.3f (SD=%.3f)\n', height(corr_i), mean(corr_i.reinst_index,'omitnan'), std(corr_i.reinst_index,'omitnan'));
+fprintf('  Incorrect (n=%d): M=%.3f (SD=%.3f)\n', height(incorr_i), mean(incorr_i.reinst_index,'omitnan'), std(incorr_i.reinst_index,'omitnan'));
+[~,p_ci,~,s_ci] = ttest2(corr_i.reinst_index, incorr_i.reinst_index);
+fprintf('  Correct > Incorrect: t(%d)=%.2f, p=%.4f%s\n', s_ci.df, s_ci.tstat, p_ci, repmat('*',1,(p_ci<0.05)+(p_ci<0.01)+(p_ci<0.001)));
+
+% Visualization
+figure('Position', [100 100 1000 400]);
+
+subplot(1,2,1);
+hold on;
+x_corr = 1 + (rand(height(corr_c),1)-0.5)*0.2;
+x_incorr = 2 + (rand(height(incorr_c),1)-0.5)*0.2;
+scatter(x_corr, corr_c.reinst_index, 30, [0.3 0.7 0.3], 'filled', 'MarkerFaceAlpha', 0.4);
+scatter(x_incorr, incorr_c.reinst_index, 30, [0.8 0.3 0.3], 'filled', 'MarkerFaceAlpha', 0.4);
+boxplot([corr_c.reinst_index; incorr_c.reinst_index], [ones(height(corr_c),1); 2*ones(height(incorr_c),1)], ...
+    'Labels', {'Correct','Incorrect'}, 'Colors', 'k', 'Symbol', '');
+ylabel('Reinstatement Index', 'FontSize', 12, 'FontWeight', 'bold');
+title('Compared', 'FontSize', 14, 'FontWeight', 'bold');
+ylim([-0.5 1]); grid on; yline(0, 'k--', 'LineWidth', 1); hold off;
+
+subplot(1,2,2);
+hold on;
+x_corr = 1 + (rand(height(corr_i),1)-0.5)*0.2;
+x_incorr = 2 + (rand(height(incorr_i),1)-0.5)*0.2;
+scatter(x_corr, corr_i.reinst_index, 30, [0.3 0.7 0.3], 'filled', 'MarkerFaceAlpha', 0.4);
+scatter(x_incorr, incorr_i.reinst_index, 30, [0.8 0.3 0.3], 'filled', 'MarkerFaceAlpha', 0.4);
+boxplot([corr_i.reinst_index; incorr_i.reinst_index], [ones(height(corr_i),1); 2*ones(height(incorr_i),1)], ...
+    'Labels', {'Correct','Incorrect'}, 'Colors', 'k', 'Symbol', '');
+ylabel('Reinstatement Index', 'FontSize', 12, 'FontWeight', 'bold');
+title('Isolated', 'FontSize', 14, 'FontWeight', 'bold');
+ylim([-0.5 1]); grid on; yline(0, 'k--', 'LineWidth', 1); hold off;
+
+
 function map = create_fixation_map(x, y, dur, params)
     in_roi = x >= params.roi_x(1) & x <= params.roi_x(2) & ...
              y >= params.roi_y(1) & y <= params.roi_y(2);
