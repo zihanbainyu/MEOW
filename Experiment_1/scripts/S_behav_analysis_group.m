@@ -283,36 +283,7 @@ print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% gaze reinstatement
 load(fullfile(out_dir, 'gaze_reinstatement_results.mat'));
-comp_subj = grpstats(reinstatement_results.compared, 'subj_id', 'mean', 'DataVars', 'reinst_score');
-iso_subj = grpstats(reinstatement_results.isolated, 'subj_id', 'mean', 'DataVars', 'reinst_score');
-[~, ic, ii] = intersect(comp_subj.subj_id, iso_subj.subj_id);
-gz_comp = comp_subj.mean_reinst_score(ic); 
-gz_iso = iso_subj.mean_reinst_score(ii);
 
-fprintf('gaze reinstatement: comp %s, iso %s\n', fmt_desc(gz_comp), fmt_desc(gz_iso));
-n_perms = 1000;
-[p_c, d_c] = run_permutation(gz_comp, 0.5, n_perms);
-[p_i, d_i] = run_permutation(gz_iso, 0.5, n_perms);
-[p_ci, d_ci] = run_permutation(gz_comp, gz_iso, n_perms);
-sig_str = @(p) repmat('*', 1, (p<0.05)+(p<0.01)+(p<0.001));
-fprintf('  comp>0.5: diff=%.3f p=%.4f %s\n', d_c, p_c, sig_str(p_c));
-fprintf('  iso>0.5: diff=%.3f p=%.4f %s\n', d_i, p_i, sig_str(p_i));
-fprintf('  comp vs iso: diff=%.3f p=%.4f %s\n', d_ci, p_ci, sig_str(p_ci));
-
-figure('color','w','Position',[100 100 600 500]); hold on;
-fill([0 3 3 0], [0.5 0.5 0 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
-yline(0.5, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-data = [gz_comp, gz_iso];
-raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement Score', 'Gaze Reinstatement (Lure Discrimination)');
-add_sig_perm(data, [1 0; 2 0; 1 2], [p_c; p_i; p_ci]);
-print(gcf, 'Gaze_Reinstatement_Figure.pdf', '-dpdf', '-vector', '-painters');
-
-diffs = gz_comp - gz_iso;
-figure('Color','w'); yline(0, 'k--'); hold on;
-swarmchart(ones(size(diffs)), diffs, 50, 'k', 'filled', 'MarkerFaceAlpha', 0.5);
-boxplot(diffs, 'Colors', 'k', 'Symbol', '');
-title(sprintf('indiv diff (comp-iso): %d/%d positive', sum(diffs>0), length(diffs)));
-ylabel('Reinstatement Difference'); xlim([0.5 1.5]); set(gca, 'XTick', []);
 
 
 %%%%%%%%%%%%%%%%

@@ -3,7 +3,7 @@ clear; clc; close all;
 sub_list = [501, 601, 602, 603, 604, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 617];
 tasks = [1, 2]; task_lbls = {'1_back', '2_back'};
 base_dir = '..'; out_dir = fullfile(base_dir, 'data', 'eye_movement_data'); behav_dir = fullfile(base_dir, 'data');
-addpath(genpath('/Users/bai/Documents/GitHub/MEOW/toolbox/ScanMatch'));
+
 % [all_fix, all_sac, all_blk, all_sum, all_behav] = deal({});
 % 
 % for s_idx = 1:length(sub_list)
@@ -137,118 +137,139 @@ fprintf('1B: comp=%d, iso=%d trials\n', height(tr_one_b_comp), height(tr_one_b_i
 fprintf('2B: comp=%d, iso=%d trials\n', height(tr_two_b_comp), height(tr_two_b_iso));
 fprintf('matched pairs: comp=%d, iso=%d\n\n', height(pairs_comp), height(pairs_iso));
 
-ScanMatchInfo.Xres = 1920;
-ScanMatchInfo.Yres = 1080;
-ScanMatchInfo.Xbin = 8; ScanMatchInfo.Ybin = 8;
-ScanMatchInfo.RoiModulus = 12;
-ScanMatchInfo.Threshold = 3.5; 
-ScanMatchInfo.GapValue = 0; 
-ScanMatchInfo.TempBin = 0;
-ScanMatchInfo.mask = ScanMatch_GridMask(ScanMatchInfo.Xres, ScanMatchInfo.Yres, ScanMatchInfo.Xbin, ScanMatchInfo.Ybin);
-ScanMatchInfo.SubMatrix = ScanMatch_CreateSubMatrix(ScanMatchInfo.Xbin, ScanMatchInfo.Ybin, ScanMatchInfo.Threshold);
-
+spatial_params.xres = 1920; spatial_params.yres = 1080;
+spatial_params.roi_x = [760, 1160]; spatial_params.roi_y = [340, 740];
+spatial_params.grid_x = 20; spatial_params.grid_y = 20;
+spatial_params.sigma = 2;
 n_baseline = 20;
-results_comp = table(); results_iso = table();
 
 all_1b_comp_trials = unique(Mw(one_b_comp_idx, {'subj_id','trial_id','stim_id'}));
 all_1b_iso_trials = unique(Mw(one_b_iso_idx, {'subj_id','trial_id','stim_id'}));
 
+subj_baseline_comp = struct();
+subj_baseline_iso = struct();
+unique_subjs = unique(pairs_comp.subj_id);
+
+for s_idx = 1:length(unique_subjs)
+    sid = unique_subjs(s_idx);
+    pool_comp = all_1b_comp_trials(all_1b_comp_trials.subj_id==sid, :);
+    pool_iso = all_1b_iso_trials(all_1b_iso_trials.subj_id==sid, :);
+    
+    if height(pool_comp) >= n_baseline
+        rng(sid); 
+        subj_baseline_comp.(sprintf('s%d', sid)) = pool_comp.trial_id(randperm(height(pool_comp), n_baseline));
+    end
+    
+    if height(pool_iso) >= n_baseline
+        rng(sid+10000);
+        subj_baseline_iso.(sprintf('s%d', sid)) = pool_iso.trial_id(randperm(height(pool_iso), n_baseline));
+    end
+end
+
+results_comp = []; results_iso = [];
+
 for i = 1:height(pairs_comp)
     pair = pairs_comp(i,:);
+    skey = sprintf('s%d', pair.subj_id);
+    if ~isfield(subj_baseline_comp, skey), continue; end
+    
+    baseline_trials = subj_baseline_comp.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_one_b);
+    if length(baseline_trials) < n_baseline, continue; end
+    baseline_trials = baseline_trials(1:n_baseline);
+    
     fix_1b_match = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
     fix_2b = Mw(strcmp(Mw.task, '2_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
     
-    data_2b = [fix_2b.x, fix_2b.y, fix_2b.dur/1000];
-    seq_2b = ScanMatch_FixationToSequence(data_2b, ScanMatchInfo);
-    
-    data_1b_match = [fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur/1000];
-    seq_1b_match = ScanMatch_FixationToSequence(data_1b_match, ScanMatchInfo);
-    match_score = ScanMatch(seq_1b_match, seq_2b, ScanMatchInfo);
-    
-    pool = all_1b_comp_trials(all_1b_comp_trials.subj_id==pair.subj_id & ~strcmp(all_1b_comp_trials.stim_id, pair.stim_id), :);
-    n_avail = height(pool);
-    if n_avail < n_baseline, continue; end
+    map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+    map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+    match_score = corr(map_1b_match(:), map_2b(:));
     
     mismatch_scores = nan(n_baseline, 1);
-    rng(i); sample_idx = randperm(n_avail, n_baseline);
     for j = 1:n_baseline
-        tr_mismatch = pool.trial_id(sample_idx(j));
+        tr_mismatch = baseline_trials(j);
         fix_1b_mismatch = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==tr_mismatch, :);
         if height(fix_1b_mismatch) < 2, continue; end
-        data_1b_mismatch = [fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur/1000];
-        seq_1b_mismatch = ScanMatch_FixationToSequence(data_1b_mismatch, ScanMatchInfo);
-        mismatch_scores(j) = ScanMatch(seq_1b_mismatch, seq_2b, ScanMatchInfo);
+        map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+        mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
     
     baseline_score = mean(mismatch_scores, 'omitnan');
     reinst_index = match_score - baseline_score;
     
-    results_comp = [results_comp; {pair.subj_id, pair.tr_one_b, pair.tr_two_b, pair.stim_id{1}, ...
-        match_score, baseline_score, reinst_index}];
-    if mod(i, 50) == 0, fprintf('Compared: %d/%d\n', i, height(pairs_comp)); end
+    results_comp = [results_comp; pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, reinst_index];
 end
-results_comp.Properties.VariableNames = {'subj_id','tr_1b','tr_2b','stim_id','match_score','baseline_score','reinst_index','n_baseline'};
 
 for i = 1:height(pairs_iso)
     pair = pairs_iso(i,:);
+    skey = sprintf('s%d', pair.subj_id);
+    if ~isfield(subj_baseline_iso, skey), continue; end
+    
+    baseline_trials = subj_baseline_iso.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_one_b);
+    if length(baseline_trials) < n_baseline, continue; end
+    baseline_trials = baseline_trials(1:n_baseline);
+    
     fix_1b_match = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
     fix_2b = Mw(strcmp(Mw.task, '2_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
     
-    data_2b = [fix_2b.x, fix_2b.y, fix_2b.dur/1000];
-    seq_2b = ScanMatch_FixationToSequence(data_2b, ScanMatchInfo);
-    
-    data_1b_match = [fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur/1000];
-    seq_1b_match = ScanMatch_FixationToSequence(data_1b_match, ScanMatchInfo);
-    match_score = ScanMatch(seq_1b_match, seq_2b, ScanMatchInfo);
-    
-    pool = all_1b_iso_trials(all_1b_iso_trials.subj_id==pair.subj_id & ~strcmp(all_1b_iso_trials.stim_id, pair.stim_id), :);
-    n_avail = height(pool);
-    if n_avail < n_baseline, continue; end
+    map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+    map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+    match_score = corr(map_1b_match(:), map_2b(:));
     
     mismatch_scores = nan(n_baseline, 1);
-    rng(i+10000); sample_idx = randperm(n_avail, n_baseline);
     for j = 1:n_baseline
-        tr_mismatch = pool.trial_id(sample_idx(j));
+        tr_mismatch = baseline_trials(j);
         fix_1b_mismatch = Mw(strcmp(Mw.task, '1_back') & Mw.subj_id==pair.subj_id & Mw.trial_id==tr_mismatch, :);
         if height(fix_1b_mismatch) < 2, continue; end
-        data_1b_mismatch = [fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur/1000];
-        seq_1b_mismatch = ScanMatch_FixationToSequence(data_1b_mismatch, ScanMatchInfo);
-        mismatch_scores(j) = ScanMatch(seq_1b_mismatch, seq_2b, ScanMatchInfo);
+        map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+        mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
     
     baseline_score = mean(mismatch_scores, 'omitnan');
     reinst_index = match_score - baseline_score;
     
-    results_iso = [results_iso; {pair.subj_id, pair.tr_one_b, pair.tr_two_b, pair.stim_id{1}, ...
-        match_score, baseline_score, reinst_index}];
-    if mod(i, 50) == 0, fprintf('Isolated: %d/%d\n', i, height(pairs_iso)); end
+    results_iso = [results_iso; pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, reinst_index];
 end
-results_iso.Properties.VariableNames = {'subj_id','tr_1b','tr_2b','stim_id','match_score','baseline_score','reinst_index'};
 
-fprintf('\n=== REINSTATEMENT RESULTS ===\n');
-fprintf('Compared (n=%d):\n', height(results_comp));
-fprintf('  Match: M=%.3f (SD=%.3f)\n', mean(results_comp.match_score), std(results_comp.match_score));
-fprintf('  Baseline: M=%.3f (SD=%.3f)\n', mean(results_comp.baseline_score), std(results_comp.baseline_score));
-fprintf('  Reinst Index: M=%.3f (SD=%.3f)\n', mean(results_comp.reinst_index), std(results_comp.reinst_index));
-fprintf('Isolated (n=%d):\n', height(results_iso));
-fprintf('  Match: M=%.3f (SD=%.3f)\n', mean(results_iso.match_score), std(results_iso.match_score));
-fprintf('  Baseline: M=%.3f (SD=%.3f)\n', mean(results_iso.baseline_score), std(results_iso.baseline_score));
-fprintf('  Reinst Index: M=%.3f (SD=%.3f)\n', mean(results_iso.reinst_index), std(results_iso.reinst_index));
+results_comp = array2table(results_comp, 'VariableNames', {'subj_id','tr_1b','tr_2b','match_score','baseline_score','reinst_index'});
+results_iso = array2table(results_iso, 'VariableNames', {'subj_id','tr_1b','tr_2b','match_score','baseline_score','reinst_index'});
 
-reinstatement_results = struct(); 
-
-results_comp = outerjoin(results_comp, Mw(:, {'subj_id','trial_id','correct','rt','resp_key'}), ...
-    'LeftKeys', {'subj_id','tr_2b'}, 'RightKeys', {'subj_id','trial_id'}, 'Type', 'left', 'MergeKeys', true);
-results_comp = renamevars(results_comp, 'trial_id', 'tr_2b');
-
-results_iso = outerjoin(results_iso, Mw(:, {'subj_id','trial_id','correct','rt','resp_key'}), ...
-    'LeftKeys', {'subj_id','tr_2b'}, 'RightKeys', {'subj_id','trial_id'}, 'Type', 'left', 'MergeKeys', true);
-results_iso = renamevars(results_iso, 'trial_id', 'tr_2b');
-
-reinstatement_results.compared = results_comp;
-reinstatement_results.isolated = results_iso; 
-reinstatement_results.ScanMatchInfo = ScanMatchInfo;
-% save(fullfile(out_dir, 'gaze_reinstatement_results.mat'), 'reinstatement_results');
+reinstat_res = struct(); 
+reinstat_res.compared = results_comp;
+reinstat_res.isolated = results_iso; 
+reinstat_res.spatial_params = spatial_params;
+save(fullfile(out_dir, 'gaze_reinstat_res.mat'), 'reinstat_res');
 fprintf('Done.\n');
+
+function map = create_fixation_map(x, y, dur, params)
+    in_roi = x >= params.roi_x(1) & x <= params.roi_x(2) & ...
+             y >= params.roi_y(1) & y <= params.roi_y(2);
+    x = x(in_roi); y = y(in_roi); dur = dur(in_roi);
+    
+    if isempty(x)
+        map = zeros(params.grid_y, params.grid_x);
+        return;
+    end
+    
+    x_bins = linspace(params.roi_x(1), params.roi_x(2), params.grid_x+1);
+    y_bins = linspace(params.roi_y(1), params.roi_y(2), params.grid_y+1);
+    map = zeros(params.grid_y, params.grid_x);
+    
+    for i = 1:length(x)
+        x_idx = find(x(i) >= x_bins(1:end-1) & x(i) < x_bins(2:end), 1);
+        y_idx = find(y(i) >= y_bins(1:end-1) & y(i) < y_bins(2:end), 1);
+        if ~isempty(x_idx) && ~isempty(y_idx)
+            map(y_idx, x_idx) = map(y_idx, x_idx) + dur(i);
+        end
+    end
+    
+    if params.sigma > 0
+        map = imgaussfilt(map, params.sigma);
+    end
+    if sum(map(:)) > 0
+        map = map / sum(map(:));
+    end
+end

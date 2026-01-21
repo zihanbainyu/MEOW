@@ -1,7 +1,7 @@
 spatial_params.xres = 1920; spatial_params.yres = 1080;
 spatial_params.roi_x = [760, 1160]; spatial_params.roi_y = [340, 740];
 spatial_params.grid_x = 20; spatial_params.grid_y = 20;
-spatial_params.sigma = 1.5;
+spatial_params.sigma = 2;
 n_baseline = 20;
 
 all_1b_comp_trials = unique(Mw(one_b_comp_idx, {'subj_id','trial_id','stim_id'}));
@@ -60,7 +60,6 @@ for i = 1:height(pairs_comp)
     reinst_index = match_score - baseline_score;
     
     results_comp = [results_comp; pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, reinst_index];
-    if mod(i, 50) == 0, fprintf('Compared: %d/%d\n', i, height(pairs_comp)); end
 end
 
 for i = 1:height(pairs_iso)
@@ -94,7 +93,6 @@ for i = 1:height(pairs_iso)
     reinst_index = match_score - baseline_score;
     
     results_iso = [results_iso; pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, reinst_index];
-    if mod(i, 50) == 0, fprintf('Isolated: %d/%d\n', i, height(pairs_iso)); end
 end
 
 results_comp = array2table(results_comp, 'VariableNames', {'subj_id','tr_1b','tr_2b','match_score','baseline_score','reinst_index'});
@@ -160,38 +158,11 @@ p_diff = mean(abs(null_diff) >= abs(obs_diff));
 fprintf('Compared > Isolated: diff=%.3f, p=%.4f%s\n', obs_diff, p_diff, repmat('*',1,(p_diff<0.05)+(p_diff<0.01)+(p_diff<0.001)));
 
 
-figure('Position', [100 100 800 400]);
-subplot(1,2,1);
-hold on;
-data_c = [results_comp.match_score, results_comp.baseline_score];
-for i = 1:2
-    x = i + (rand(height(results_comp),1)-0.5)*0.2;
-    scatter(x, data_c(:,i), 30, [0.5 0.5 0.5], 'filled', 'MarkerFaceAlpha', 0.3);
-end
-boxplot(data_c, 'Labels', {'Match','Baseline'}, 'Colors', 'k', 'Symbol', '');
-ylabel('Spatial Correlation', 'FontSize', 12, 'FontWeight', 'bold');
-title('Compared', 'FontSize', 14, 'FontWeight', 'bold');
-ylim([-1 1]); grid on; hold off;
-
-subplot(1,2,2);
-hold on;
-data_i = [results_iso.match_score, results_iso.baseline_score];
-for i = 1:2
-    x = i + (rand(height(results_iso),1)-0.5)*0.2;
-    scatter(x, data_i(:,i), 30, [0.5 0.5 0.5], 'filled', 'MarkerFaceAlpha', 0.3);
-end
-boxplot(data_i, 'Labels', {'Match','Baseline'}, 'Colors', 'k', 'Symbol', '');
-ylabel('Spatial Correlation', 'FontSize', 12, 'FontWeight', 'bold');
-title('Isolated', 'FontSize', 14, 'FontWeight', 'bold');
-ylim([-1 1]); grid on; hold off;
-
-saveas(gcf, fullfile(out_dir, 'gaze_reinstatement_match_baseline.png'));
-
 reinstatement_results = struct(); 
 reinstatement_results.compared = results_comp;
 reinstatement_results.isolated = results_iso; 
 reinstatement_results.spatial_params = spatial_params;
-save(fullfile(out_dir, 'gaze_reinstatement_results.mat'), 'reinstatement_results');
+% save(fullfile(out_dir, 'gaze_reinstatement_results.mat'), 'reinstatement_results');
 fprintf('Done.\n');
 
 function map = create_fixation_map(x, y, dur, params)
