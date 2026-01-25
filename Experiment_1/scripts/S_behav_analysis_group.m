@@ -410,6 +410,47 @@ set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, 'Gaze_Reinstatement_Permutation_Distributions.pdf', '-dpdf', '-r300');
 saveas(gcf, 'Gaze_Reinstatement_Permutation_Distributions.pdf', 'pdf');
 
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% predict LDI from GR
+%%%%%%%%%%%%%%%%%%%%%%%
+figure('color','w','position',[50 50 800 400]);
+ldi_comp = get_v('two','ldi_comp')';
+ldi_iso = get_v('two','ldi_iso')';
+
+subplot(1,2,1); hold on;
+valid = ~isnan(reinst_bb_comp_subj) & ~isnan(ldi_comp) & ldi_comp <= 0.8;
+x = reinst_bb_comp_subj(valid);
+y = ldi_comp(valid);
+scatter(x, y, 60, c_comp, 'filled', 'MarkerFaceAlpha', 0.6);
+[r, p] = corr(x, y);
+p_fit = polyfit(x, y, 1);
+x_fit = linspace(min(x), max(x), 100);
+plot(x_fit, polyval(p_fit, x_fit), 'Color', c_comp, 'LineWidth', 2);
+xlabel('Gaze Reinstatement Index', 'FontSize', 12);
+ylabel('LDI', 'FontSize', 12);
+title(sprintf('compared: r=%.2f, p=%.3f (n=%d)', r, p, sum(valid)), 'FontSize', 14);
+grid off; box off;
+
+subplot(1,2,2); hold on;
+valid = ~isnan(reinst_bb_iso_subj) & ~isnan(ldi_iso) & ldi_iso <= 0.8;
+x = reinst_bb_iso_subj(valid);
+y = ldi_iso(valid);
+scatter(x, y, 60, c_iso, 'filled', 'MarkerFaceAlpha', 0.6);
+[r, p] = corr(x, y);
+p_fit = polyfit(x, y, 1);
+x_fit = linspace(min(x), max(x), 100);
+plot(x_fit, polyval(p_fit, x_fit), 'Color', c_iso, 'LineWidth', 2);
+xlabel('Gaze Reinstatement Index', 'FontSize', 12);
+ylabel('LDI', 'FontSize', 12);
+title(sprintf('isolated: r=%.2f, p=%.3f (n=%d)', r, p, sum(valid)), 'FontSize', 14);
+grid off; box off;
+
+sgtitle('Predict LDI from Gaze Reinstatement', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, 'gaze_reinstat_ldi.pdf', '-dpdf', '-vector');
+saveas(gcf, 'gaze_reinstat_ldi.pdf', 'pdf');
+
 %%%%%%%%%%%%%%%%
 % stats summary
 %%%%%%%%%%%%%%%%
