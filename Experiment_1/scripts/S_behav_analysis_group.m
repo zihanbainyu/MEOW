@@ -178,6 +178,60 @@ for s = 1:length(subj_ids)
 end
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 save(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
+fprintf('\nLoading gaze reinstatement data...\n');
+load(fullfile(res_dir, 'gaze_reinstat_res_m.mat'));
+results_bb_comp = reinstat_res.bb_compared;
+results_bb_iso = reinstat_res.bb_isolated;
+results_ba_comp = reinstat_res.ba_compared;
+results_ba_iso = reinstat_res.ba_isolated;
+n_all = length(subj_ids);
+
+% Initialize arrays for gaze reinstatement
+match_bb_comp_subj = nan(n_all, 1);
+match_bb_iso_subj = nan(n_all, 1);
+baseline_bb_comp_subj = nan(n_all, 1);
+baseline_bb_iso_subj = nan(n_all, 1);
+reinst_bb_comp_subj = nan(n_all, 1);
+reinst_bb_iso_subj = nan(n_all, 1);
+
+match_ba_comp_subj = nan(n_all, 1);
+match_ba_iso_subj = nan(n_all, 1);
+baseline_ba_comp_subj = nan(n_all, 1);
+baseline_ba_iso_subj = nan(n_all, 1);
+reinst_ba_comp_subj = nan(n_all, 1);
+reinst_ba_iso_subj = nan(n_all, 1);
+
+% Extract subject-level data
+for i = 1:n_all
+    sid = subj_ids(i);
+    match_bb_comp_subj(i) = mean(results_bb_comp.match_score(results_bb_comp.subj_id == sid), 'omitnan');
+    match_bb_iso_subj(i) = mean(results_bb_iso.match_score(results_bb_iso.subj_id == sid), 'omitnan');
+    baseline_bb_comp_subj(i) = mean(results_bb_comp.baseline_score(results_bb_comp.subj_id == sid), 'omitnan');
+    baseline_bb_iso_subj(i) = mean(results_bb_iso.baseline_score(results_bb_iso.subj_id == sid), 'omitnan');
+    reinst_bb_comp_subj(i) = mean(results_bb_comp.reinst_index(results_bb_comp.subj_id == sid), 'omitnan');
+    reinst_bb_iso_subj(i) = mean(results_bb_iso.reinst_index(results_bb_iso.subj_id == sid), 'omitnan');
+    
+    match_ba_comp_subj(i) = mean(results_ba_comp.match_score(results_ba_comp.subj_id == sid), 'omitnan');
+    match_ba_iso_subj(i) = mean(results_ba_iso.match_score(results_ba_iso.subj_id == sid), 'omitnan');
+    baseline_ba_comp_subj(i) = mean(results_ba_comp.baseline_score(results_ba_comp.subj_id == sid), 'omitnan');
+    baseline_ba_iso_subj(i) = mean(results_ba_iso.baseline_score(results_ba_iso.subj_id == sid), 'omitnan');
+    reinst_ba_comp_subj(i) = mean(results_ba_comp.reinst_index(results_ba_comp.subj_id == sid), 'omitnan');
+    reinst_ba_iso_subj(i) = mean(results_ba_iso.reinst_index(results_ba_iso.subj_id == sid), 'omitnan');
+end
+
+% Permutation tests
+n_perm = 1000;
+fprintf('Running permutation tests...\n');
+[p_match_bb_comp, ~] = run_permutation(match_bb_comp_subj, baseline_bb_comp_subj, n_perm);
+[p_match_bb_iso, ~] = run_permutation(match_bb_iso_subj, baseline_bb_iso_subj, n_perm);
+[p_reinst_bb, ~] = run_permutation(reinst_bb_comp_subj, reinst_bb_iso_subj, n_perm);
+
+[p_match_ba_comp, ~] = run_permutation(match_ba_comp_subj, baseline_ba_comp_subj, n_perm);
+[p_match_ba_iso, ~] = run_permutation(match_ba_iso_subj, baseline_ba_iso_subj, n_perm);
+[p_reinst_ba, ~] = run_permutation(reinst_ba_comp_subj, reinst_ba_iso_subj, n_perm);
+
+[p_comp_bb_ba, ~] = run_permutation(reinst_bb_comp_subj, reinst_ba_comp_subj, n_perm);
+[p_iso_bb_ba, ~] = run_permutation(reinst_bb_iso_subj, reinst_ba_iso_subj, n_perm);
 
 % 
 % %% visualization
@@ -278,29 +332,83 @@ save(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % print(gcf, 'Recog_Figures.tiff', '-dtiff', '-r300'); 
 
 
-figure('color','w','position',[100 100 1200 400]);
-subplot(1,3,1);
-data = [match_comp_subj, baseline_comp_subj];
-raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'compared', [0,1]);
+
+% %%%%%%%%%%%%%%%%%%%%%%%
+% gaze reinstatement
+% %%%%%%%%%%%%%%%%%%%%%%%
+
+% spatial similarity match vs mismatch
+figure('color','w','position',[50 50 1000 800]);
+
+subplot(2,2,1);
+data = [match_bb_comp_subj, baseline_bb_comp_subj];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B compared', [0,1]);
 set(gca, 'YTick', [0 0.25 0.5 0.75 1]);
-add_sig_perm(data, [1 2], p_match_comp);
+add_sig_perm(data, [1 2], p_match_bb_comp);
 
-subplot(1,3,2);
-data = [match_iso_subj, baseline_iso_subj];
-raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'isolated', [0,1]);
+subplot(2,2,2);
+data = [match_bb_iso_subj, baseline_bb_iso_subj];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B isolated', [0,1]);
 set(gca, 'YTick', [0 0.25 0.5 0.75 1]);
-add_sig_perm(data, [1 2], p_match_iso);
+add_sig_perm(data, [1 2], p_match_bb_iso);
 
-subplot(1,3,3);
-data = [reinst_comp_subj, reinst_iso_subj];
-hold on; yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-raincloud(data, {c_comp, c_iso}, {'compared','isolated'}, 'Gaze Reinstatement', 'Gaze Reinstatement', [-0.1 0.5]);
-set(gca, 'YTick', [-0.1 0 0.1 0.2 0.3 0.4 0.5]);
-add_sig_perm(data, [1 2], p_reinst); hold off;
+subplot(2,2,3);
+data = [match_ba_comp_subj, baseline_ba_comp_subj];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A compared (predictive)', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]);
+add_sig_perm(data, [1 2], p_match_ba_comp);
 
-sgtitle('Gaze Reinstatement Analysis', 'FontSize', 16);
+subplot(2,2,4);
+data = [match_ba_iso_subj, baseline_ba_iso_subj];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A isolated (predictive)', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]);
+add_sig_perm(data, [1 2], p_match_ba_iso);
 set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, 'Gaze_Reinstatement_Figures.pdf', '-dpdf', '-r300');
+print(gcf, 'Gaze_Reinstatement_BB_BA_Figures.pdf', '-dpdf', '-vector');
+saveas(gcf, 'Gaze_Reinstatement_BB_BA_Figures.pdf', 'pdf');
+
+% gaze reinstatement index
+figure('color','w','position',[50 50 800 600]);
+data_matrix = [reinst_bb_comp_subj, reinst_bb_iso_subj, reinst_ba_comp_subj, reinst_ba_iso_subj];
+labels = {'comp B-B', 'iso B-B', 'comp B-A', 'iso B-A'};
+colors = {c_comp, c_iso, c_comp, c_iso};
+hold on;
+yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+raincloud(data_matrix, colors, labels, 'Gaze Reinstatement Index', ...
+    'Gaze Reinstatement', [-0.1 0.4]);
+set(gca, 'YTick', [-0.1 0 0.1 0.2 0.3 0.4]);
+pairs_to_test = [1 2; 3 4; 1 3]; 
+pvals = [p_reinst_bb; p_reinst_ba; p_comp_bb_ba]; 
+add_sig_perm(data_matrix, pairs_to_test, pvals);
+hold off;
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, 'Gaze_Reinstatement_Permutation_Distributions.pdf', '-dpdf', '-vector');
+saveas(gcf, 'gaze_inrestat_index.pdf', 'pdf');
+
+% permutation tests
+figure('color','w','position',[50 50 1000 800]);
+perm_titles = {'B-B Compared', 'B-B Isolated', 'B-A Compared', 'B-A Isolated'};
+perm_data_A = {match_bb_comp_subj, match_bb_iso_subj, match_ba_comp_subj, match_ba_iso_subj};
+perm_data_B = {baseline_bb_comp_subj, baseline_bb_iso_subj, baseline_ba_comp_subj, baseline_ba_iso_subj};
+perm_colors = {c_comp, c_iso, c_comp, c_iso};
+for p = 1:4
+    subplot(2,2,p);
+    [p_val, obs_diff, null_dist] = run_permutation_with_dist(perm_data_A{p}, perm_data_B{p}, 1000);
+    h = histogram(null_dist, 30, 'FaceColor', [0.6 0.6 0.6], 'EdgeColor', 'w', 'FaceAlpha', 0.7);
+    hold on;
+    yl = [0 100]; set(gca, 'YTick', [0 25 50 75 100]);
+    line([obs_diff obs_diff], [0 yl(2)], 'Color', perm_colors{p}, 'LineWidth', 2.5);
+    title(perm_titles{p}, 'FontSize', 14);
+    xlabel('Gaze Reinstatement Index');
+    ylabel('Frequency');
+    legend('null distribution', 'ground-truth', 'Location', 'northwest');
+    text(obs_diff, yl(2)*0.8, sprintf(' p = %.3f', p_val), 'Color', perm_colors{p}, 'FontWeight', 'bold');
+    grid off; box off;
+end
+sgtitle('Permutation Tests', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, 'Gaze_Reinstatement_Permutation_Distributions.pdf', '-dpdf', '-r300');
+saveas(gcf, 'Gaze_Reinstatement_Permutation_Distributions.pdf', 'pdf');
 
 %%%%%%%%%%%%%%%%
 % stats summary
@@ -417,23 +525,24 @@ function do_corr_print(x, y, lbl)
     fprintf('%-22s: r=%6.2f, p=%.3f %s\n', lbl, r, p, sig);
 end
 function [p_val, obs_diff] = run_permutation(cond_A, cond_B, n_perms)
+    valid = ~isnan(cond_A) & ~isnan(cond_B);
+    cond_A = cond_A(valid);
+    cond_B = cond_B(valid);
+    
     if isscalar(cond_B)
         diffs = cond_A - cond_B;
-        obs_diff = mean(diffs);
-        null_dist = zeros(n_perms, 1);
-        for i = 1:n_perms
-            signs = sign(rand(size(diffs)) - 0.5);
-            null_dist(i) = mean(diffs .* signs);
-        end
     else
         diffs = cond_A - cond_B;
-        obs_diff = mean(diffs);
-        null_dist = zeros(n_perms, 1);
-        for i = 1:n_perms
-            signs = sign(rand(size(diffs)) - 0.5);
-            null_dist(i) = mean(diffs .* signs);
-        end
     end
+    
+    obs_diff = mean(diffs);
+    null_dist = zeros(n_perms, 1);
+    
+    for i = 1:n_perms
+        signs = sign(rand(size(diffs)) - 0.5);
+        null_dist(i) = mean(diffs .* signs);
+    end
+    
     p_val = mean(abs(null_dist) >= abs(obs_diff));
 end
 function add_sig_perm(data, pairs, pvals)
@@ -454,4 +563,15 @@ function add_sig_perm(data, pairs, pvals)
     end
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end
     hold off;
+end
+function [p_val, obs_diff, null_dist] = run_permutation_with_dist(cond_A, cond_B, n_perms)
+    valid = ~isnan(cond_A) & ~isnan(cond_B);
+    diffs = cond_A(valid) - cond_B(valid);
+    obs_diff = mean(diffs);
+    null_dist = zeros(n_perms, 1);
+    for i = 1:n_perms
+        signs = sign(rand(size(diffs)) - 0.5);
+        null_dist(i) = mean(diffs .* signs);
+    end
+    p_val = mean(abs(null_dist) >= abs(obs_diff));
 end

@@ -108,71 +108,91 @@ load(fullfile(out_dir, 'group_eye_movement_m.mat'));
 comp_idx = strcmp(Mw.condition, 'compared'); 
 iso_idx = strcmp(Mw.condition, 'isolated');
 ab_idx = strcmp(Mw.goal, 'A-B'); 
+a_idx = strcmp(Mw.identity, 'A');
 b_idx = strcmp(Mw.identity, 'B');
 task_1b_idx = strcmp(Mw.task, '1_back'); 
 task_2b_idx = strcmp(Mw.task, '2_back');
 
-one_b_comp_idx = task_1b_idx & b_idx & comp_idx; 
-one_b_iso_idx = task_1b_idx & b_idx & iso_idx;
-two_b_comp_idx = task_2b_idx & ab_idx & b_idx & comp_idx; 
-two_b_iso_idx = task_2b_idx & ab_idx & b_idx & iso_idx;
+one_b_b_comp_idx = task_1b_idx & b_idx & comp_idx; 
+one_b_b_iso_idx = task_1b_idx & b_idx & iso_idx;
+two_b_b_comp_idx = task_2b_idx & ab_idx & b_idx & comp_idx; 
+two_b_b_iso_idx = task_2b_idx & ab_idx & b_idx & iso_idx;
+two_b_a_comp_idx = task_2b_idx & ab_idx & a_idx & comp_idx; 
+two_b_a_iso_idx = task_2b_idx & ab_idx & a_idx & iso_idx;
 
-tr_one_b_comp = unique(Mw(one_b_comp_idx, {'subj_id','trial_id','stim_id'}));
-tr_one_b_iso = unique(Mw(one_b_iso_idx, {'subj_id','trial_id','stim_id'}));
-tr_two_b_comp = unique(Mw(two_b_comp_idx, {'subj_id','trial_id','stim_id'}));
-tr_two_b_iso = unique(Mw(two_b_iso_idx, {'subj_id','trial_id','stim_id'}));
+tr_one_b_b_comp = unique(Mw(one_b_b_comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_one_b_b_iso = unique(Mw(one_b_b_iso_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_b_comp = unique(Mw(two_b_b_comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_b_iso = unique(Mw(two_b_b_iso_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_a_comp = unique(Mw(two_b_a_comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_a_iso = unique(Mw(two_b_a_iso_idx, {'subj_id','trial_id','stim_id'}));
 
-pairs_comp = innerjoin(tr_one_b_comp, tr_two_b_comp, 'Keys', {'subj_id','stim_id'}, ...
+pairs_bb_comp = innerjoin(tr_one_b_b_comp, tr_two_b_b_comp, 'Keys', {'subj_id','stim_id'}, ...
     'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
-pairs_comp.Properties.VariableNames = {'subj_id','tr_one_b','stim_id','tr_two_b'};
+pairs_bb_comp.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
 
-pairs_iso = innerjoin(tr_one_b_iso, tr_two_b_iso, 'Keys', {'subj_id','stim_id'}, ...
+pairs_bb_iso = innerjoin(tr_one_b_b_iso, tr_two_b_b_iso, 'Keys', {'subj_id','stim_id'}, ...
     'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
-pairs_iso.Properties.VariableNames = {'subj_id','tr_one_b','stim_id','tr_two_b'};
+pairs_bb_iso.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
+
+tr_one_b_b_comp.base_id = regexprep(tr_one_b_b_comp.stim_id, '_B_', '_BASE_');
+tr_one_b_b_iso.base_id = regexprep(tr_one_b_b_iso.stim_id, '_B_', '_BASE_');
+tr_two_b_a_comp.base_id = regexprep(tr_two_b_a_comp.stim_id, '_A_', '_BASE_');
+tr_two_b_a_iso.base_id = regexprep(tr_two_b_a_iso.stim_id, '_A_', '_BASE_');
+
+pairs_ba_comp = innerjoin(tr_one_b_b_comp, tr_two_b_a_comp, 'Keys', {'subj_id','base_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id','base_id'}, 'RightVariables', {'trial_id','stim_id'});
+pairs_ba_comp.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id_b','base_id','tr_2b_a','stim_id_a'};
+
+pairs_ba_iso = innerjoin(tr_one_b_b_iso, tr_two_b_a_iso, 'Keys', {'subj_id','base_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id','base_id'}, 'RightVariables', {'trial_id','stim_id'});
+pairs_ba_iso.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id_b','base_id','tr_2b_a','stim_id_a'};
 
 fprintf('valid fixations: %d\n', height(Mw));
-fprintf('1back: comp=%d, iso=%d\n', height(tr_one_b_comp), height(tr_one_b_iso));
-fprintf('2back: comp=%d, iso=%d\n', height(tr_two_b_comp), height(tr_two_b_iso));
-fprintf('matched pairs: comp=%d, iso=%d\n\n', height(pairs_comp), height(pairs_iso));
+fprintf('1back B: comp=%d, iso=%d\n', height(tr_one_b_b_comp), height(tr_one_b_b_iso));
+fprintf('2back B: comp=%d, iso=%d\n', height(tr_two_b_b_comp), height(tr_two_b_b_iso));
+fprintf('2back A: comp=%d, iso=%d\n', height(tr_two_b_a_comp), height(tr_two_b_a_iso));
+fprintf('matched pairs B-B: comp=%d, iso=%d\n', height(pairs_bb_comp), height(pairs_bb_iso));
+fprintf('matched pairs B-A: comp=%d, iso=%d\n\n', height(pairs_ba_comp), height(pairs_ba_iso));
 
 spatial_params = struct('xres',1920,'yres',1080,'roi_x',[760,1160],'roi_y',[340,740],'grid_x',20,'grid_y',20,'sigma',2);
 n_baseline = 20;
 
-unique_subjs = unique(pairs_comp.subj_id);
-subj_baseline_comp = struct(); 
-subj_baseline_iso = struct();
+unique_subjs = unique(pairs_bb_comp.subj_id);
+subj_baseline_b_comp = struct(); 
+subj_baseline_b_iso = struct();
 
 for s_idx = 1:length(unique_subjs)
     sid = unique_subjs(s_idx);
-    pool_comp = tr_one_b_comp(tr_one_b_comp.subj_id==sid, :);
-    pool_iso = tr_one_b_iso(tr_one_b_iso.subj_id==sid, :);
+    pool_b_comp = tr_one_b_b_comp(tr_one_b_b_comp.subj_id==sid, :);
+    pool_b_iso = tr_one_b_b_iso(tr_one_b_b_iso.subj_id==sid, :);
     
-    if height(pool_comp) >= n_baseline
+    if height(pool_b_comp) >= n_baseline
         rng(sid); 
-        subj_baseline_comp.(sprintf('s%d', sid)) = pool_comp.trial_id(randperm(height(pool_comp), n_baseline));
+        subj_baseline_b_comp.(sprintf('s%d', sid)) = pool_b_comp.trial_id(randperm(height(pool_b_comp), n_baseline));
     end
     
-    if height(pool_iso) >= n_baseline
+    if height(pool_b_iso) >= n_baseline
         rng(sid+10000);
-        subj_baseline_iso.(sprintf('s%d', sid)) = pool_iso.trial_id(randperm(height(pool_iso), n_baseline));
+        subj_baseline_b_iso.(sprintf('s%d', sid)) = pool_b_iso.trial_id(randperm(height(pool_b_iso), n_baseline));
     end
 end
 
-results_comp = zeros(height(pairs_comp), 6);
-n_comp = 0;
+results_bb_comp = zeros(height(pairs_bb_comp), 6);
+n_bb_comp = 0;
 
-for i = 1:height(pairs_comp)
-    pair = pairs_comp(i,:); 
+for i = 1:height(pairs_bb_comp)
+    pair = pairs_bb_comp(i,:); 
     skey = sprintf('s%d', pair.subj_id);
-    if ~isfield(subj_baseline_comp, skey), continue; end
+    if ~isfield(subj_baseline_b_comp, skey), continue; end
     
-    baseline_trials = subj_baseline_comp.(skey);
-    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_one_b);
+    baseline_trials = subj_baseline_b_comp.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
     
-    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
-    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
+    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
     
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
@@ -188,26 +208,26 @@ for i = 1:height(pairs_comp)
     end
     
     baseline_score = mean(mismatch_scores, 'omitnan');
-    n_comp = n_comp + 1;
-    results_comp(n_comp,:) = [pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, match_score - baseline_score];
+    n_bb_comp = n_bb_comp + 1;
+    results_bb_comp(n_bb_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
 end
 
-results_comp = results_comp(1:n_comp,:);
-results_iso = zeros(height(pairs_iso), 6);
-n_iso = 0;
+results_bb_comp = results_bb_comp(1:n_bb_comp,:);
+results_bb_iso = zeros(height(pairs_bb_iso), 6);
+n_bb_iso = 0;
 
-for i = 1:height(pairs_iso)
-    pair = pairs_iso(i,:); 
+for i = 1:height(pairs_bb_iso)
+    pair = pairs_bb_iso(i,:); 
     skey = sprintf('s%d', pair.subj_id);
-    if ~isfield(subj_baseline_iso, skey), continue; end
+    if ~isfield(subj_baseline_b_iso, skey), continue; end
     
-    baseline_trials = subj_baseline_iso.(skey);
-    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_one_b);
+    baseline_trials = subj_baseline_b_iso.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
     
-    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_one_b, :);
-    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_two_b, :);
+    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
     
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
@@ -223,248 +243,106 @@ for i = 1:height(pairs_iso)
     end
     
     baseline_score = mean(mismatch_scores, 'omitnan');
-    n_iso = n_iso + 1;
-    results_iso(n_iso,:) = [pair.subj_id, pair.tr_one_b, pair.tr_two_b, match_score, baseline_score, match_score - baseline_score];
+    n_bb_iso = n_bb_iso + 1;
+    results_bb_iso(n_bb_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
 end
 
-results_iso = results_iso(1:n_iso,:);
+results_bb_iso = results_bb_iso(1:n_bb_iso,:);
 
-results_comp = array2table(results_comp, 'VariableNames', {'subj_id','tr_1b','tr_2b','match_score','baseline_score','reinst_index'});
-results_iso = array2table(results_iso, 'VariableNames', {'subj_id','tr_1b','tr_2b','match_score','baseline_score','reinst_index'});
+results_ba_comp = zeros(height(pairs_ba_comp), 6);
+n_ba_comp = 0;
 
-
-results_comp.correct_1_back = nan(height(results_comp), 1); 
-results_comp.correct_2_back = nan(height(results_comp), 1);
-for i = 1:height(results_comp)
-    tr_1b = Mw(Mw.subj_id == results_comp.subj_id(i) & Mw.trial_id == results_comp.tr_1b(i) & task_1b_idx, :);
-    if height(tr_1b) > 0, results_comp.correct_1_back(i) = tr_1b.correct(1); end
-    tr_2b = Mw(Mw.subj_id == results_comp.subj_id(i) & Mw.trial_id == results_comp.tr_2b(i) & task_2b_idx, :);
-    if height(tr_2b) > 0, results_comp.correct_2_back(i) = tr_2b.correct(1); end
-end
-
-results_iso.correct_1_back = nan(height(results_iso), 1); 
-results_iso.correct_2_back = nan(height(results_iso), 1);
-for i = 1:height(results_iso)
-    tr_1b = Mw(Mw.subj_id == results_iso.subj_id(i) & Mw.trial_id == results_iso.tr_1b(i) & task_1b_idx, :);
-    if height(tr_1b) > 0, results_iso.correct_1_back(i) = tr_1b.correct(1); end
-    tr_2b = Mw(Mw.subj_id == results_iso.subj_id(i) & Mw.trial_id == results_iso.tr_2b(i) & task_2b_idx, :);
-    if height(tr_2b) > 0, results_iso.correct_2_back(i) = tr_2b.correct(1); end
-end
-
-fprintf('\ncorrect vs incorrect 2back\n');
-corr_c = results_comp(results_comp.correct_2_back==1, :); 
-incorr_c = results_comp(results_comp.correct_2_back==0, :);
-fprintf('compared: correct n=%d m=%.3f sd=%.3f, incorrect n=%d m=%.3f sd=%.3f\n', ...
-    height(corr_c), mean(corr_c.reinst_index,'omitnan'), std(corr_c.reinst_index,'omitnan'), ...
-    height(incorr_c), mean(incorr_c.reinst_index,'omitnan'), std(incorr_c.reinst_index,'omitnan'));
-[~,p_cc,~,s_cc] = ttest2(corr_c.reinst_index, incorr_c.reinst_index);
-fprintf('  t%d=%.2f p=%.4f\n', s_cc.df, s_cc.tstat, p_cc);
-
-corr_i = results_iso(results_iso.correct_2_back==1, :); 
-incorr_i = results_iso(results_iso.correct_2_back==0, :);
-fprintf('isolated: correct n=%d m=%.3f sd=%.3f, incorrect n=%d m=%.3f sd=%.3f\n', ...
-    height(corr_i), mean(corr_i.reinst_index,'omitnan'), std(corr_i.reinst_index,'omitnan'), ...
-    height(incorr_i), mean(incorr_i.reinst_index,'omitnan'), std(incorr_i.reinst_index,'omitnan'));
-[~,p_ci,~,s_ci] = ttest2(corr_i.reinst_index, incorr_i.reinst_index);
-fprintf('  t%d=%.2f p=%.4f\n', s_ci.df, s_ci.tstat, p_ci);
-
-load(fullfile(res_dir, 'all_subjs_stats.mat'));
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617];
-get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
-
-matched_subjs = intersect(subj_ids, unique_subjs);
-n_matched = length(matched_subjs);
-ldi_comp_matched = nan(n_matched, 1); 
-ldi_iso_matched = nan(n_matched, 1);
-reinst_comp_matched = nan(n_matched, 1); 
-reinst_iso_matched = nan(n_matched, 1);
-
-for i = 1:n_matched
-    sid = matched_subjs(i); 
-    subj_idx = find(arrayfun(@(x) x.id, all_subjs) == sid);
-    if ~isempty(subj_idx)
-        ldi_comp_matched(i) = all_subjs(subj_idx).stats.two.ldi_comp;
-        ldi_iso_matched(i) = all_subjs(subj_idx).stats.two.ldi_iso;
+for i = 1:height(pairs_ba_comp)
+    pair = pairs_ba_comp(i,:); 
+    skey = sprintf('s%d', pair.subj_id);
+    if ~isfield(subj_baseline_b_comp, skey), continue; end
+    
+    baseline_trials = subj_baseline_b_comp.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+    if length(baseline_trials) < n_baseline, continue; end
+    baseline_trials = baseline_trials(1:n_baseline);
+    
+    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
+    if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+    
+    map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+    map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+    match_score = corr(map_1b_match(:), map_2b(:));
+    
+    mismatch_scores = nan(n_baseline, 1);
+    for j = 1:n_baseline
+        fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+        if height(fix_1b_mismatch) < 2, continue; end
+        map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+        mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
-    reinst_comp_matched(i) = mean(results_comp.reinst_index(results_comp.subj_id == sid), 'omitnan');
-    reinst_iso_matched(i) = mean(results_iso.reinst_index(results_iso.subj_id == sid), 'omitnan');
+    
+    baseline_score = mean(mismatch_scores, 'omitnan');
+    n_ba_comp = n_ba_comp + 1;
+    results_ba_comp(n_ba_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
 end
 
-% raincloud plots
-match_comp_subj = nan(n_all, 1);
-match_iso_subj = nan(n_all, 1);
-baseline_comp_subj = nan(n_all, 1);
-baseline_iso_subj = nan(n_all, 1);
+results_ba_comp = results_ba_comp(1:n_ba_comp,:);
+results_ba_iso = zeros(height(pairs_ba_iso), 6);
+n_ba_iso = 0;
 
-for i = 1:n_all
-    sid = subj_ids(i);
-    match_comp_subj(i) = mean(results_comp.match_score(results_comp.subj_id == sid), 'omitnan');
-    match_iso_subj(i) = mean(results_iso.match_score(results_iso.subj_id == sid), 'omitnan');
-    baseline_comp_subj(i) = mean(results_comp.baseline_score(results_comp.subj_id == sid), 'omitnan');
-    baseline_iso_subj(i) = mean(results_iso.baseline_score(results_iso.subj_id == sid), 'omitnan');
+for i = 1:height(pairs_ba_iso)
+    pair = pairs_ba_iso(i,:); 
+    skey = sprintf('s%d', pair.subj_id);
+    if ~isfield(subj_baseline_b_iso, skey), continue; end
+    
+    baseline_trials = subj_baseline_b_iso.(skey);
+    baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+    if length(baseline_trials) < n_baseline, continue; end
+    baseline_trials = baseline_trials(1:n_baseline);
+    
+    fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+    fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
+    if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+    
+    map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+    map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+    match_score = corr(map_1b_match(:), map_2b(:));
+    
+    mismatch_scores = nan(n_baseline, 1);
+    for j = 1:n_baseline
+        fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+        if height(fix_1b_mismatch) < 2, continue; end
+        map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+        mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
+    end
+    
+    baseline_score = mean(mismatch_scores, 'omitnan');
+    n_ba_iso = n_ba_iso + 1;
+    results_ba_iso(n_ba_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
 end
 
-figure('color','w','position',[100 100 1200 500]);
-subplot(1,2,1);
-match_mismatch_comp = [match_comp_subj, baseline_comp_subj];
-cols_comp = {{[180 174 211]/255}, {[200 200 200]/255}};
-raincloud(match_mismatch_comp, cols_comp, {'Match','Mismatch'}, 'Spatial Correlation', 'Compared Condition', []);
+results_ba_iso = results_ba_iso(1:n_ba_iso,:);
 
-subplot(1,2,2);
-match_mismatch_iso = [match_iso_subj, baseline_iso_subj];
-cols_iso = {{[176 230 255]/255}, {[200 200 200]/255}};
-raincloud(match_mismatch_iso, cols_iso, {'Match','Mismatch'}, 'Spatial Correlation', 'Isolated Condition', []);
+results_bb_comp = array2table(results_bb_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
+results_bb_iso = array2table(results_bb_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
+results_ba_comp = array2table(results_ba_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
+results_ba_iso = array2table(results_ba_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
 
-figure('color','w','position',[100 100 700 500]);
-reinst_by_cond = [reinst_comp_all, reinst_iso_all];
-cols_reinst = {{[180 174 211]/255}, {[176 230 255]/255}};
-raincloud(reinst_by_cond, cols_reinst, {'Compared','Isolated'}, 'Reinstatement Index', 'Gaze Reinstatement by Condition', []);
+reinstat_res = struct();
+reinstat_res.bb_compared = results_bb_comp;
+reinstat_res.bb_isolated = results_bb_iso;
+reinstat_res.ba_compared = results_ba_comp;
+reinstat_res.ba_isolated = results_ba_iso;
+reinstat_res.spatial_params = spatial_params;
 
-fprintf('\nsubject level correlations\n');
-valid = ~isnan(ldi_comp_matched) & ~isnan(reinst_comp_matched);
-[r_comp, p_comp] = corr(ldi_comp_matched(valid), reinst_comp_matched(valid));
-fprintf('compared: r=%.3f p=%.4f\n', r_comp, p_comp);
-
-valid = ~isnan(ldi_iso_matched) & ~isnan(reinst_iso_matched);
-[r_iso, p_iso] = corr(ldi_iso_matched(valid), reinst_iso_matched(valid));
-fprintf('isolated: r=%.3f p=%.4f\n', r_iso, p_iso);
-
-figure('color','w','position',[100 100 1200 500]);
-subplot(1,2,1); hold on;
-scatter(ldi_comp_matched, reinst_comp_matched, 60, [180 174 211]/255, 'filled', 'markerfacealpha', 0.6);
-valid = ~isnan(ldi_comp_matched) & ~isnan(reinst_comp_matched);
-p = polyfit(ldi_comp_matched(valid), reinst_comp_matched(valid), 1);
-x_fit = linspace(min(ldi_comp_matched(valid)), max(ldi_comp_matched(valid)), 100);
-plot(x_fit, polyval(p, x_fit), 'k-', 'linewidth', 2);
-xlabel('ldi score', 'fontsize', 12, 'fontweight', 'bold');
-ylabel('reinstatement index', 'fontsize', 12, 'fontweight', 'bold');
-title(sprintf('compared: r=%.3f p=%.4f', r_comp, p_comp), 'fontsize', 14, 'fontweight', 'bold');
-grid on; hold off;
-
-subplot(1,2,2); hold on;
-scatter(ldi_iso_matched, reinst_iso_matched, 60, [176 230 255]/255, 'filled', 'markerfacealpha', 0.6);
-valid = ~isnan(ldi_iso_matched) & ~isnan(reinst_iso_matched);
-p = polyfit(ldi_iso_matched(valid), reinst_iso_matched(valid), 1);
-x_fit = linspace(min(ldi_iso_matched(valid)), max(ldi_iso_matched(valid)), 100);
-plot(x_fit, polyval(p, x_fit), 'k-', 'linewidth', 2);
-xlabel('ldi score', 'fontsize', 12, 'fontweight', 'bold');
-ylabel('reinstatement index', 'fontsize', 12, 'fontweight', 'bold');
-title(sprintf('isolated: r=%.3f p=%.4f', r_iso, p_iso), 'fontsize', 14, 'fontweight', 'bold');
-grid on; hold off;
-
-ldi_comp_all = get_v('two','ldi_comp')'; 
-ldi_iso_all = get_v('two','ldi_iso')';
-n_all = length(subj_ids);
-reinst_comp_all = nan(n_all, 1); 
-reinst_iso_all = nan(n_all, 1);
-
-for i = 1:n_all
-    sid = subj_ids(i);
-    reinst_comp_all(i) = mean(results_comp.reinst_index(results_comp.subj_id == sid), 'omitnan');
-    reinst_iso_all(i) = mean(results_iso.reinst_index(results_iso.subj_id == sid), 'omitnan');
-end
-
-figure('color','w','position',[100 100 700 500]);
-bar(1:n_all, ldi_comp_all, 'facecolor', [180 174 211]/255, 'edgecolor','k');
-set(gca, 'xtick', 1:n_all, 'xticklabel', subj_ids, 'fontsize', 10);
-xlabel('subject id', 'fontsize', 12, 'fontweight', 'bold'); 
-ylabel('ldi score', 'fontsize', 12, 'fontweight', 'bold');
-title('2back ldi compared', 'fontsize', 14, 'fontweight', 'bold'); 
-grid on; 
-ylim([min(ldi_comp_all)-0.1, max(ldi_comp_all)+0.1]);
-
-figure('color','w','position',[100 100 700 500]);
-bar(1:n_all, ldi_iso_all, 'facecolor', [176 230 255]/255, 'edgecolor','k');
-set(gca, 'xtick', 1:n_all, 'xticklabel', subj_ids, 'fontsize', 10);
-xlabel('subject id', 'fontsize', 12, 'fontweight', 'bold'); 
-ylabel('ldi score', 'fontsize', 12, 'fontweight', 'bold');
-title('2back ldi isolated', 'fontsize', 14, 'fontweight', 'bold'); 
-grid on; 
-ylim([min(ldi_iso_all)-0.1, max(ldi_iso_all)+0.1]);
-
-figure('color','w','position',[100 100 700 500]);
-bar(1:n_all, reinst_comp_all, 'facecolor', [180 174 211]/255, 'edgecolor','k');
-set(gca, 'xtick', 1:n_all, 'xticklabel', subj_ids, 'fontsize', 10);
-xlabel('subject id', 'fontsize', 12, 'fontweight', 'bold'); 
-ylabel('reinstatement index', 'fontsize', 12, 'fontweight', 'bold');
-title('gaze reinstatement compared', 'fontsize', 14, 'fontweight', 'bold'); 
-grid on; 
-ylim([min(reinst_comp_all)-0.1, max(reinst_comp_all)+0.1]);
-
-figure('color','w','position',[100 100 700 500]);
-bar(1:n_all, reinst_iso_all, 'facecolor', [176 230 255]/255, 'edgecolor','k');
-set(gca, 'xtick', 1:n_all, 'xticklabel', subj_ids, 'fontsize', 10);
-xlabel('subject id', 'fontsize', 12, 'fontweight', 'bold'); 
-ylabel('reinstatement index', 'fontsize', 12, 'fontweight', 'bold');
-title('gaze reinstatement isolated', 'fontsize', 14, 'fontweight', 'bold'); 
-grid on; 
-ylim([min(reinst_iso_all)-0.1, max(reinst_iso_all)+0.1]);
-
-
-fprintf('\nreinstatement results\n');
-
-fprintf('compared n=%d\n', height(results_comp));
-fprintf('  match: m=%.3f sd=%.3f\n', mean(results_comp.match_score,'omitnan'), std(results_comp.match_score,'omitnan'));
-fprintf('  baseline: m=%.3f sd=%.3f\n', mean(results_comp.baseline_score,'omitnan'), std(results_comp.baseline_score,'omitnan'));
-fprintf('  reinst index: m=%.3f sd=%.3f\n', mean(results_comp.reinst_index,'omitnan'), std(results_comp.reinst_index,'omitnan'));
-
-fprintf('\nisolated n=%d\n', height(results_iso));
-fprintf('  match: m=%.3f sd=%.3f\n', mean(results_iso.match_score,'omitnan'), std(results_iso.match_score,'omitnan'));
-fprintf('  baseline: m=%.3f sd=%.3f\n', mean(results_iso.baseline_score,'omitnan'), std(results_iso.baseline_score,'omitnan'));
-fprintf('  reinst index: m=%.3f sd=%.3f\n', mean(results_iso.reinst_index,'omitnan'), std(results_iso.reinst_index,'omitnan'));
-
-n_perm = 1000;
-fprintf('\npermutation tests\n');
-
-diffs_c = results_comp.match_score - results_comp.baseline_score; 
-diffs_c = diffs_c(~isnan(diffs_c));
-obs_c = mean(diffs_c); 
-null_c = zeros(n_perm,1);
-for p = 1:n_perm
-    null_c(p) = mean(diffs_c .* ((rand(size(diffs_c)) > 0.5)*2 - 1));
-end
-p_c = mean(abs(null_c) >= abs(obs_c));
-fprintf('compared reinst > 0: m=%.3f p=%.4f\n', obs_c, p_c);
-
-diffs_i = results_iso.match_score - results_iso.baseline_score; 
-diffs_i = diffs_i(~isnan(diffs_i));
-obs_i = mean(diffs_i); 
-null_i = zeros(n_perm,1);
-for p = 1:n_perm
-    null_i(p) = mean(diffs_i .* ((rand(size(diffs_i)) > 0.5)*2 - 1));
-end
-p_i = mean(abs(null_i) >= abs(obs_i));
-fprintf('isolated reinst > 0: m=%.3f p=%.4f\n', obs_i, p_i);
-
-obs_diff = obs_c - obs_i; 
-pooled = [diffs_c; diffs_i]; 
-n_c = length(diffs_c); 
-null_diff = zeros(n_perm,1);
-for p = 1:n_perm
-    perm_idx = randperm(length(pooled));
-    null_diff(p) = mean(pooled(perm_idx(1:n_c))) - mean(pooled(perm_idx(n_c+1:end)));
-end
-p_diff = mean(abs(null_diff) >= abs(obs_diff));
-fprintf('compared > isolated: diff=%.3f p=%.4f\n', obs_diff, p_diff);
-
-reinstat_res = struct('compared', results_comp, 'isolated', results_iso, 'spatial_params', spatial_params);
-save(fullfile(res_dir, 'gaze_reinstat_res.mat'), 'reinstat_res');
+save(fullfile(res_dir, 'gaze_reinstat_res_m.mat'), 'reinstat_res');
 
 function map = create_fixation_map(x, y, dur, params)
     in_roi = x >= params.roi_x(1) & x <= params.roi_x(2) & y >= params.roi_y(1) & y <= params.roi_y(2);
     x = x(in_roi); 
     y = y(in_roi); 
     dur = dur(in_roi);
-    
-    if isempty(x)
-        map = zeros(params.grid_y, params.grid_x); 
-        return; 
-    end
-    
+    if isempty(x), map = zeros(params.grid_y, params.grid_x); return; end
     x_bins = linspace(params.roi_x(1), params.roi_x(2), params.grid_x+1);
     y_bins = linspace(params.roi_y(1), params.roi_y(2), params.grid_y+1);
     map = zeros(params.grid_y, params.grid_x);
-    
     for i = 1:length(x)
         x_idx = find(x(i) >= x_bins(1:end-1) & x(i) < x_bins(2:end), 1);
         y_idx = find(y(i) >= y_bins(1:end-1) & y(i) < y_bins(2:end), 1);
@@ -472,33 +350,6 @@ function map = create_fixation_map(x, y, dur, params)
             map(y_idx, x_idx) = map(y_idx, x_idx) + dur(i); 
         end
     end
-    
-    if params.sigma > 0
-        map = imgaussfilt(map, params.sigma); 
-    end
-    
-    if sum(map(:)) > 0
-        map = map / sum(map(:)); 
-    end
-end
-    [n_rows, n_grps] = size(mat); hold on;
-    d_v = mat(:); d_v = d_v(~isnan(d_v)); 
-    mn = min(d_v); mx = max(d_v); rng = mx-mn; if rng==0, rng=1; end
-    auto_lim = [mn-(rng*0.15), mx+(rng*0.15)];
-    jit = -0.15 - (rand(size(mat)) * 0.20); x_c = repmat(1:n_grps, n_rows, 1) + jit;
-    plot(x_c', mat', '-', 'Color', [0.7 0.7 0.7, 0.4], 'LineWidth', 0.5);
-    for i = 1:n_grps
-        d = mat(:,i); d = d(~isnan(d)); if isempty(d), continue; end
-        [f, xi] = ksdensity(d); f = f/max(f)*0.4;
-        patch([i+f, i*ones(1,length(f))], [xi, fliplr(xi)], cols{i}, 'EdgeColor','none','FaceAlpha',0.5);
-        scatter(x_c(:,i), mat(:,i), 20, cols{i}, 'filled', 'MarkerFaceAlpha',0.6);
-        q = quantile(d, [0.25, 0.5, 0.75]);
-        rectangle('Position', [i-0.06, q(1), 0.12, q(3)-q(1)], 'FaceColor', cols{i}, 'EdgeColor','k', 'LineWidth',1.2);
-        plot([i-0.06, i+0.06], [q(2), q(2)], 'k-', 'LineWidth', 2);
-    end
-    set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 12);
-    if ~isempty(ttl), title(ttl, 'FontSize', 14); end
-    ylabel(ylbl,'FontSize',14,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
-    if nargin>5 && ~isempty(ylims), ylim(ylims); else, ylim(auto_lim); end
-    grid off; set(gca,'GridAlpha',0.1); box off; hold off;
+    if params.sigma > 0, map = imgaussfilt(map, params.sigma); end
+    if sum(map(:)) > 0, map = map / sum(map(:)); end
 end
