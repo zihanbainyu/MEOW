@@ -1,0 +1,33 @@
+PUPIL TIMESERIES CLUSTER-BASED PERMUTATION TEST RESULTS
+========================================================
+
+Date: 26-Jan-2026 17:57:36
+Number of subjects: 16
+Number of permutations: 1000
+Sample rate: 1000 Hz
+
+A-B TRIALS (Lure Discrimination)
+---------------------------------
+
+Compared vs Isolated:
+  Cluster 3: 1.031-1.455 s, p=0.027 *
+
+Compared vs Novel:
+  No significant clusters found (no timepoints exceeded threshold)
+
+Isolated vs Novel:
+  Cluster 1: 0.517-0.998 s, p=0.011 *
+
+
+A-A TRIALS (Recognition)
+------------------------
+
+Compared vs Isolated:
+  No significant clusters found (no timepoints exceeded threshold)
+
+Compared vs Novel:
+  No significant clusters found (no timepoints exceeded threshold)
+
+Isolated vs Novel:
+  No significant clusters (p<0.05)
+  (1 clusters tested but none survived correction)

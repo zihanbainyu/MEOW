@@ -2,11 +2,11 @@ clear; clc; close all; dbstop if error;
 fprintf('--- processing subj\n');
 
 % setup
-subj_id = 605; base_dir = '..'; 
+subj_id = 611; base_dir = '..'; 
 r_dir = fullfile(base_dir, 'data', sprintf('sub%03d', subj_id));
-C = struct('W_CM',60, 'W_PX',1920, 'H_PX',1080, 'D_CM',100, 'SR',1000, 'TO',1.5);
+C = struct('W_CM',60, 'W_PX',1920, 'H_PX',1080, 'D_CM',100, 'SR',1000, 'TRIAL_DUR',1.5, 'BASELINE_DUR',0.5);
 load(fullfile(r_dir, sprintf('sub%03d_concat.mat', subj_id)), 'final_data_output');
-in = struct('xPos',{{}},'yPos',{{}},'pupilArea',{{}},'sampleRate',{{}},'startInds',{{}},'trialTypes',{{}});
+in = struct('xPos',{{}},'yPos',{{}},'pupilArea',{{}},'sampleRate',{{}},'startInds',{{}},'trialTypes',{{}}, 'baselineInds',{{}});
 
 for r = 1:4
     fprintf('run %d: ', r);
@@ -27,37 +27,65 @@ for r = 1:4
 
     in.xPos{r} = x_d; in.yPos{r} = y_d; in.pupilArea{r} = raw.pp; in.sampleRate{r} = C.SR;
     
-    % 4. epoching
-    inds = nan(n_t, 2); types = zeros(1, n_t);
+    % 4. epoching (baseline + trial)
+    inds = nan(n_t, 2); base_inds = nan(n_t, 2); types = zeros(1, n_t);
     ev_msg = raw.ev.msg; ev_ts = raw.ev.ts;
+    
     for i = 1:n_t
         tid = find(contains(ev_msg, sprintf('TRIALID %d', i)), 1);
         if isempty(tid), continue; end
-        onset = find(contains(ev_msg(tid:min(tid+50,end)), 'STIM_ONSET'), 1);
-        if isempty(onset), continue; end
         
-        t_start = ev_ts(tid + onset - 1);
-        rt = behav.rt(i); if isnan(rt), rt = C.TO; end
-        t_end = t_start + (rt*1000);
+        % Find STIM_ONSET
+        onset_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'STIM_ONSET'), 1);
+        if isempty(onset_idx), continue; end
+        t_onset = ev_ts(tid + onset_idx - 1);
         
-        idx_s = find(raw.ts >= t_start, 1); idx_e = find(raw.ts >= t_end, 1);
-        if ~isempty(idx_s) && ~isempty(idx_e), inds(i,:) = [idx_s, idx_e]; end
+        % Find TRIAL_RESULT for this trial
+        result_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'TRIAL_RESULT'), 1);
+        if isempty(result_idx), continue; end
+        t_trial_end = ev_ts(tid + result_idx - 1);
         
-        % trial types
+        % Baseline: 500ms before stimulus onset
+        t_baseline_start = t_onset - (C.BASELINE_DUR * 1000);
+        
+        % Find sample indices for baseline
+        idx_base_s = find(raw.ts >= t_baseline_start, 1);
+        idx_base_e = find(raw.ts < t_onset, 1, 'last');
+        
+        % Find sample indices for trial (from STIM_ONSET to TRIAL_RESULT)
+        idx_trial_s = find(raw.ts >= t_onset, 1);
+        idx_trial_e = find(raw.ts <= t_trial_end, 1, 'last');
+        
+        % Validate baseline
+        if ~isempty(idx_base_s) && ~isempty(idx_base_e) && idx_base_e > idx_base_s
+            base_inds(i,:) = [idx_base_s, idx_base_e];
+        end
+        
+        % Validate trial
+        if ~isempty(idx_trial_s) && ~isempty(idx_trial_e) && idx_trial_e > idx_trial_s
+            inds(i,:) = [idx_trial_s, idx_trial_e];
+        end
+        
+        % Trial types (correct trials only)
         if behav.correct(i)
             c = behav.condition(i); g = behav.goal(i); cr = behav.corr_resp(i);
-            if     c=="compared" && g=="A-A" && cr=="j", types(i)=1;
-            elseif c=="compared" && g=="A-B" && cr=="k", types(i)=2;
-            elseif c=="isolated" && g=="A-A" && cr=="j", types(i)=3;
-            elseif c=="isolated" && g=="A-B" && cr=="k", types(i)=4;
-            elseif c=="novel"    && g=="A-A" && cr=="j", types(i)=5;
-            elseif c=="novel"    && g=="A-B" && cr=="k", types(i)=6; end
+            if     c=="compared" && g=="A-B" && cr=="k", types(i)=1;  % primary compared
+            elseif c=="isolated" && g=="A-B" && cr=="k", types(i)=2;  % primary isolated
+            elseif c=="novel"    && g=="A-B" && cr=="k", types(i)=3;  % primary novel
+            elseif c=="compared" && g=="A-A" && cr=="j", types(i)=4;  % secondary compared
+            elseif c=="isolated" && g=="A-A" && cr=="j", types(i)=5;  % secondary isolated
+            elseif c=="novel"    && g=="A-A" && cr=="j", types(i)=6;  % secondary novel
+            end
         end
     end
-    bad = any(isnan(inds), 2);
-    in.startInds{r} = inds(~bad,:); in.trialTypes{r} = types(~bad);
-    
-    fprintf('done (%d trials).\n', sum(~bad));
+    % 
+    % % exclude trials with bad epochs
+    bad = any(isnan(inds), 2) | any(isnan(base_inds), 2);
+    in.startInds{r} = inds(~bad,:); 
+    in.baselineInds{r} = base_inds(~bad,:);
+    in.trialTypes{r} = types(~bad);
+
+    fprintf('done (%d trials, %d excluded).\n', sum(~bad), sum(bad));
 end
 save(fullfile(r_dir, sprintf('sub%03d_input.mat', subj_id)), 'in');
 
