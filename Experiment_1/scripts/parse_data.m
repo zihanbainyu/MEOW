@@ -5,156 +5,156 @@ base_dir = '..';
 subj_ids = [501, 601, 602, 603, 604, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 617];
 res_dir = fullfile(base_dir, 'results');
 
-% C = struct('W_CM',60, 'W_PX',1920, 'H_PX',1080, 'D_CM',100, 'SR',1000, 'BASELINE_DUR',0.5);
-% 
-% % Master dataset - all trials from all subjects
-% all_trials_data = [];
-% trial_counter = 0;
-% 
-% for s_idx = 1:length(subj_ids)
-%     subj_id = subj_ids(s_idx);
-%     fprintf('\n--- Subject %d (%d/%d) ---\n', subj_id, s_idx, length(subj_ids));
-% 
-%     r_dir = fullfile(base_dir, 'data', sprintf('sub%03d', subj_id));
-% 
-%     % Load behavioral data
-%     concat_file = fullfile(r_dir, sprintf('sub%03d_concat.mat', subj_id));
-%     if ~isfile(concat_file)
-%         fprintf('  Behavioral data not found, skipping\n');
-%         continue;
-%     end
-%     load(concat_file, 'final_data_output');
-% 
-%     for run = 1:4
-%         fprintf('  Run %d: ', run);
-% 
-%         % Load/parse ASC
-%         asc_f = fullfile(r_dir, sprintf('%03d_2_%01d.asc', subj_id, run));
-%         mat_f = fullfile(r_dir, sprintf('%03d_2_%01d_raw_v2.mat', subj_id, run));
-% 
-%         if ~isfile(asc_f)
-%             fprintf('ASC not found\n');
-%             continue;
-%         end
-% 
-%         if isfile(mat_f)
-%             load(mat_f, 'raw');
-%         else
-%             raw = parse_asc(asc_f);
-%             save(mat_f, 'raw');
-%         end
-% 
-%         % Get behavioral data for this run
-%         behav = final_data_output.results_2_back_all(final_data_output.results_2_back_all.block==run, :);
-%         n_trials = height(behav);
-% 
-%         % Convert to DVA
-%         [x_dva, y_dva] = px2dva(raw.xp, raw.yp, C);
-% 
-%         % Extract each trial
-%         ev_msg = raw.ev.msg;
-%         ev_ts = raw.ev.ts;
-% 
-%         valid_count = 0;
-%         for tr = 1:n_trials
-%             % Find trial markers
-%             tid = find(contains(ev_msg, sprintf('TRIALID %d', tr)), 1);
-%             if isempty(tid), continue; end
-% 
-%             onset_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'STIM_ONSET'), 1);
-%             if isempty(onset_idx), continue; end
-%             t_onset = ev_ts(tid + onset_idx - 1);
-% 
-%             result_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'TRIAL_RESULT'), 1);
-%             if isempty(result_idx), continue; end
-%             t_trial_end = ev_ts(tid + result_idx - 1);
-% 
-%             % Baseline period
-%             t_baseline_start = t_onset - (C.BASELINE_DUR * 1000);
-% 
-%             % Find sample indices
-%             idx_base_s = find(raw.ts >= t_baseline_start, 1);
-%             idx_base_e = find(raw.ts < t_onset, 1, 'last');
-%             idx_trial_s = find(raw.ts >= t_onset, 1);
-%             idx_trial_e = find(raw.ts <= t_trial_end, 1, 'last');
-% 
-%             if isempty(idx_base_s) || isempty(idx_base_e) || idx_base_e <= idx_base_s
-%                 continue;
-%             end
-%             if isempty(idx_trial_s) || isempty(idx_trial_e) || idx_trial_e <= idx_trial_s
-%                 continue;
-%             end
-% 
-%             trial_counter = trial_counter + 1;
-% 
-%             % Store trial data
-%             trial_data = struct();
-%             trial_data.global_trial_id = trial_counter;
-%             trial_data.subj_id = subj_id;
-%             trial_data.run = run;
-%             trial_data.trial_id_in_run = tr;
-% 
-%             % Eye tracking data
-%             trial_data.x_dva = x_dva(idx_trial_s:idx_trial_e);
-%             trial_data.y_dva = y_dva(idx_trial_s:idx_trial_e);
-%             trial_data.pupil = raw.pp(idx_trial_s:idx_trial_e);
-%             trial_data.timestamps = raw.ts(idx_trial_s:idx_trial_e);
-% 
-%             trial_data.baseline_x_dva = x_dva(idx_base_s:idx_base_e);
-%             trial_data.baseline_y_dva = y_dva(idx_base_s:idx_base_e);
-%             trial_data.baseline_pupil = raw.pp(idx_base_s:idx_base_e);
-%             trial_data.baseline_timestamps = raw.ts(idx_base_s:idx_base_e);
-% 
-%             trial_data.sample_rate = C.SR;
-%             trial_data.trial_length = idx_trial_e - idx_trial_s + 1;
-%             trial_data.trial_duration_s = trial_data.trial_length / C.SR;
-% 
-%             % Behavioral data
-%             trial_data.condition = char(behav.condition(tr));
-%             trial_data.goal = char(behav.goal(tr));
-%             trial_data.identity = char(behav.identity(tr));
-%             trial_data.stim_id = char(behav.stim_id(tr));
-%             trial_data.corr_resp = char(behav.corr_resp(tr));
-%             trial_data.resp_key = char(behav.resp_key(tr));
-%             if strcmp(trial_data.resp_key, 'NA')
-%                 trial_data.resp_key = 'none';
-%             end
-%             trial_data.rt = behav.rt(tr);
-%             trial_data.correct = strcmp(trial_data.corr_resp, trial_data.resp_key);
-% 
-%             all_trials_data = [all_trials_data; trial_data];
-%             valid_count = valid_count + 1;
-%         end
-% 
-%         fprintf('%d/%d trials\n', valid_count, n_trials);
-%     end
-% end
-% 
-% fprintf('\n=== Parsing Complete ===\n');
-% fprintf('Total trials extracted: %d\n', length(all_trials_data));
-% 
-% % Convert to table
-% all_trials_table = struct2table(all_trials_data);
-% 
-% % Summary statistics
-% fprintf('\nTrial counts by condition:\n');
-% for cond = ["compared", "isolated", "novel"]
-%     for goal = ["A-A", "A-B"]
-%         n_total = sum(strcmp(all_trials_table.condition, cond) & strcmp(all_trials_table.goal, goal));
-%         n_correct = sum(strcmp(all_trials_table.condition, cond) & strcmp(all_trials_table.goal, goal) & all_trials_table.correct);
-%         fprintf('  %s %s: %d total (%d correct, %.1f%%)\n', goal, cond, n_total, n_correct, 100*n_correct/n_total);
-%     end
-% end
-% 
-% fprintf('\nTrials per subject:\n');
-% for s_idx = 1:length(subj_ids)
-%     n = sum(all_trials_table.subj_id == subj_ids(s_idx));
-%     fprintf('  Subject %d: %d trials\n', subj_ids(s_idx), n);
-% end
-% 
-% % Save complete dataset
-% save(fullfile(res_dir, 'all_trials_raw.mat'), 'all_trials_data', 'all_trials_table', '-v7.3');
-% fprintf('\nSaved to: %s\n', fullfile(res_dir, 'all_trials_raw.mat'));
+C = struct('W_CM',60, 'W_PX',1920, 'H_PX',1080, 'D_CM',100, 'SR',1000, 'BASELINE_DUR',0.5);
+
+% Master dataset - all trials from all subjects
+all_trials_data = [];
+trial_counter = 0;
+
+for s_idx = 1:length(subj_ids)
+    subj_id = subj_ids(s_idx);
+    fprintf('\n--- Subject %d (%d/%d) ---\n', subj_id, s_idx, length(subj_ids));
+
+    r_dir = fullfile(base_dir, 'data', sprintf('sub%03d', subj_id));
+
+    % Load behavioral data
+    concat_file = fullfile(r_dir, sprintf('sub%03d_concat.mat', subj_id));
+    if ~isfile(concat_file)
+        fprintf('  Behavioral data not found, skipping\n');
+        continue;
+    end
+    load(concat_file, 'final_data_output');
+
+    for run = 1:4
+        fprintf('  Run %d: ', run);
+
+        % Load/parse ASC
+        asc_f = fullfile(r_dir, sprintf('%03d_2_%01d.asc', subj_id, run));
+        mat_f = fullfile(r_dir, sprintf('%03d_2_%01d_raw_v2.mat', subj_id, run));
+
+        if ~isfile(asc_f)
+            fprintf('ASC not found\n');
+            continue;
+        end
+
+        if isfile(mat_f)
+            load(mat_f, 'raw');
+        else
+            raw = parse_asc(asc_f);
+            save(mat_f, 'raw');
+        end
+
+        % Get behavioral data for this run
+        behav = final_data_output.results_2_back_all(final_data_output.results_2_back_all.block==run, :);
+        n_trials = height(behav);
+
+        % Convert to DVA
+        [x_dva, y_dva] = px2dva(raw.xp, raw.yp, C);
+
+        % Extract each trial
+        ev_msg = raw.ev.msg;
+        ev_ts = raw.ev.ts;
+
+        valid_count = 0;
+        for tr = 1:n_trials
+            % Find trial markers
+            tid = find(contains(ev_msg, sprintf('TRIALID %d', tr)), 1);
+            if isempty(tid), continue; end
+
+            onset_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'STIM_ONSET'), 1);
+            if isempty(onset_idx), continue; end
+            t_onset = ev_ts(tid + onset_idx - 1);
+
+            result_idx = find(contains(ev_msg(tid:min(tid+50,end)), 'TRIAL_RESULT'), 1);
+            if isempty(result_idx), continue; end
+            t_trial_end = ev_ts(tid + result_idx - 1);
+
+            % Baseline period
+            t_baseline_start = t_onset - (C.BASELINE_DUR * 1000);
+
+            % Find sample indices
+            idx_base_s = find(raw.ts >= t_baseline_start, 1);
+            idx_base_e = find(raw.ts < t_onset, 1, 'last');
+            idx_trial_s = find(raw.ts >= t_onset, 1);
+            idx_trial_e = find(raw.ts <= t_trial_end, 1, 'last');
+
+            if isempty(idx_base_s) || isempty(idx_base_e) || idx_base_e <= idx_base_s
+                continue;
+            end
+            if isempty(idx_trial_s) || isempty(idx_trial_e) || idx_trial_e <= idx_trial_s
+                continue;
+            end
+
+            trial_counter = trial_counter + 1;
+
+            % Store trial data
+            trial_data = struct();
+            trial_data.global_trial_id = trial_counter;
+            trial_data.subj_id = subj_id;
+            trial_data.run = run;
+            trial_data.trial_id_in_run = tr;
+
+            % Eye tracking data
+            trial_data.x_dva = x_dva(idx_trial_s:idx_trial_e);
+            trial_data.y_dva = y_dva(idx_trial_s:idx_trial_e);
+            trial_data.pupil = raw.pp(idx_trial_s:idx_trial_e);
+            trial_data.timestamps = raw.ts(idx_trial_s:idx_trial_e);
+
+            trial_data.baseline_x_dva = x_dva(idx_base_s:idx_base_e);
+            trial_data.baseline_y_dva = y_dva(idx_base_s:idx_base_e);
+            trial_data.baseline_pupil = raw.pp(idx_base_s:idx_base_e);
+            trial_data.baseline_timestamps = raw.ts(idx_base_s:idx_base_e);
+
+            trial_data.sample_rate = C.SR;
+            trial_data.trial_length = idx_trial_e - idx_trial_s + 1;
+            trial_data.trial_duration_s = trial_data.trial_length / C.SR;
+
+            % Behavioral data
+            trial_data.condition = char(behav.condition(tr));
+            trial_data.goal = char(behav.goal(tr));
+            trial_data.identity = char(behav.identity(tr));
+            trial_data.stim_id = char(behav.stim_id(tr));
+            trial_data.corr_resp = char(behav.corr_resp(tr));
+            trial_data.resp_key = char(behav.resp_key(tr));
+            if strcmp(trial_data.resp_key, 'NA')
+                trial_data.resp_key = 'none';
+            end
+            trial_data.rt = behav.rt(tr);
+            trial_data.correct = strcmp(trial_data.corr_resp, trial_data.resp_key);
+
+            all_trials_data = [all_trials_data; trial_data];
+            valid_count = valid_count + 1;
+        end
+
+        fprintf('%d/%d trials\n', valid_count, n_trials);
+    end
+end
+
+fprintf('\n=== Parsing Complete ===\n');
+fprintf('Total trials extracted: %d\n', length(all_trials_data));
+
+% Convert to table
+all_trials_table = struct2table(all_trials_data);
+
+% Summary statistics
+fprintf('\nTrial counts by condition:\n');
+for cond = ["compared", "isolated", "novel"]
+    for goal = ["A-A", "A-B"]
+        n_total = sum(strcmp(all_trials_table.condition, cond) & strcmp(all_trials_table.goal, goal));
+        n_correct = sum(strcmp(all_trials_table.condition, cond) & strcmp(all_trials_table.goal, goal) & all_trials_table.correct);
+        fprintf('  %s %s: %d total (%d correct, %.1f%%)\n', goal, cond, n_total, n_correct, 100*n_correct/n_total);
+    end
+end
+
+fprintf('\nTrials per subject:\n');
+for s_idx = 1:length(subj_ids)
+    n = sum(all_trials_table.subj_id == subj_ids(s_idx));
+    fprintf('  Subject %d: %d trials\n', subj_ids(s_idx), n);
+end
+
+% Save complete dataset
+save(fullfile(res_dir, 'all_trials_raw.mat'), 'all_trials_data', 'all_trials_table', '-v7.3');
+fprintf('\nSaved to: %s\n', fullfile(res_dir, 'all_trials_raw.mat'));
 % 
 % fprintf('\n=== Ready for PCDM preprocessing ===\n');
 % fprintf('Next: Filter trials and preprocess with PCDM\n');
@@ -280,159 +280,159 @@ res_dir = fullfile(base_dir, 'results');
 
 
 
-%% Group-level visualization of preprocessed pupil data
-fprintf('\n=== Group-Level Pupil Analysis ===\n');
-load(fullfile(res_dir, 'all_trials_preprocessed.mat'));
-% Colors
-c_comp = [180 174 211]/255; 
-c_iso = [176 230 255]/255; 
-c_nov = [183 210 205]/255;
-
-% Filter for successful preprocessing only
-valid_trials = all_preprocessed(all_preprocessed.preprocess_success, :);
-
-fprintf('Valid trials for analysis: %d/%d (%.1f%%)\n', ...
-    height(valid_trials), height(all_preprocessed), 100*height(valid_trials)/height(all_preprocessed));
-
-% Find maximum trial length
-max_samples = max(cellfun(@length, valid_trials.pupil_preprocessed));
-sample_rate = valid_trials.sample_rate(1);
-time_vec = (0:max_samples-1) / sample_rate;
-
-fprintf('Max trial length: %d samples (%.2f s)\n', max_samples, max_samples/sample_rate);
-
-%% Extract trial-averaged pupil by subject and condition
-
-unique_subjs = unique(valid_trials.subj_id);
-n_subj = length(unique_subjs);
-
-% Initialize storage (subjects x timepoints)
-pupil_ab_comp = nan(n_subj, max_samples);
-pupil_ab_iso = nan(n_subj, max_samples);
-pupil_ab_nov = nan(n_subj, max_samples);
-pupil_aa_comp = nan(n_subj, max_samples);
-pupil_aa_iso = nan(n_subj, max_samples);
-pupil_aa_nov = nan(n_subj, max_samples);
-
-for s_idx = 1:n_subj
-    subj_id = unique_subjs(s_idx);
-    
-    % Get trials for this subject
-    subj_trials = valid_trials(valid_trials.subj_id == subj_id, :);
-    
-    % Helper function to average trials by condition
-    avg_condition = @(cond, goal) average_trials_by_condition(subj_trials, cond, goal, max_samples);
-    
-    pupil_ab_comp(s_idx, :) = avg_condition('compared', 'A-B');
-    pupil_ab_iso(s_idx, :) = avg_condition('isolated', 'A-B');
-    pupil_ab_nov(s_idx, :) = avg_condition('novel', 'A-B');
-    pupil_aa_comp(s_idx, :) = avg_condition('compared', 'A-A');
-    pupil_aa_iso(s_idx, :) = avg_condition('isolated', 'A-A');
-    pupil_aa_nov(s_idx, :) = avg_condition('novel', 'A-A');
-end
-
-fprintf('\nSubjects with valid data per condition:\n');
-fprintf('  A-B compared: %d/%d\n', sum(~isnan(pupil_ab_comp(:,1))), n_subj);
-fprintf('  A-B isolated: %d/%d\n', sum(~isnan(pupil_ab_iso(:,1))), n_subj);
-fprintf('  A-B novel: %d/%d\n', sum(~isnan(pupil_ab_nov(:,1))), n_subj);
-fprintf('  A-A compared: %d/%d\n', sum(~isnan(pupil_aa_comp(:,1))), n_subj);
-fprintf('  A-A isolated: %d/%d\n', sum(~isnan(pupil_aa_iso(:,1))), n_subj);
-fprintf('  A-A novel: %d/%d\n', sum(~isnan(pupil_aa_nov(:,1))), n_subj);
-
-%% Visualization - Group average
-figure('color','w','position',[50 50 1200 500]);
-
-% A-B trials
-subplot(1,2,1); hold on;
-plot_pupil_timeseries(time_vec, pupil_ab_comp, c_comp, 'compared');
-plot_pupil_timeseries(time_vec, pupil_ab_iso, c_iso, 'isolated');
-plot_pupil_timeseries(time_vec, pupil_ab_nov, c_nov, 'novel');
-xlabel('Time from stimulus onset (s)', 'FontSize', 12);
-ylabel('Pupil size (preprocessed)', 'FontSize', 12);
-title('A-B Trials (Lure Discrimination)', 'FontSize', 14);
-legend('Location', 'best');
-grid on; box off;
-xlim([0 1.5]);
-
-% A-A trials
-subplot(1,2,2); hold on;
-plot_pupil_timeseries(time_vec, pupil_aa_comp, c_comp, 'compared');
-plot_pupil_timeseries(time_vec, pupil_aa_iso, c_iso, 'isolated');
-plot_pupil_timeseries(time_vec, pupil_aa_nov, c_nov, 'novel');
-xlabel('Time from stimulus onset (s)', 'FontSize', 12);
-ylabel('Pupil size (preprocessed)', 'FontSize', 12);
-title('A-A Trials (Recognition)', 'FontSize', 14);
-legend('Location', 'best');
-grid on; box off;
-xlim([0 1.5]);
-
-sgtitle('Group-Level Pupil Timeseries by Condition', 'FontSize', 16, 'FontWeight', 'bold');
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(res_dir, 'Group_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
-
-%% Individual subjects - all 3 conditions
-n_cols = 4;
-n_rows = ceil(n_subj / n_cols);
-
-% A-B trials
-figure('color','w','position',[50 50 1600 1200]);
-for s_idx = 1:n_subj
-    subplot(n_rows, n_cols, s_idx); hold on;
-    
-    if ~isnan(pupil_ab_comp(s_idx, 1))
-        plot(time_vec, pupil_ab_comp(s_idx, :), 'Color', c_comp, 'LineWidth', 2);
-    end
-    if ~isnan(pupil_ab_iso(s_idx, 1))
-        plot(time_vec, pupil_ab_iso(s_idx, :), 'Color', c_iso, 'LineWidth', 2);
-    end
-    if ~isnan(pupil_ab_nov(s_idx, 1))
-        plot(time_vec, pupil_ab_nov(s_idx, :), 'Color', c_nov, 'LineWidth', 2);
-    end
-    
-    title(sprintf('Sub %d', unique_subjs(s_idx)), 'FontSize', 10);
-    xlabel('Time (s)', 'FontSize', 8);
-    ylabel('Pupil', 'FontSize', 8);
-    xlim([0 1.5]);
-    grid on; box off;
-    
-    if s_idx == 1
-        legend('compared', 'isolated', 'novel', 'Location', 'best', 'FontSize', 8);
-    end
-end
-sgtitle('A-B Trials: Individual Subjects', 'FontSize', 16, 'FontWeight', 'bold');
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(res_dir, 'Individual_AB_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
-
-% A-A trials
-figure('color','w','position',[50 50 1600 1200]);
-for s_idx = 1:n_subj
-    subplot(n_rows, n_cols, s_idx); hold on;
-    
-    if ~isnan(pupil_aa_comp(s_idx, 1))
-        plot(time_vec, pupil_aa_comp(s_idx, :), 'Color', c_comp, 'LineWidth', 2);
-    end
-    if ~isnan(pupil_aa_iso(s_idx, 1))
-        plot(time_vec, pupil_aa_iso(s_idx, :), 'Color', c_iso, 'LineWidth', 2);
-    end
-    if ~isnan(pupil_aa_nov(s_idx, 1))
-        plot(time_vec, pupil_aa_nov(s_idx, :), 'Color', c_nov, 'LineWidth', 2);
-    end
-    
-    title(sprintf('Sub %d', unique_subjs(s_idx)), 'FontSize', 10);
-    xlabel('Time (s)', 'FontSize', 8);
-    ylabel('Pupil', 'FontSize', 8);
-    xlim([0 1.5]);
-    grid on; box off;
-    
-    if s_idx == 1
-        legend('compared', 'isolated', 'novel', 'Location', 'best', 'FontSize', 8);
-    end
-end
-sgtitle('A-A Trials: Individual Subjects', 'FontSize', 16, 'FontWeight', 'bold');
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(res_dir, 'Individual_AA_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
-
-fprintf('\n=== Visualization Complete ===\n');
+% %% Group-level visualization of preprocessed pupil data
+% fprintf('\n=== Group-Level Pupil Analysis ===\n');
+% load(fullfile(res_dir, 'all_trials_preprocessed.mat'));
+% % Colors
+% c_comp = [180 174 211]/255; 
+% c_iso = [176 230 255]/255; 
+% c_nov = [183 210 205]/255;
+% 
+% % Filter for successful preprocessing only
+% valid_trials = all_preprocessed(all_preprocessed.preprocess_success, :);
+% 
+% fprintf('Valid trials for analysis: %d/%d (%.1f%%)\n', ...
+%     height(valid_trials), height(all_preprocessed), 100*height(valid_trials)/height(all_preprocessed));
+% 
+% % Find maximum trial length
+% max_samples = max(cellfun(@length, valid_trials.pupil_preprocessed));
+% sample_rate = valid_trials.sample_rate(1);
+% time_vec = (0:max_samples-1) / sample_rate;
+% 
+% fprintf('Max trial length: %d samples (%.2f s)\n', max_samples, max_samples/sample_rate);
+% 
+% %% Extract trial-averaged pupil by subject and condition
+% 
+% unique_subjs = unique(valid_trials.subj_id);
+% n_subj = length(unique_subjs);
+% 
+% % Initialize storage (subjects x timepoints)
+% pupil_ab_comp = nan(n_subj, max_samples);
+% pupil_ab_iso = nan(n_subj, max_samples);
+% pupil_ab_nov = nan(n_subj, max_samples);
+% pupil_aa_comp = nan(n_subj, max_samples);
+% pupil_aa_iso = nan(n_subj, max_samples);
+% pupil_aa_nov = nan(n_subj, max_samples);
+% 
+% for s_idx = 1:n_subj
+%     subj_id = unique_subjs(s_idx);
+% 
+%     % Get trials for this subject
+%     subj_trials = valid_trials(valid_trials.subj_id == subj_id, :);
+% 
+%     % Helper function to average trials by condition
+%     avg_condition = @(cond, goal) average_trials_by_condition(subj_trials, cond, goal, max_samples);
+% 
+%     pupil_ab_comp(s_idx, :) = avg_condition('compared', 'A-B');
+%     pupil_ab_iso(s_idx, :) = avg_condition('isolated', 'A-B');
+%     pupil_ab_nov(s_idx, :) = avg_condition('novel', 'A-B');
+%     pupil_aa_comp(s_idx, :) = avg_condition('compared', 'A-A');
+%     pupil_aa_iso(s_idx, :) = avg_condition('isolated', 'A-A');
+%     pupil_aa_nov(s_idx, :) = avg_condition('novel', 'A-A');
+% end
+% 
+% fprintf('\nSubjects with valid data per condition:\n');
+% fprintf('  A-B compared: %d/%d\n', sum(~isnan(pupil_ab_comp(:,1))), n_subj);
+% fprintf('  A-B isolated: %d/%d\n', sum(~isnan(pupil_ab_iso(:,1))), n_subj);
+% fprintf('  A-B novel: %d/%d\n', sum(~isnan(pupil_ab_nov(:,1))), n_subj);
+% fprintf('  A-A compared: %d/%d\n', sum(~isnan(pupil_aa_comp(:,1))), n_subj);
+% fprintf('  A-A isolated: %d/%d\n', sum(~isnan(pupil_aa_iso(:,1))), n_subj);
+% fprintf('  A-A novel: %d/%d\n', sum(~isnan(pupil_aa_nov(:,1))), n_subj);
+% 
+% %% Visualization - Group average
+% figure('color','w','position',[50 50 1200 500]);
+% 
+% % A-B trials
+% subplot(1,2,1); hold on;
+% plot_pupil_timeseries(time_vec, pupil_ab_comp, c_comp, 'compared');
+% plot_pupil_timeseries(time_vec, pupil_ab_iso, c_iso, 'isolated');
+% plot_pupil_timeseries(time_vec, pupil_ab_nov, c_nov, 'novel');
+% xlabel('Time from stimulus onset (s)', 'FontSize', 12);
+% ylabel('Pupil size (preprocessed)', 'FontSize', 12);
+% title('A-B Trials (Lure Discrimination)', 'FontSize', 14);
+% legend('Location', 'best');
+% grid on; box off;
+% xlim([0 1.5]);
+% 
+% % A-A trials
+% subplot(1,2,2); hold on;
+% plot_pupil_timeseries(time_vec, pupil_aa_comp, c_comp, 'compared');
+% plot_pupil_timeseries(time_vec, pupil_aa_iso, c_iso, 'isolated');
+% plot_pupil_timeseries(time_vec, pupil_aa_nov, c_nov, 'novel');
+% xlabel('Time from stimulus onset (s)', 'FontSize', 12);
+% ylabel('Pupil size (preprocessed)', 'FontSize', 12);
+% title('A-A Trials (Recognition)', 'FontSize', 14);
+% legend('Location', 'best');
+% grid on; box off;
+% xlim([0 1.5]);
+% 
+% sgtitle('Group-Level Pupil Timeseries by Condition', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(res_dir, 'Group_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
+% 
+% %% Individual subjects - all 3 conditions
+% n_cols = 4;
+% n_rows = ceil(n_subj / n_cols);
+% 
+% % A-B trials
+% figure('color','w','position',[50 50 1600 1200]);
+% for s_idx = 1:n_subj
+%     subplot(n_rows, n_cols, s_idx); hold on;
+% 
+%     if ~isnan(pupil_ab_comp(s_idx, 1))
+%         plot(time_vec, pupil_ab_comp(s_idx, :), 'Color', c_comp, 'LineWidth', 2);
+%     end
+%     if ~isnan(pupil_ab_iso(s_idx, 1))
+%         plot(time_vec, pupil_ab_iso(s_idx, :), 'Color', c_iso, 'LineWidth', 2);
+%     end
+%     if ~isnan(pupil_ab_nov(s_idx, 1))
+%         plot(time_vec, pupil_ab_nov(s_idx, :), 'Color', c_nov, 'LineWidth', 2);
+%     end
+% 
+%     title(sprintf('Sub %d', unique_subjs(s_idx)), 'FontSize', 10);
+%     xlabel('Time (s)', 'FontSize', 8);
+%     ylabel('Pupil', 'FontSize', 8);
+%     xlim([0 1.5]);
+%     grid on; box off;
+% 
+%     if s_idx == 1
+%         legend('compared', 'isolated', 'novel', 'Location', 'best', 'FontSize', 8);
+%     end
+% end
+% sgtitle('A-B Trials: Individual Subjects', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(res_dir, 'Individual_AB_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
+% 
+% % A-A trials
+% figure('color','w','position',[50 50 1600 1200]);
+% for s_idx = 1:n_subj
+%     subplot(n_rows, n_cols, s_idx); hold on;
+% 
+%     if ~isnan(pupil_aa_comp(s_idx, 1))
+%         plot(time_vec, pupil_aa_comp(s_idx, :), 'Color', c_comp, 'LineWidth', 2);
+%     end
+%     if ~isnan(pupil_aa_iso(s_idx, 1))
+%         plot(time_vec, pupil_aa_iso(s_idx, :), 'Color', c_iso, 'LineWidth', 2);
+%     end
+%     if ~isnan(pupil_aa_nov(s_idx, 1))
+%         plot(time_vec, pupil_aa_nov(s_idx, :), 'Color', c_nov, 'LineWidth', 2);
+%     end
+% 
+%     title(sprintf('Sub %d', unique_subjs(s_idx)), 'FontSize', 10);
+%     xlabel('Time (s)', 'FontSize', 8);
+%     ylabel('Pupil', 'FontSize', 8);
+%     xlim([0 1.5]);
+%     grid on; box off;
+% 
+%     if s_idx == 1
+%         legend('compared', 'isolated', 'novel', 'Location', 'best', 'FontSize', 8);
+%     end
+% end
+% sgtitle('A-A Trials: Individual Subjects', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(res_dir, 'Individual_AA_Pupil_Timeseries.pdf'), '-dpdf', '-vector');
+% 
+% fprintf('\n=== Visualization Complete ===\n');
 
 %% Helper functions
 function avg_pupil = average_trials_by_condition(subj_trials, cond, goal, max_samples)
