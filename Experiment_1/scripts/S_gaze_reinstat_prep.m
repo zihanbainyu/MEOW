@@ -103,41 +103,6 @@ base_dir = '..'; out_dir = fullfile(base_dir, 'data', 'eye_movement_data'); beha
 % save(fullfile(out_dir, 'group_eye_movement.mat'), 'eye_data', '-v7.3');
 
 
-load(fullfile(out_dir, 'group_eye_movement_m.mat'));
-%%%%%%%%%%%%%%%%%%%%%%%
-% Pupil size analysis for 2-back B trials
-%%%%%%%%%%%%%%%%%%%%%%%
-fprintf('\nAnalyzing pupil size for 2-back B trials...\n');
-
-pupil_comp_subj = nan(length(sub_list), 1);
-pupil_iso_subj = nan(length(sub_list), 1);
-
-for s_idx = 1:length(sub_list)
-    sid = sub_list(s_idx);
-    
-    % Filter for this subject's 2-back B trials
-    idx_subj = Mw.subj_id == sid;
-    idx_comp = idx_subj & strcmp(Mw.condition, 'compared') & strcmp(Mw.task, '2_back') & strcmp(Mw.identity, 'B');
-    idx_iso = idx_subj & strcmp(Mw.condition, 'isolated') & strcmp(Mw.task, '2_back') & strcmp(Mw.identity, 'B');
-    
-    % Calculate mean pupil size for each condition
-    pupil_comp_subj(s_idx) = mean(Mw.pupil(idx_comp), 'omitnan');
-    pupil_iso_subj(s_idx) = mean(Mw.pupil(idx_iso), 'omitnan');
-end
-
-% Save pupil results
-pupil_res = struct();
-pupil_res.compared = array2table([sub_list', pupil_comp_subj], 'VariableNames', {'subj_id', 'pupil_size'});
-pupil_res.isolated = array2table([sub_list', pupil_iso_subj], 'VariableNames', {'subj_id', 'pupil_size'});
-save(fullfile(res_dir, 'pupil_size_2back_B.mat'), 'pupil_res');
-
-fprintf('Pupil Size Statistics (2-back B trials):\n');
-fprintf('Compared: M=%.2f, SD=%.2f\n', mean(pupil_comp_subj,'omitnan'), std(pupil_comp_subj,'omitnan'));
-fprintf('Isolated: M=%.2f, SD=%.2f\n', mean(pupil_iso_subj,'omitnan'), std(pupil_iso_subj,'omitnan'));
-[~, p, ~, stats] = ttest(pupil_comp_subj, pupil_iso_subj);
-fprintf('Compared vs Isolated: t(%d)=%.2f, p=%.3f\n', stats.df, stats.tstat, p);
-
-
 % comp_idx = strcmp(Mw.condition, 'compared'); 
 % iso_idx = strcmp(Mw.condition, 'isolated');
 % ab_idx = strcmp(Mw.goal, 'A-B'); 

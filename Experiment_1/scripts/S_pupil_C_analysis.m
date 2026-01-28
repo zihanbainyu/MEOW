@@ -254,82 +254,6 @@ fprintf('  A-A novel: %d/%d\n', sum(~isnan(pupil_aa_nov(:,1))), n_subj);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(res_dir, 'pupil_ts.pdf'), '-dpdf', '-vector');
 
-%% Cluster-based permutation test
-fprintf('\n=== Cluster-based Permutation Test ===\n');
-
-fprintf('\nTesting A-B: compared vs isolated...\n');
-[clusters_ab, p_values_ab, obs_t_ab] = cluster_permutation_test(pupil_ab_comp, pupil_ab_iso, time_vec, 1000);
-
-fprintf('\nTesting A-B: compared vs novel...\n');
-[clusters_ab_nov, p_values_ab_nov, obs_t_ab_nov] = cluster_permutation_test(pupil_ab_comp, pupil_ab_nov, time_vec, 1000);
-
-fprintf('\nTesting A-B: isolated vs novel...\n');
-[clusters_ab_iso_nov, p_values_ab_iso_nov, obs_t_ab_iso_nov] = cluster_permutation_test(pupil_ab_iso, pupil_ab_nov, time_vec, 1000);
-
-fprintf('\nTesting A-A: compared vs isolated...\n');
-[clusters_aa, p_values_aa, obs_t_aa] = cluster_permutation_test(pupil_aa_comp, pupil_aa_iso, time_vec, 1000);
-
-fprintf('\nTesting A-A: compared vs novel...\n');
-[clusters_aa_nov, p_values_aa_nov, obs_t_aa_nov] = cluster_permutation_test(pupil_aa_comp, pupil_aa_nov, time_vec, 1000);
-
-fprintf('\nTesting A-A: isolated vs novel...\n');
-[clusters_aa_iso_nov, p_values_aa_iso_nov, obs_t_aa_iso_nov] = cluster_permutation_test(pupil_aa_iso, pupil_aa_nov, time_vec, 1000);
-
-%% Display results
-fprintf('\n=== RESULTS ===\n');
-fprintf('\nA-B Trials:\n');
-fprintf('  Compared vs Isolated:\n'); display_clusters(clusters_ab, p_values_ab, time_vec);
-fprintf('  Compared vs Novel:\n'); display_clusters(clusters_ab_nov, p_values_ab_nov, time_vec);
-fprintf('  Isolated vs Novel:\n'); display_clusters(clusters_ab_iso_nov, p_values_ab_iso_nov, time_vec);
-
-fprintf('\nA-A Trials:\n');
-fprintf('  Compared vs Isolated:\n'); display_clusters(clusters_aa, p_values_aa, time_vec);
-fprintf('  Compared vs Novel:\n'); display_clusters(clusters_aa_nov, p_values_aa_nov, time_vec);
-fprintf('  Isolated vs Novel:\n'); display_clusters(clusters_aa_iso_nov, p_values_aa_iso_nov, time_vec);
-
-%% Visualization
-figure('color','w','position',[50 50 1400 900]);
-
-subplot(2,3,1); hold on;
-plot_with_sig(time_vec, pupil_ab_comp, pupil_ab_iso, c_comp, c_iso, {'compared','isolated'}, clusters_ab, p_values_ab, obs_t_ab);
-title('A-B: Compared vs Isolated', 'FontSize', 12);
-
-subplot(2,3,2); hold on;
-plot_with_sig(time_vec, pupil_ab_comp, pupil_ab_nov, c_comp, c_nov, {'compared','novel'}, clusters_ab_nov, p_values_ab_nov, obs_t_ab_nov);
-title('A-B: Compared vs Novel', 'FontSize', 12);
-
-subplot(2,3,3); hold on;
-plot_with_sig(time_vec, pupil_ab_iso, pupil_ab_nov, c_iso, c_nov, {'isolated','novel'}, clusters_ab_iso_nov, p_values_ab_iso_nov, obs_t_ab_iso_nov);
-title('A-B: Isolated vs Novel', 'FontSize', 12);
-
-subplot(2,3,4); hold on;
-plot_with_sig(time_vec, pupil_aa_comp, pupil_aa_iso, c_comp, c_iso, {'compared','isolated'}, clusters_aa, p_values_aa, obs_t_aa);
-title('A-A: Compared vs Isolated', 'FontSize', 12);
-
-subplot(2,3,5); hold on;
-plot_with_sig(time_vec, pupil_aa_comp, pupil_aa_nov, c_comp, c_nov, {'compared','novel'}, clusters_aa_nov, p_values_aa_nov, obs_t_aa_nov);
-title('A-A: Compared vs Novel', 'FontSize', 12);
-
-subplot(2,3,6); hold on;
-plot_with_sig(time_vec, pupil_aa_iso, pupil_aa_nov, c_iso, c_nov, {'isolated','novel'}, clusters_aa_iso_nov, p_values_aa_iso_nov, obs_t_aa_iso_nov);
-title('A-A: Isolated vs Novel', 'FontSize', 12);
-
-for i=1:6, subplot(2,3,i); ylabel('Pupil (a.u.)','FontSize',11); xlabel('Time (s)','FontSize',11); xlim([0 1.5]); yline(0,'k--'); grid on; box off; end
-sgtitle('Pupil Timeseries - Cluster Permutation Test (Updated)', 'FontSize', 16, 'FontWeight', 'bold');
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(res_dir, 'Pupil_Permutation_Updated.pdf'), '-dpdf', '-vector');
-
-%% Save results
-perm_results = struct();
-perm_results.AB.comp_vs_iso.clusters = clusters_ab; perm_results.AB.comp_vs_iso.p_values = p_values_ab; perm_results.AB.comp_vs_iso.obs_t = obs_t_ab;
-perm_results.AB.comp_vs_nov.clusters = clusters_ab_nov; perm_results.AB.comp_vs_nov.p_values = p_values_ab_nov; perm_results.AB.comp_vs_nov.obs_t = obs_t_ab_nov;
-perm_results.AB.iso_vs_nov.clusters = clusters_ab_iso_nov; perm_results.AB.iso_vs_nov.p_values = p_values_ab_iso_nov; perm_results.AB.iso_vs_nov.obs_t = obs_t_ab_iso_nov;
-perm_results.AA.comp_vs_iso.clusters = clusters_aa; perm_results.AA.comp_vs_iso.p_values = p_values_aa; perm_results.AA.comp_vs_iso.obs_t = obs_t_aa;
-perm_results.AA.comp_vs_nov.clusters = clusters_aa_nov; perm_results.AA.comp_vs_nov.p_values = p_values_aa_nov; perm_results.AA.comp_vs_nov.obs_t = obs_t_aa_nov;
-perm_results.AA.iso_vs_nov.clusters = clusters_aa_iso_nov; perm_results.AA.iso_vs_nov.p_values = p_values_aa_iso_nov; perm_results.AA.iso_vs_nov.obs_t = obs_t_aa_iso_nov;
-perm_results.time_vec = time_vec; perm_results.sample_rate = sample_rate;
-save(fullfile(res_dir, 'pupil_permutation_results_updated.mat'), 'perm_results', '-v7.3');
-fprintf('\nResults saved!\n');
 % 
 % %% Individual subjects - all 3 conditions
 % n_cols = 4;
@@ -398,206 +322,13 @@ fprintf('\nResults saved!\n');
 % fprintf('\n=== Visualization Complete ===\n');
 
 
-
-%% Cluster-based permutation test with progress
-% fprintf('\n=== Cluster-based Permutation Test ===\n');
-% 
-% % Compare A-B: compared vs isolated
-% fprintf('\nTesting A-B: compared vs isolated...\n');
-% [clusters_ab, p_values_ab, obs_t_ab] = cluster_permutation_test(pupil_ab_comp, pupil_ab_iso, time_vec, 1000);
-% 
-% % Compare A-B: compared vs novel
-% fprintf('\nTesting A-B: compared vs novel...\n');
-% [clusters_ab_nov, p_values_ab_nov, obs_t_ab_nov] = cluster_permutation_test(pupil_ab_comp, pupil_ab_nov, time_vec, 1000);
-% 
-% % Compare A-B: isolated vs novel
-% fprintf('\nTesting A-B: isolated vs novel...\n');
-% [clusters_ab_iso_nov, p_values_ab_iso_nov, obs_t_ab_iso_nov] = cluster_permutation_test(pupil_ab_iso, pupil_ab_nov, time_vec, 1000);
-% 
-% % Compare A-A: compared vs isolated
-% fprintf('\nTesting A-A: compared vs isolated...\n');
-% [clusters_aa, p_values_aa, obs_t_aa] = cluster_permutation_test(pupil_aa_comp, pupil_aa_iso, time_vec, 1000);
-% 
-% % Compare A-A: compared vs novel
-% fprintf('\nTesting A-A: compared vs novel...\n');
-% [clusters_aa_nov, p_values_aa_nov, obs_t_aa_nov] = cluster_permutation_test(pupil_aa_comp, pupil_aa_nov, time_vec, 1000);
-% 
-% % Compare A-A: isolated vs novel
-% fprintf('\nTesting A-A: isolated vs novel...\n');
-% [clusters_aa_iso_nov, p_values_aa_iso_nov, obs_t_aa_iso_nov] = cluster_permutation_test(pupil_aa_iso, pupil_aa_nov, time_vec, 1000);
-% 
-% %% Display results
-% fprintf('\n=== RESULTS ===\n');
-% fprintf('\nA-B Trials:\n');
-% fprintf('  Compared vs Isolated:\n');
-% display_clusters(clusters_ab, p_values_ab, time_vec);
-% fprintf('  Compared vs Novel:\n');
-% display_clusters(clusters_ab_nov, p_values_ab_nov, time_vec);
-% fprintf('  Isolated vs Novel:\n');
-% display_clusters(clusters_ab_iso_nov, p_values_ab_iso_nov, time_vec);
-% 
-% fprintf('\nA-A Trials:\n');
-% fprintf('  Compared vs Isolated:\n');
-% display_clusters(clusters_aa, p_values_aa, time_vec);
-% fprintf('  Compared vs Novel:\n');
-% display_clusters(clusters_aa_nov, p_values_aa_nov, time_vec);
-% fprintf('  Isolated vs Novel:\n');
-% display_clusters(clusters_aa_iso_nov, p_values_aa_iso_nov, time_vec);
-% 
-% %% Visualization with significance markers
-% figure('color','w','position',[50 50 1400 900]);
-% 
-% % A-B trials
-% subplot(2,3,1); hold on;
-% plot_with_sig(time_vec, pupil_ab_comp, pupil_ab_iso, c_comp, c_iso, ...
-%     {'compared','isolated'}, clusters_ab, p_values_ab, obs_t_ab);
-% title('A-B: Compared vs Isolated', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% subplot(2,3,2); hold on;
-% plot_with_sig(time_vec, pupil_ab_comp, pupil_ab_nov, c_comp, c_nov, ...
-%     {'compared','novel'}, clusters_ab_nov, p_values_ab_nov, obs_t_ab_nov);
-% title('A-B: Compared vs Novel', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% subplot(2,3,3); hold on;
-% plot_with_sig(time_vec, pupil_ab_iso, pupil_ab_nov, c_iso, c_nov, ...
-%     {'isolated','novel'}, clusters_ab_iso_nov, p_values_ab_iso_nov, obs_t_ab_iso_nov);
-% title('A-B: Isolated vs Novel', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% % A-A trials
-% subplot(2,3,4); hold on;
-% plot_with_sig(time_vec, pupil_aa_comp, pupil_aa_iso, c_comp, c_iso, ...
-%     {'compared','isolated'}, clusters_aa, p_values_aa, obs_t_aa);
-% title('A-A: Compared vs Isolated', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% subplot(2,3,5); hold on;
-% plot_with_sig(time_vec, pupil_aa_comp, pupil_aa_nov, c_comp, c_nov, ...
-%     {'compared','novel'}, clusters_aa_nov, p_values_aa_nov, obs_t_aa_nov);
-% title('A-A: Compared vs Novel', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% subplot(2,3,6); hold on;
-% plot_with_sig(time_vec, pupil_aa_iso, pupil_aa_nov, c_iso, c_nov, ...
-%     {'isolated','novel'}, clusters_aa_iso_nov, p_values_aa_iso_nov, obs_t_aa_iso_nov);
-% title('A-A: Isolated vs Novel', 'FontSize', 12);
-% ylabel('Pupil size change (a.u.)', 'FontSize', 11);
-% xlabel('Time (s)', 'FontSize', 11);
-% xlim([0 1.5]); yline(0, 'k--', 'LineWidth', 1);
-% 
-% sgtitle('Pupil Timeseries with Cluster-based Permutation Test', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(res_dir, 'Pupil_Timeseries_Permutation_Test.pdf'), '-dpdf', '-vector');
-% 
-
-%% Save all permutation test results
-% fprintf('\n=== Saving Permutation Test Results ===\n');
-% 
-% % Compile all results into a structure
-% perm_results = struct();
-% 
-% % A-B trials
-% perm_results.AB.comp_vs_iso.clusters = clusters_ab;
-% perm_results.AB.comp_vs_iso.p_values = p_values_ab;
-% perm_results.AB.comp_vs_iso.obs_t = obs_t_ab;
-% 
-% perm_results.AB.comp_vs_nov.clusters = clusters_ab_nov;
-% perm_results.AB.comp_vs_nov.p_values = p_values_ab_nov;
-% perm_results.AB.comp_vs_nov.obs_t = obs_t_ab_nov;
-% 
-% perm_results.AB.iso_vs_nov.clusters = clusters_ab_iso_nov;
-% perm_results.AB.iso_vs_nov.p_values = p_values_ab_iso_nov;
-% perm_results.AB.iso_vs_nov.obs_t = obs_t_ab_iso_nov;
-% 
-% % A-A trials
-% perm_results.AA.comp_vs_iso.clusters = clusters_aa;
-% perm_results.AA.comp_vs_iso.p_values = p_values_aa;
-% perm_results.AA.comp_vs_iso.obs_t = obs_t_aa;
-% 
-% perm_results.AA.comp_vs_nov.clusters = clusters_aa_nov;
-% perm_results.AA.comp_vs_nov.p_values = p_values_aa_nov;
-% perm_results.AA.comp_vs_nov.obs_t = obs_t_aa_nov;
-% 
-% perm_results.AA.iso_vs_nov.clusters = clusters_aa_iso_nov;
-% perm_results.AA.iso_vs_nov.p_values = p_values_aa_iso_nov;
-% perm_results.AA.iso_vs_nov.obs_t = obs_t_aa_iso_nov;
-% 
-% % Save time vector and data for reference
-% perm_results.time_vec = time_vec;
-% perm_results.sample_rate = sample_rate;
-% 
-% % Save subject-level data for further analysis
-% perm_results.data.pupil_ab_comp = pupil_ab_comp;
-% perm_results.data.pupil_ab_iso = pupil_ab_iso;
-% perm_results.data.pupil_ab_nov = pupil_ab_nov;
-% perm_results.data.pupil_aa_comp = pupil_aa_comp;
-% perm_results.data.pupil_aa_iso = pupil_aa_iso;
-% perm_results.data.pupil_aa_nov = pupil_aa_nov;
-% perm_results.data.unique_subjs = unique_subjs;
-% 
-% % Save to file
-% save(fullfile(res_dir, 'pupil_permutation_results.mat'), 'perm_results', '-v7.3');
-% fprintf('Saved to: %s\n', fullfile(res_dir, 'pupil_permutation_results.mat'));
-% 
-% % Also save a readable text summary
-% fid = fopen(fullfile(res_dir, 'pupil_permutation_summary.txt'), 'w');
-% fprintf(fid, 'PUPIL TIMESERIES CLUSTER-BASED PERMUTATION TEST RESULTS\n');
-% fprintf(fid, '========================================================\n\n');
-% fprintf(fid, 'Date: %s\n', datestr(now));
-% fprintf(fid, 'Number of subjects: %d\n', length(unique_subjs));
-% fprintf(fid, 'Number of permutations: 1000\n');
-% fprintf(fid, 'Sample rate: %d Hz\n\n', sample_rate);
-% 
-% fprintf(fid, 'A-B TRIALS (Lure Discrimination)\n');
-% fprintf(fid, '---------------------------------\n\n');
-% 
-% fprintf(fid, 'Compared vs Isolated:\n');
-% write_cluster_results(fid, clusters_ab, p_values_ab, time_vec);
-% 
-% fprintf(fid, '\nCompared vs Novel:\n');
-% write_cluster_results(fid, clusters_ab_nov, p_values_ab_nov, time_vec);
-% 
-% fprintf(fid, '\nIsolated vs Novel:\n');
-% write_cluster_results(fid, clusters_ab_iso_nov, p_values_ab_iso_nov, time_vec);
-% 
-% fprintf(fid, '\n\nA-A TRIALS (Recognition)\n');
-% fprintf(fid, '------------------------\n\n');
-% 
-% fprintf(fid, 'Compared vs Isolated:\n');
-% write_cluster_results(fid, clusters_aa, p_values_aa, time_vec);
-% 
-% fprintf(fid, '\nCompared vs Novel:\n');
-% write_cluster_results(fid, clusters_aa_nov, p_values_aa_nov, time_vec);
-% 
-% fprintf(fid, '\nIsolated vs Novel:\n');
-% write_cluster_results(fid, clusters_aa_iso_nov, p_values_aa_iso_nov, time_vec);
-% 
-% fclose(fid);
-% fprintf('Summary saved to: %s\n', fullfile(res_dir, 'pupil_permutation_summary.txt'));
-% 
-% fprintf('\n=== All Results Saved ===\n');
-
-
-%% Helper functions
+%% functions
 function t = compute_t(x,y)
     [~,~,~,stats] = ttest(x,y); t = stats.tstat;
 end
 function s = sig_star(p)
     if p<0.001, s='***'; elseif p<0.01, s='**'; elseif p<0.05, s='*'; else, s='n.s.'; end
 end
-
 function write_cluster_results(fid, clusters, p_values, time_vec)
     if isempty(clusters)
         fprintf(fid, '  No significant clusters found (no timepoints exceeded threshold)\n');
@@ -623,10 +354,6 @@ function write_cluster_results(fid, clusters, p_values, time_vec)
         fprintf(fid, '  (%d clusters tested but none survived correction)\n', length(clusters));
     end
 end
-
-
-
-%% Helper functions
 function [clusters, p_values, obs_t] = cluster_permutation_test(data1, data2, time_vec, n_perm)
     n_subj = size(data1, 1); n_time = size(data1, 2);
     fprintf('  Computing observed t-statistics...\n');
@@ -659,7 +386,6 @@ function [clusters, p_values, obs_t] = cluster_permutation_test(data1, data2, ti
     fprintf(' Done!\n');
     p_values = zeros(1, length(clusters)); for c = 1:length(clusters), p_values(c) = mean(null_max_cluster >= cluster_stats(c)); end
 end
-
 function display_clusters(clusters, p_values, time_vec)
     if isempty(clusters), fprintf('    No significant clusters found\n'); return; end
     sig_found = false;
@@ -671,8 +397,6 @@ function display_clusters(clusters, p_values, time_vec)
     end
     if ~sig_found, fprintf('    No significant clusters (p<0.05)\n'); end
 end
-
-
 function plot_with_sig(time_vec, data1, data2, color1, color2, labels, clusters, p_values, obs_t)
     plot_pupil_timeseries(time_vec, data1, color1, labels{1});
     plot_pupil_timeseries(time_vec, data2, color2, labels{2});
@@ -688,8 +412,6 @@ function plot_with_sig(time_vec, data1, data2, color1, color2, labels, clusters,
     end
     legend('Location', 'best');
 end
-
-
 function avg_pupil = average_trials_by_condition(subj_trials, cond, goal, max_samples)
     % Filter trials
     trials_filt = subj_trials(strcmp(subj_trials.condition, cond) & ...
@@ -716,32 +438,6 @@ function avg_pupil = average_trials_by_condition(subj_trials, cond, goal, max_sa
     % Average across trials
     avg_pupil = mean(trial_matrix, 1, 'omitnan');
 end
-% function avg_pupil = average_trials_by_condition(subj_trials, cond, goal, max_samples)
-%     % Filter trials
-%     trials_filt = subj_trials(strcmp(subj_trials.condition, cond) & ...
-%                               strcmp(subj_trials.goal, goal), :);
-% 
-%     if height(trials_filt) == 0
-%         avg_pupil = nan(1, max_samples);
-%         return;
-%     end
-% 
-%     % Accumulate trials (pad to max length)
-%     trial_matrix = nan(height(trials_filt), max_samples);
-%     for tr = 1:height(trials_filt)
-%         pupil_data = trials_filt.pupil_preprocessed{tr};
-% 
-%         % Baseline correct: subtract mean of first 50 samples
-%         baseline = mean(pupil_data(1:min(50, length(pupil_data))), 'omitnan');
-%         pupil_data = pupil_data - baseline;
-% 
-%         trial_matrix(tr, 1:length(pupil_data)) = pupil_data';
-%     end
-% 
-%     % Average across trials
-%     avg_pupil = mean(trial_matrix, 1, 'omitnan');
-% end
-
 function plot_pupil_timeseries(time_vec, data, color, label)
     mean_pupil = mean(data, 1, 'omitnan');
     n_valid = sum(~isnan(data(:,1)));
