@@ -140,7 +140,7 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
         %%%%%%%%%%%%%%%%%%%%%%%
-        b_to_run = 0; % 0 = all; [x] = specific block number
+        b_to_run = 2; % 0 = all; [x] = specific block number
         if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
     
         for b = b_seq
