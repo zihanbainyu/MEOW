@@ -1,16 +1,16 @@
 % clear; clc; close all;
 % 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% %% setup
-% %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+%% setup
+%%%%%%%%%%%%%%%%%%%%%%%
 % subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617];
 % base_dir = '..'; 
 % res_dir = fullfile(base_dir, 'results');
 % fig_dir = fullfile(base_dir, 'figures');
 % min_rt = 0.150;
 % % colors
-% c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
-% c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
+% c_comp = [160 174 211]/255; c_iso = [176 230 255]/255; c_nov = [163 210 205]/255; 
+% c_sim  = [255 191 205]/255; c_same = [97 125 164]/255; c_new = [219 219 219]/255;
 % 
 % %%%%%%%%%%%%%%%%%%%%%%%
 % %% load & compute subject-level stats
@@ -121,14 +121,21 @@
 % %%%%%%%%%%%%%%%%%%%%%%%
 % %% extract group-level vectors
 % %%%%%%%%%%%%%%%%%%%%%%%
-% get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
-% b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
-% b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
-% b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
-% b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
-% b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
-% b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
-% rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
+get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
+b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
+b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
+b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
+b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
+b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
+rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
+% % load(fullfile(res_dir, 'all_trials_preprocessed.mat'), 'all_preprocessed');
+% % [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
+% % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
+% % load(fullfile(res_dir, 'gaze_reinstat_res_m.mat'));
+% % [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+% %  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
+% 
 % load(fullfile(res_dir, 'all_trials_preprocessed.mat'), 'all_preprocessed');
 % [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
 % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
@@ -136,9 +143,17 @@
 % [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
 %  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 % 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% %% statistical tests
-% %%%%%%%%%%%%%%%%%%%%%%%
+% % split by correctness
+% [reinst_bb_comp_corr, reinst_bb_comp_incorr, match_bb_comp_corr, match_bb_comp_incorr, baseline_bb_comp_corr, baseline_bb_comp_incorr] = ...
+%     extract_gaze_subj(reinstat_res, subj_ids, 'bb_compared', true);
+% [reinst_bb_iso_corr, reinst_bb_iso_incorr, match_bb_iso_corr, match_bb_iso_incorr, baseline_bb_iso_corr, baseline_bb_iso_incorr] = ...
+%     extract_gaze_subj(reinstat_res, subj_ids, 'bb_isolated', true);
+% 
+% [pup_corr, pup_mean_corr] = extract_pupil_subj(all_preprocessed, true, 1, t_pup);
+% [pup_incorr, pup_mean_incorr] = extract_pupil_subj(all_preprocessed, true, 0, t_pup);
+% %%%%%%%%%%%%%%%%%%%%%%
+% % statistical tests
+% %%%%%%%%%%%%%%%%%%%%%%
 % within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
 % stat_results = struct();
 % 
@@ -216,120 +231,120 @@
 %%%%%%%%%%%%%%%%%%%%%%%
 %% visualization
 %%%%%%%%%%%%%%%%%%%%%%%
-% fprintf('\n=== GENERATING FIGURES ===\n');
-% 
-% %% fig: 1-back
-% figure('color','w','Position',[100 100 1200 400]);
-% subplot(1,3,1); 
-% data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
-% raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(1,3,2); 
-% data = [b1_rt_sam, b1_rt_sim];
-% raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
-% add_sig(data, [1 2]);
-% subplot(1,3,3); hold on;
-% mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
-%               mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
-%               mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
-% draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('Response matrix', 'FontSize', 12);
-% sgtitle('1-Back Task Performance', 'FontSize', 16);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: 2-back
-% figure('color','w','Position',[50 50 1200 900]);
-% subplot(3,3,1);
-% data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
-% set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,4);
-% data = [b2_dp_c, b2_dp_i, b2_dp_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Recognition');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,2);
-% data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0,1.5]);
-% add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0 0.5 1 1.5])
-% subplot(3,3,5);
-% data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Recognition)');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,7); hold on;
-% mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
-%             mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
-%             mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
-% draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('compared', 'FontSize', 14);
-% subplot(3,3,8); hold on;
-% mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
-%            mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
-%            mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
-% draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('isolated', 'FontSize', 14);
-% subplot(3,3,9); hold on;
-% mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
-%            mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
-%            mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
-% draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('novel', 'FontSize', 14);
-% sgtitle('2-Back Task Performance', 'FontSize', 16);
-% set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: recognition
-% figure('color','w','Position',[100 100 600 500]);
-% data = [d_tot', rec_d_c', rec_d_i'];
-% hold on;
-% fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
-% yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
-% raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
-% add_sig(data, [1 0; 2 3]);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'behav_recog.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: gaze match vs mismatch
-% figure('color','w','position',[50 50 1000 800]);
-% subplot(2,2,1);
-% data = [match_bb_comp, baseline_bb_comp];
-% raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B compared', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp.p);
-% subplot(2,2,2);
-% data = [match_bb_iso, baseline_bb_iso];
-% raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B isolated', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso.p);
-% subplot(2,2,3);
-% data = [match_ba_comp, baseline_ba_comp];
-% raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A compared (predictive)', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_comp.p);
-% subplot(2,2,4);
-% data = [match_ba_iso, baseline_ba_iso];
-% raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A isolated (predictive)', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_iso.p);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'gaze_reins_mmis.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: gaze permutation distributions
-% figure('color','w','position',[50 50 1000 800]);
-% perm_titles = {'B-B Compared', 'B-B Isolated', 'B-A Compared', 'B-A Isolated'};
-% perm_data_A = {match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso};
-% perm_data_B = {baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso};
-% perm_colors = {c_comp, c_iso, c_comp, c_iso};
-% for p = 1:4
-%     subplot(2,2,p);
-%     [p_val, obs_diff, null_dist] = run_permutation_with_dist(perm_data_A{p}, perm_data_B{p}, 1000);
-%     histogram(null_dist, 30, 'FaceColor', [0.6 0.6 0.6], 'EdgeColor', 'w', 'FaceAlpha', 0.7); hold on;
-%     yl = [0 100]; set(gca, 'YTick', [0 25 50 75 100]);
-%     line([obs_diff obs_diff], [0 yl(2)], 'Color', perm_colors{p}, 'LineWidth', 2.5);
-%     title(perm_titles{p}, 'FontSize', 14); xlabel('Gaze Reinstatement Index'); ylabel('Frequency');
-%     legend('null distribution', 'ground-truth data', 'Location', 'northwest');
-%     text(obs_diff, yl(2)*0.8, sprintf(' p = %.3f', p_val), 'Color', perm_colors{p}, 'FontWeight', 'bold');
-%     grid off; box off;
-% end
-% sgtitle('Permutation Tests', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'gaze_reins_perm.pdf'), '-dpdf', '-vector');
+fprintf('\n=== GENERATING FIGURES ===\n');
+
+%% fig: 1-back
+figure('color','w','Position',[100 100 1200 400]);
+subplot(1,3,1); 
+data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
+raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(1,3,2); 
+data = [b1_rt_sam, b1_rt_sim];
+raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
+add_sig(data, [1 2]);
+subplot(1,3,3); hold on;
+mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
+              mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
+              mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
+draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('Response matrix', 'FontSize', 12);
+sgtitle('1-Back Task Performance', 'FontSize', 16);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
+
+%% fig: 2-back
+figure('color','w','Position',[50 50 1200 900]);
+subplot(3,3,1);
+data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
+set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
+subplot(3,3,4);
+data = [b2_dp_c, b2_dp_i, b2_dp_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Recognition');
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(3,3,2);
+data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0,1.5]);
+add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0 0.5 1 1.5])
+subplot(3,3,5);
+data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Recognition)');
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(3,3,7); hold on;
+mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
+            mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+            mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('compared', 'FontSize', 14);
+subplot(3,3,8); hold on;
+mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
+           mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+           mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('isolated', 'FontSize', 14);
+subplot(3,3,9); hold on;
+mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
+           mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+           mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('novel', 'FontSize', 14);
+sgtitle('2-Back Task Performance', 'FontSize', 16);
+set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
+
+%% fig: recognition
+figure('color','w','Position',[100 100 600 500]);
+data = [d_tot', rec_d_c', rec_d_i'];
+hold on;
+fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
+yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
+add_sig(data, [1 0; 2 3]);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'behav_recog.pdf'), '-dpdf', '-vector');
+
+%% fig: gaze match vs mismatch
+figure('color','w','position',[50 50 1000 800]);
+subplot(2,2,1);
+data = [match_bb_comp, baseline_bb_comp];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B compared', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp.p);
+subplot(2,2,2);
+data = [match_bb_iso, baseline_bb_iso];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-B isolated', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso.p);
+subplot(2,2,3);
+data = [match_ba_comp, baseline_ba_comp];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A compared (predictive)', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_comp.p);
+subplot(2,2,4);
+data = [match_ba_iso, baseline_ba_iso];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'B-A isolated (predictive)', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_iso.p);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_reins_mmis.pdf'), '-dpdf', '-vector');
+
+%% fig: gaze permutation distributions
+figure('color','w','position',[50 50 1000 800]);
+perm_titles = {'B-B Compared', 'B-B Isolated', 'B-A Compared', 'B-A Isolated'};
+perm_data_A = {match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso};
+perm_data_B = {baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso};
+perm_colors = {c_comp, c_iso, c_comp, c_iso};
+for p = 1:4
+    subplot(2,2,p);
+    [p_val, obs_diff, null_dist] = run_permutation_with_dist(perm_data_A{p}, perm_data_B{p}, 1000);
+    histogram(null_dist, 30, 'FaceColor', [0.6 0.6 0.6], 'EdgeColor', 'w', 'FaceAlpha', 0.7); hold on;
+    yl = [0 100]; set(gca, 'YTick', [0 25 50 75 100]);
+    line([obs_diff obs_diff], [0 yl(2)], 'Color', perm_colors{p}, 'LineWidth', 2.5);
+    title(perm_titles{p}, 'FontSize', 16); xlabel('Gaze Reinstatement Index'); ylabel('Frequency');
+    legend('null distribution', 'ground-truth data', 'Location', 'northwest');
+    text(obs_diff, yl(2)*0.8, sprintf(' p = %.3f', p_val), 'Color', perm_colors{p}, 'FontWeight', 'bold');
+    grid off; box off;
+end
+sgtitle('Permutation Tests', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_reins_perm.pdf'), '-dpdf', '-vector');
 
 %% fig: gaze reinstatement index
 figure('color','w','position',[50 50 800 600]);
@@ -344,7 +359,7 @@ for i = 1:4
     p = p_chance_all(i);
     if p < 0.05
         if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
-        text(i, 0.45, txt, 'HorizontalAlignment', 'center', 'FontSize', 18);
+        text(i, 0.45, txt, 'HorizontalAlignment', 'center', 'FontSize', 16);
     end
 end
 pairs_to_test = [1 2; 3 4; 1 3]; 
@@ -353,77 +368,219 @@ add_sig_perm(data_matrix, pairs_to_test, pvals);
 set(gcf, 'PaperPositionMode', 'auto');
 print(gcf, fullfile(fig_dir, 'gaze_reins_idx.svg'), '-dsvg', '-vector');
 
-% %% fig: gaze-behavior correlation
-% figure('color','w','position',[50 50 800 400]);
-% subplot(1,2,1); hold on;
-% valid = ~isnan(reinst_bb_comp) & ~isnan(b2_ldi_c) & b2_ldi_c <= 0.8;
-% x = reinst_bb_comp(valid); y = b2_ldi_c(valid);
-% scatter(x, y, 60, c_comp, 'filled', 'MarkerFaceAlpha', 0.6);
-% p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
-% plot(x_fit, polyval(p_fit, x_fit), 'Color', c_comp, 'LineWidth', 2);
-% xlabel('Gaze Reinstatement Index', 'FontSize', 12); ylabel('LDI', 'FontSize', 12);
-% title(sprintf('compared: r=%.2f, p=%.3f (n=%d)', stat_results.corr_gr_ldi_comp.r, stat_results.corr_gr_ldi_comp.p, stat_results.corr_gr_ldi_comp.n), 'FontSize', 14);
-% grid off; box off;
-% subplot(1,2,2); hold on;
-% valid = ~isnan(reinst_bb_iso) & ~isnan(b2_ldi_i) & b2_ldi_i <= 0.8;
-% x = reinst_bb_iso(valid); y = b2_ldi_i(valid);
-% scatter(x, y, 60, c_iso, 'filled', 'MarkerFaceAlpha', 0.6);
-% p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
-% plot(x_fit, polyval(p_fit, x_fit), 'Color', c_iso, 'LineWidth', 2);
-% xlabel('Gaze Reinstatement Index', 'FontSize', 12); ylabel('LDI', 'FontSize', 12);
-% title(sprintf('isolated: r=%.2f, p=%.3f (n=%d)', stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p, stat_results.corr_gr_ldi_iso.n), 'FontSize', 14);
-% grid off; box off;
-% sgtitle('Predict LDI from Gaze Reinstatement', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'gaze_reinstat_ldi.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: pupil timeseries
-% figure('color','w','position',[50 50 1200 500]);
-% subplot(1,2,1); hold on;
-% plot_pup_ts(t_pup, pup.ab_com, c_comp, 'compared');
-% plot_pup_ts(t_pup, pup.ab_iso, c_iso, 'isolated');
-% plot_pup_ts(t_pup, pup.ab_nov, c_nov, 'novel');
-% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
-% title('A-B Lure Discrimination', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-% subplot(1,2,2); hold on;
-% plot_pup_ts(t_pup, pup.aa_com, c_comp, 'compared');
-% plot_pup_ts(t_pup, pup.aa_iso, c_iso, 'isolated');
-% plot_pup_ts(t_pup, pup.aa_nov, c_nov, 'novel');
-% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
-% title('A-A Target Detection', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-% sgtitle('Pupil Responses over Time', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'pupil_ts.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: pupil mean
-% figure('color','w','position',[50 50 1000 400]);
-% subplot(1,2,1);
-% data = [pup_mean.ab_com, pup_mean.ab_iso, pup_mean.ab_nov];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'Mean Pupil (a.u.)', 'A-B Lure Discrimination');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(1,2,2);
-% data = [pup_mean.aa_com, pup_mean.aa_iso, pup_mean.aa_nov];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'Mean Pupil (a.u.)', 'A-A Target Detection');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% sgtitle('Pupil Dilation by Condition', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'pupil_mean.pdf'), '-dpdf', '-vector');
+%% fig: gaze-behavior correlation
+figure('color','w','position',[50 50 800 400]);
+subplot(1,2,1); hold on;
+valid = ~isnan(reinst_bb_comp) & ~isnan(b2_ldi_c) & b2_ldi_c <= 0.8;
+x = reinst_bb_comp(valid); y = b2_ldi_c(valid);
+scatter(x, y, 60, c_comp, 'filled', 'MarkerFaceAlpha', 0.6);
+p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
+plot(x_fit, polyval(p_fit, x_fit), 'Color', c_comp, 'LineWidth', 2);
+xlabel('Gaze Reinstatement Index', 'FontSize', 12); ylabel('LDI', 'FontSize', 12);
+title(sprintf('compared: r=%.2f, p=%.3f (n=%d)', stat_results.corr_gr_ldi_comp.r, stat_results.corr_gr_ldi_comp.p, stat_results.corr_gr_ldi_comp.n), 'FontSize', 16);
+grid off; box off;
+subplot(1,2,2); hold on;
+valid = ~isnan(reinst_bb_iso) & ~isnan(b2_ldi_i) & b2_ldi_i <= 0.8;
+x = reinst_bb_iso(valid); y = b2_ldi_i(valid);
+scatter(x, y, 60, c_iso, 'filled', 'MarkerFaceAlpha', 0.6);
+p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
+plot(x_fit, polyval(p_fit, x_fit), 'Color', c_iso, 'LineWidth', 2);
+xlabel('Gaze Reinstatement Index', 'FontSize', 12); ylabel('LDI', 'FontSize', 12);
+title(sprintf('isolated: r=%.2f, p=%.3f (n=%d)', stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p, stat_results.corr_gr_ldi_iso.n), 'FontSize', 16);
+grid off; box off;
+sgtitle('Predict LDI from Gaze Reinstatement', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_reinstat_ldi.pdf'), '-dpdf', '-vector');
+
+%% fig: pupil timeseries
+figure('color','w','position',[50 50 1200 500]);
+subplot(1,2,1); hold on;
+plot_pup_ts(t_pup, pup.ab_com, c_comp, 'compared');
+plot_pup_ts(t_pup, pup.ab_iso, c_iso, 'isolated');
+plot_pup_ts(t_pup, pup.ab_nov, c_nov, 'novel');
+xlabel('Time from stimulus onset (s)', 'FontSize', 16); ylabel('Pupil size change (a.u.)', 'FontSize', 16);
+title('A-B Lure Discrimination', 'FontSize', 16); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+subplot(1,2,2); hold on;
+plot_pup_ts(t_pup, pup.aa_com, c_comp, 'compared');
+plot_pup_ts(t_pup, pup.aa_iso, c_iso, 'isolated');
+plot_pup_ts(t_pup, pup.aa_nov, c_nov, 'novel');
+xlabel('Time from stimulus onset (s)', 'FontSize', 16); ylabel('Pupil size change (a.u.)', 'FontSize', 16);
+title('A-A Target Detection', 'FontSize', 16); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+sgtitle('Pupil Responses over Time', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'pupil_ts.pdf'), '-dpdf', '-vector');
+
+%% fig: pupil mean
+figure('color','w','position',[50 50 1000 400]);
+subplot(1,2,1);
+data = [pup_mean.ab_com, pup_mean.ab_iso, pup_mean.ab_nov];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'Mean Pupil (a.u.)', 'A-B Lure Discrimination');
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(1,2,2);
+data = [pup_mean.aa_com, pup_mean.aa_iso, pup_mean.aa_nov];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'Mean Pupil (a.u.)', 'A-A Target Detection');
+add_sig(data, [1 2; 2 3; 1 3]);
+sgtitle('Pupil Dilation by Condition', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'pupil_mean.pdf'), '-dpdf', '-vector');
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %% save comprehensive results
 %%%%%%%%%%%%%%%%%%%%%%%
-% save(fullfile(res_dir, 'all_subj_results.mat'), ...
-%     'subj_ids', 'all_subjs', ...
-%     'b1_acc_sam', 'b1_acc_sim', 'b1_acc_new', 'b1_rt_sam', 'b1_rt_sim', ...
-%     'b2_ldi_c', 'b2_ldi_i', 'b2_ldi_n', 'b2_dp_c', 'b2_dp_i', 'b2_dp_n', ...
-%     'b2_rt_l_c', 'b2_rt_l_i', 'b2_rt_l_n', 'b2_rt_t_c', 'b2_rt_t_i', 'b2_rt_t_n', ...
-%     'rec_d_c', 'rec_d_i', 'd_tot', ...
-%     'reinst_bb_comp', 'reinst_bb_iso', 'reinst_ba_comp', 'reinst_ba_iso', ...
-%     'match_bb_comp', 'match_bb_iso', 'match_ba_comp', 'match_ba_iso', ...
-%     'baseline_bb_comp', 'baseline_bb_iso', 'baseline_ba_comp', 'baseline_ba_iso', ...
-%     'pup', 'pup_mean', 't_pup', 'pup_subjs', 't_clust', ...
-%     'stat_results');
-% fprintf('\nALL RESULTS SAVED: %s\n', fullfile(res_dir, 'all_subj_results.mat'));
+save(fullfile(res_dir, 'all_subj_results.mat'), ...
+    'subj_ids', 'all_subjs', ...
+    'b1_acc_sam', 'b1_acc_sim', 'b1_acc_new', 'b1_rt_sam', 'b1_rt_sim', ...
+    'b2_ldi_c', 'b2_ldi_i', 'b2_ldi_n', 'b2_dp_c', 'b2_dp_i', 'b2_dp_n', ...
+    'b2_rt_l_c', 'b2_rt_l_i', 'b2_rt_l_n', 'b2_rt_t_c', 'b2_rt_t_i', 'b2_rt_t_n', ...
+    'rec_d_c', 'rec_d_i', 'd_tot', ...
+    'reinst_bb_comp', 'reinst_bb_iso', 'reinst_ba_comp', 'reinst_ba_iso', ...
+    'match_bb_comp', 'match_bb_iso', 'match_ba_comp', 'match_ba_iso', ...
+    'baseline_bb_comp', 'baseline_bb_iso', 'baseline_ba_comp', 'baseline_ba_iso', ...
+    'pup', 'pup_mean', 't_pup', 'pup_subjs', 't_clust', ...
+    'stat_results');
+fprintf('\nALL RESULTS SAVED: %s\n', fullfile(res_dir, 'all_subj_results.mat'));
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% extract correctness-split data
+%%%%%%%%%%%%%%%%%%%%%%%
+% gaze by correctness
+% load(fullfile(res_dir, 'gaze_reinstat_res_m.mat'));
+% load(fullfile(res_dir, 'all_trials_preprocessed.mat'), 'all_preprocessed');
+% [reinst_bb_comp_corr, reinst_bb_comp_incorr, reinst_bb_iso_corr, reinst_bb_iso_incorr, ...
+%  match_bb_comp_corr, match_bb_comp_incorr, match_bb_iso_corr, match_bb_iso_incorr, ...
+%  baseline_bb_comp_corr, baseline_bb_comp_incorr, baseline_bb_iso_corr, baseline_bb_iso_incorr, ...
+%  n_bb_comp_corr, n_bb_comp_incorr, n_bb_iso_corr, n_bb_iso_incorr] = extract_gaze_by_correctness(reinstat_res, subj_ids);
+% 
+% % pupil by correctness
+% [pup_corr, pup_incorr, pup_mean_corr, pup_mean_incorr, pup_subjs_corr, ...
+%  n_ab_comp_corr, n_ab_comp_incorr, n_ab_iso_corr, n_ab_iso_incorr] = extract_pupil_by_correctness(all_preprocessed);
+% 
+% %% gaze by correctness
+% fprintf('\n=== GAZE BY CORRECTNESS ===\n');
+% fprintf('BB Compared:\n');
+% [stat_results.gaze_corr_bb_comp.p, stat_results.gaze_corr_bb_comp.stats] = do_ttest(reinst_bb_comp_corr, reinst_bb_comp_incorr);
+% fprintf('  t(%d)=%.2f, p=%.4f, n_corr=%d, n_incorr=%d\n', stat_results.gaze_corr_bb_comp.stats.df, stat_results.gaze_corr_bb_comp.stats.tstat, stat_results.gaze_corr_bb_comp.p, sum(~isnan(reinst_bb_comp_corr)), sum(~isnan(reinst_bb_comp_incorr)));
+% fprintf('BB Isolated:\n');
+% [stat_results.gaze_corr_bb_iso.p, stat_results.gaze_corr_bb_iso.stats] = do_ttest(reinst_bb_iso_corr, reinst_bb_iso_incorr);
+% fprintf('  t(%d)=%.2f, p=%.4f, n_corr=%d, n_incorr=%d\n', stat_results.gaze_corr_bb_iso.stats.df, stat_results.gaze_corr_bb_iso.stats.tstat, stat_results.gaze_corr_bb_iso.p, sum(~isnan(reinst_bb_iso_corr)), sum(~isnan(reinst_bb_iso_incorr)));
+% 
+% % fprintf('\n=== GAZE PERMUTATION BY CORRECTNESS ===\n');
+% % [stat_results.gaze_match_bb_comp_corr.p, stat_results.gaze_match_bb_comp_corr.obs] = run_permutation(match_bb_comp_corr, baseline_bb_comp_corr, n_perm);
+% % [stat_results.gaze_match_bb_comp_incorr.p, stat_results.gaze_match_bb_comp_incorr.obs] = run_permutation(match_bb_comp_incorr, baseline_bb_comp_incorr, n_perm);
+% % [stat_results.gaze_match_bb_iso_corr.p, stat_results.gaze_match_bb_iso_corr.obs] = run_permutation(match_bb_iso_corr, baseline_bb_iso_corr, n_perm);
+% % [stat_results.gaze_match_bb_iso_incorr.p, stat_results.gaze_match_bb_iso_incorr.obs] = run_permutation(match_bb_iso_incorr, baseline_bb_iso_incorr, n_perm);
+% % fprintf('BB comp correct:   p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_comp_corr.p, stat_results.gaze_match_bb_comp_corr.obs);
+% % fprintf('BB comp incorrect: p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_comp_incorr.p, stat_results.gaze_match_bb_comp_incorr.obs);
+% % fprintf('BB iso correct:    p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_iso_corr.p, stat_results.gaze_match_bb_iso_corr.obs);
+% % fprintf('BB iso incorrect:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_iso_incorr.p, stat_results.gaze_match_bb_iso_incorr.obs);
+% 
+% %% pupil by correctness
+% fprintf('\n=== PUPIL BY CORRECTNESS ===\n');
+% fprintf('A-B Compared:\n');
+% [stat_results.pup_corr_ab_comp.p, stat_results.pup_corr_ab_comp.stats] = do_ttest(pup_mean_corr.ab_com, pup_mean_incorr.ab_com);
+% fprintf('  t(%d)=%.2f, p=%.4f, n_corr=%d, n_incorr=%d\n', stat_results.pup_corr_ab_comp.stats.df, stat_results.pup_corr_ab_comp.stats.tstat, stat_results.pup_corr_ab_comp.p, sum(~isnan(pup_mean_corr.ab_com)), sum(~isnan(pup_mean_incorr.ab_com)));
+% fprintf('A-B Isolated:\n');
+% [stat_results.pup_corr_ab_iso.p, stat_results.pup_corr_ab_iso.stats] = do_ttest(pup_mean_corr.ab_iso, pup_mean_incorr.ab_iso);
+% fprintf('  t(%d)=%.2f, p=%.4f, n_corr=%d, n_incorr=%d\n', stat_results.pup_corr_ab_iso.stats.df, stat_results.pup_corr_ab_iso.stats.tstat, stat_results.pup_corr_ab_iso.p, sum(~isnan(pup_mean_corr.ab_iso)), sum(~isnan(pup_mean_incorr.ab_iso)));
+% 
+% % fprintf('\n=== PUPIL TIME SERIES BY CORRECTNESS (CLUSTER PERM) ===\n');
+% % fprintf('A-B Compared:\n');
+% % [stat_results.pup_ts_corr_ab_comp.clusters, stat_results.pup_ts_corr_ab_comp.p, stat_results.pup_ts_corr_ab_comp.t] = cluster_perm_ttest(pup_corr.ab_com(:,t_idx), pup_incorr.ab_com(:,t_idx), n_perm);
+% % print_clusters('  corr vs incorr', stat_results.pup_ts_corr_ab_comp.clusters, stat_results.pup_ts_corr_ab_comp.p, t_clust);
+% % fprintf('A-B Isolated:\n');
+% % [stat_results.pup_ts_corr_ab_iso.clusters, stat_results.pup_ts_corr_ab_iso.p, stat_results.pup_ts_corr_ab_iso.t] = cluster_perm_ttest(pup_corr.ab_iso(:,t_idx), pup_incorr.ab_iso(:,t_idx), n_perm);
+% % print_clusters('  corr vs incorr', stat_results.pup_ts_corr_ab_iso.clusters, stat_results.pup_ts_corr_ab_iso.p, t_clust);
+% % 
+% 
+% % %% fig: gaze by correctness
+% % figure('color','w','position',[50 50 1000 800]);
+% % subplot(2,2,1);
+% % data = [match_bb_comp_corr, baseline_bb_comp_corr];
+% % raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'BB Comp Correct', [0,1]);
+% % set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp_corr.p);
+% % subplot(2,2,2);
+% % data = [match_bb_comp_incorr, baseline_bb_comp_incorr];
+% % raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'BB Comp Incorrect', [0,1]);
+% % set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp_incorr.p);
+% % subplot(2,2,3);
+% % data = [match_bb_iso_corr, baseline_bb_iso_corr];
+% % raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'BB Iso Correct', [0,1]);
+% % set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso_corr.p);
+% % subplot(2,2,4);
+% % data = [match_bb_iso_incorr, baseline_bb_iso_incorr];
+% % raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'BB Iso Incorrect', [0,1]);
+% % set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso_incorr.p);
+% % sgtitle('Gaze Reinstatement by Correctness', 'FontSize', 16, 'FontWeight', 'bold');
+% % set(gcf, 'PaperPositionMode', 'auto');
+% % print(gcf, fullfile(fig_dir, 'gaze_reins_correctness.pdf'), '-dpdf', '-vector');
+% 
+% %% fig: gaze reinstatement index by correctness
+% figure('color','w','position',[50 50 800 600]);
+% data_matrix = [reinst_bb_comp_corr, reinst_bb_comp_incorr, reinst_bb_iso_corr, reinst_bb_iso_incorr];
+% labels = {'comp corr', 'comp incorr', 'iso corr', 'iso incorr'};
+% colors = {c_comp, [c_comp*0.5 + [1 1 1]*0.5], c_iso, [c_iso*0.5 + [1 1 1]*0.5]}; hold on;
+% yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+% raincloud(data_matrix, colors, labels, 'Gaze Reinstatement Index', 'Gaze by Correctness', [-0.1 0.4]);
+% set(gca, 'YTick', [-0.1 0 0.1 0.2 0.3 0.4]);
+% p_chance_all = [stat_results.gaze_match_bb_comp_corr.p, stat_results.gaze_match_bb_comp_incorr.p, stat_results.gaze_match_bb_iso_corr.p, stat_results.gaze_match_bb_iso_incorr.p];
+% for i = 1:4
+%     p = p_chance_all(i);
+%     if p < 0.05
+%         if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
+%         text(i, 0.45, txt, 'HorizontalAlignment', 'center', 'FontSize', 16);
+%     end
+% end
+% pairs_to_test = [1 2; 3 4];
+% pvals = [stat_results.gaze_corr_bb_comp.p; stat_results.gaze_corr_bb_iso.p];
+% add_sig_perm(data_matrix, pairs_to_test, pvals);
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'gaze_reins_idx_correctness.pdf'), '-dpdf', '-vector');
+% 
+% %% fig: pupil by correctness timeseries
+% figure('color','w','position',[50 50 1200 500]);
+% subplot(1,2,1); hold on;
+% plot_pup_ts(t_pup, pup_corr.ab_com, c_comp, 'correct');
+% plot_pup_ts(t_pup, pup_incorr.ab_com, [c_comp*0.5 + [1 1 1]*0.5], 'incorrect');
+% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
+% title('A-B Compared by Correctness', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+% subplot(1,2,2); hold on;
+% plot_pup_ts(t_pup, pup_corr.ab_iso, c_iso, 'correct');
+% plot_pup_ts(t_pup, pup_incorr.ab_iso, [c_iso*0.5 + [1 1 1]*0.5], 'incorrect');
+% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
+% title('A-B Isolated by Correctness', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+% sgtitle('Pupil by Correctness', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'pupil_ts_correctness.pdf'), '-dpdf', '-vector');
+% 
+% %% fig: pupil mean by correctness
+% figure('color','w','position',[50 50 1000 400]);
+% subplot(1,2,1);
+% data = [pup_mean_corr.ab_com, pup_mean_incorr.ab_com];
+% raincloud(data, {c_comp, [c_comp*0.5 + [1 1 1]*0.5]}, {'correct','incorrect'}, 'Mean Pupil (a.u.)', 'A-B Compared');
+% add_sig(data, [1 2]);
+% subplot(1,2,2);
+% data = [pup_mean_corr.ab_iso, pup_mean_incorr.ab_iso];
+% raincloud(data, {c_iso, [c_iso*0.5 + [1 1 1]*0.5]}, {'correct','incorrect'}, 'Mean Pupil (a.u.)', 'A-B Isolated');
+% add_sig(data, [1 2]);
+% sgtitle('Pupil by Correctness', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'pupil_mean_correctness.pdf'), '-dpdf', '-vector');
+% %%%%%%%%%%%%%%%%%%%%%%%
+% %% diagnostic: subject-level correlations
+% %%%%%%%%%%%%%%%%%%%%%%%
+% fprintf('\n=== SUBJECT-LEVEL CORRELATIONS ===\n');
+% fprintf('Does overall reinstatement predict overall performance?\n');
+% [r_comp, p_comp] = corr(b2_ldi_c, reinst_bb_comp, 'rows', 'complete');
+% fprintf('Compared: r=%.3f, p=%.4f\n', r_comp, p_comp);
+% [r_iso, p_iso] = corr(b2_ldi_i, reinst_bb_iso, 'rows', 'complete');
+% fprintf('Isolated: r=%.3f, p=%.4f\n', r_iso, p_iso);
+% 
+% fprintf('\nPupil-performance correlations:\n');
+% [r_pup_comp, p_pup_comp] = corr(b2_ldi_c, pup_mean.ab_com, 'rows', 'complete');
+% fprintf('Compared: r=%.3f, p=%.4f\n', r_pup_comp, p_pup_comp);
+% [r_pup_iso, p_pup_iso] = corr(b2_ldi_i, pup_mean.ab_iso, 'rows', 'complete');
+% fprintf('Isolated: r=%.3f, p=%.4f\n', r_pup_iso, p_pup_iso);
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %% functions
@@ -444,9 +601,9 @@ function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
         rectangle('Position', [i-0.06, q(1), 0.12, q(3)-q(1)], 'FaceColor', cols{i}, 'EdgeColor','k', 'LineWidth',1.2);
         plot([i-0.06, i+0.06], [q(2), q(2)], 'k-', 'LineWidth', 2);
     end
-    set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 12);
-    if ~isempty(ttl), title(ttl, 'FontSize', 14); end
-    ylabel(ylbl,'FontSize',14,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
+    set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 16);
+    if ~isempty(ttl), title(ttl, 'FontSize', 16); end
+    ylabel(ylbl,'FontSize',16,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
     if nargin>5 && ~isempty(ylims), ylim(ylims); else, ylim(auto_lim); end
     grid off; set(gca,'GridAlpha',0.1); box off; hold off;
 end
@@ -464,7 +621,7 @@ function add_sig(data, pairs)
             line_lvl=line_lvl+1; y_p = base + (line_lvl*step);
             if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
             if paired, plot([c1,c1,c2,c2],[y_p-step*0.3,y_p,y_p,y_p-step*0.3],'k-','LineWidth',1.2);
-               text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',14,'FontWeight','bold');
+               text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold');
             else, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold'); end
         end
     end
@@ -507,7 +664,7 @@ function add_sig_perm(data, pairs, pvals)
         if p < 0.001, txt = '***'; elseif p < 0.01, txt = '**'; else, txt = '*'; end
         if c2 == 0, text(c1, y_p, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold');
         else, plot([c1 c1 c2 c2], [y_p-step*0.3 y_p y_p y_p-step*0.3], 'k-', 'LineWidth', 1.2);
-              text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',14,'FontWeight','bold'); end
+              text(mean([c1 c2]), y_p+step*0.1, txt, 'HorizontalAlignment','center','FontSize',16,'FontWeight','bold'); end
     end
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end; hold off;
 end
@@ -576,8 +733,35 @@ function adj = holm_bonf(p)
 end
 
 function [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
-          baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids)
+          baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids, split_field, split_by_correct)
+    if nargin < 3, split_field = ''; split_by_correct = false; end
     n = length(subj_ids);
+    
+    if split_by_correct
+        % return only one condition split by correctness
+        reinst_corr = nan(n,1); reinst_incorr = nan(n,1);
+        match_corr = nan(n,1); match_incorr = nan(n,1);
+        baseline_corr = nan(n,1); baseline_incorr = nan(n,1);
+        for i = 1:n
+            sid = subj_ids(i);
+            corr_idx = reinstat_res.(split_field).subj_id==sid & reinstat_res.(split_field).correct==1;
+            incorr_idx = reinstat_res.(split_field).subj_id==sid & reinstat_res.(split_field).correct==0;
+            reinst_corr(i) = mean(reinstat_res.(split_field).reinst_index(corr_idx),'omitnan');
+            reinst_incorr(i) = mean(reinstat_res.(split_field).reinst_index(incorr_idx),'omitnan');
+            match_corr(i) = mean(reinstat_res.(split_field).match_score(corr_idx),'omitnan');
+            match_incorr(i) = mean(reinstat_res.(split_field).match_score(incorr_idx),'omitnan');
+            baseline_corr(i) = mean(reinstat_res.(split_field).baseline_score(corr_idx),'omitnan');
+            baseline_incorr(i) = mean(reinstat_res.(split_field).baseline_score(incorr_idx),'omitnan');
+        end
+        reinst_bb_comp = reinst_corr; reinst_bb_iso = reinst_incorr;
+        match_bb_comp = match_corr; match_bb_iso = match_incorr;
+        baseline_bb_comp = baseline_corr; baseline_bb_iso = baseline_incorr;
+        reinst_ba_comp = []; reinst_ba_iso = []; match_ba_comp = []; match_ba_iso = [];
+        baseline_ba_comp = []; baseline_ba_iso = [];
+        return;
+    end
+    
+    % original code for overall extraction
     reinst_bb_comp = nan(n,1); reinst_bb_iso = nan(n,1); reinst_ba_comp = nan(n,1); reinst_ba_iso = nan(n,1);
     match_bb_comp = nan(n,1); match_bb_iso = nan(n,1); match_ba_comp = nan(n,1); match_ba_iso = nan(n,1);
     baseline_bb_comp = nan(n,1); baseline_bb_iso = nan(n,1); baseline_ba_comp = nan(n,1); baseline_ba_iso = nan(n,1);
@@ -597,6 +781,28 @@ function [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb
         baseline_ba_iso(i) = mean(reinstat_res.ba_isolated.baseline_score(reinstat_res.ba_isolated.subj_id==sid),'omitnan');
     end
 end
+% function [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+%           baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids)
+%     n = length(subj_ids);
+%     reinst_bb_comp = nan(n,1); reinst_bb_iso = nan(n,1); reinst_ba_comp = nan(n,1); reinst_ba_iso = nan(n,1);
+%     match_bb_comp = nan(n,1); match_bb_iso = nan(n,1); match_ba_comp = nan(n,1); match_ba_iso = nan(n,1);
+%     baseline_bb_comp = nan(n,1); baseline_bb_iso = nan(n,1); baseline_ba_comp = nan(n,1); baseline_ba_iso = nan(n,1);
+%     for i = 1:n
+%         sid = subj_ids(i);
+%         reinst_bb_comp(i) = mean(reinstat_res.bb_compared.reinst_index(reinstat_res.bb_compared.subj_id==sid),'omitnan');
+%         reinst_bb_iso(i) = mean(reinstat_res.bb_isolated.reinst_index(reinstat_res.bb_isolated.subj_id==sid),'omitnan');
+%         reinst_ba_comp(i) = mean(reinstat_res.ba_compared.reinst_index(reinstat_res.ba_compared.subj_id==sid),'omitnan');
+%         reinst_ba_iso(i) = mean(reinstat_res.ba_isolated.reinst_index(reinstat_res.ba_isolated.subj_id==sid),'omitnan');
+%         match_bb_comp(i) = mean(reinstat_res.bb_compared.match_score(reinstat_res.bb_compared.subj_id==sid),'omitnan');
+%         match_bb_iso(i) = mean(reinstat_res.bb_isolated.match_score(reinstat_res.bb_isolated.subj_id==sid),'omitnan');
+%         match_ba_comp(i) = mean(reinstat_res.ba_compared.match_score(reinstat_res.ba_compared.subj_id==sid),'omitnan');
+%         match_ba_iso(i) = mean(reinstat_res.ba_isolated.match_score(reinstat_res.ba_isolated.subj_id==sid),'omitnan');
+%         baseline_bb_comp(i) = mean(reinstat_res.bb_compared.baseline_score(reinstat_res.bb_compared.subj_id==sid),'omitnan');
+%         baseline_bb_iso(i) = mean(reinstat_res.bb_isolated.baseline_score(reinstat_res.bb_isolated.subj_id==sid),'omitnan');
+%         baseline_ba_comp(i) = mean(reinstat_res.ba_compared.baseline_score(reinstat_res.ba_compared.subj_id==sid),'omitnan');
+%         baseline_ba_iso(i) = mean(reinstat_res.ba_isolated.baseline_score(reinstat_res.ba_isolated.subj_id==sid),'omitnan');
+%     end
+% end
 
 function res = run_2x2_anova(r_bb_c, r_bb_i, r_ba_c, r_ba_i)
     t = table(r_bb_c, r_bb_i, r_ba_c, r_ba_i, 'VariableNames', {'BBC','BBI','BAC','BAI'});
@@ -631,10 +837,17 @@ function res = run_2x2_anova(r_bb_c, r_bb_i, r_ba_c, r_ba_i)
     end
 end
 
-function [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed)
+function [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed, split_by_correct, correct_flag, t_pup_in)
+    if nargin < 2, split_by_correct = false; correct_flag = []; t_pup_in = []; end
     valid = all_preprocessed(all_preprocessed.preprocess_success, :);
+    
+    if split_by_correct
+        valid = valid(valid.correct == correct_flag, :);
+    end
+    
     max_samp = max(cellfun(@length, valid.pupil_preprocessed));
-    sr = valid.sample_rate(1); t_pup = (0:max_samp-1)/sr;
+    sr = valid.sample_rate(1); 
+    if isempty(t_pup_in), t_pup = (0:max_samp-1)/sr; else, t_pup = t_pup_in; end
     pup_subjs = unique(valid.subj_id); n = length(pup_subjs);
     conds = {'compared','isolated','novel'}; goals = {'A-B','A-A'}; gtag = {'ab','aa'};
     pup = struct(); pup_mean = struct();

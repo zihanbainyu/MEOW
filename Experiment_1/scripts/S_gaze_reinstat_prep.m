@@ -6,102 +6,103 @@ base_dir = '..'; out_dir = fullfile(base_dir, 'data', 'eye_movement_data'); beha
 
 [all_fix, all_sac, all_blk, all_sum, all_behav] = deal({});
 
-for s_idx = 1:length(sub_list)
-    sid = sub_list(s_idx); fprintf('subj %d\n', sid);
-    s_fldr = sprintf('sub%03d', sid); f_path = fullfile(behav_dir, s_fldr);
+% for s_idx = 1:length(sub_list)
+%     sid = sub_list(s_idx); fprintf('subj %d\n', sid);
+%     s_fldr = sprintf('sub%03d', sid); f_path = fullfile(behav_dir, s_fldr);
+% 
+%     mat_file = fullfile(f_path, sprintf('sub%03d_concat.mat', sid));
+%     if isfile(mat_file)
+%         load(mat_file, 'final_data_output');
+%         r1 = final_data_output.results_1_back_all;
+%         r1.task = repmat({'1_back'}, height(r1), 1); r1.subj_id = repmat(sid, height(r1), 1); r1.trial_id = (1:height(r1))';
+%         r2 = final_data_output.results_2_back_all;
+%         r2.task = repmat({'2_back'}, height(r2), 1); r2.subj_id = repmat(sid, height(r2), 1); r2.trial_id = (1:height(r2))';
+% 
+%         f1 = fieldnames(r1); f2 = fieldnames(r2); all_f = unique([f1; f2]);
+%         for i = 1:length(all_f)
+%             if ~ismember(all_f{i}, f1), r1.(all_f{i}) = repmat({''}, height(r1), 1); end
+%             if ~ismember(all_f{i}, f2), r2.(all_f{i}) = repmat({''}, height(r2), 1); end
+%         end
+%         all_behav = [all_behav; {r1}; {r2}];
+%     end
+% 
+%     acc_tr_t1 = 0; acc_tr_t2 = 0;
+%     for b = 1:4
+%         for t_idx = 1:length(tasks)
+%             tsk = tasks(t_idx); t_lbl = task_lbls{t_idx};
+%             fn = fullfile(f_path, sprintf('%03d_%01d_%01d.asc', sid, tsk, b));
+%             if ~isfile(fn), continue; end
+% 
+%             fid = fopen(fn); [f_dat, s_dat, b_dat] = deal(cell(2000,1));
+%             [n_f, n_s, n_b, blk_max_raw_tr] = deal(0); [curr_tr, st_t, st_id] = deal(0, -1, 'NA');
+% 
+%             while ~feof(fid)
+%                 ln = fgetl(fid);
+%                 if startsWith(ln, 'MSG')
+%                     if contains(ln, 'TRIALID')
+%                         raw_tr = sscanf(ln, 'MSG %*d TRIALID %d');
+%                         if raw_tr > 0
+%                             blk_max_raw_tr = max(blk_max_raw_tr, raw_tr);
+%                             curr_tr = raw_tr + (tsk==1)*acc_tr_t1 + (tsk==2)*acc_tr_t2;
+%                             all_sum{end+1,1} = {sid, b, t_lbl, curr_tr, 'NA', NaN, 0, 0, 0}; st_t = -1;
+%                         end
+%                     elseif contains(ln, 'STIM_ONSET') && curr_tr > 0
+%                         tmp = textscan(ln, '%*s %f %*s %s'); st_t = tmp{1}; st_id = tmp{2}{1};
+%                         all_sum{end,1}{5} = st_id; all_sum{end,1}{6} = st_t;
+%                     end
+%                 elseif curr_tr > 0 && st_t > 0
+%                     if startsWith(ln, 'EFIX')
+%                         d = sscanf(ln, 'EFIX %c %d %d %d %f %f %d');
+%                         if numel(d) == 7
+%                             n_f = n_f+1; f_dat{n_f} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7)};
+%                             all_sum{end,1}{7} = all_sum{end,1}{7} + 1;
+%                         end
+%                     elseif startsWith(ln, 'ESACC')
+%                         d = sscanf(strrep(ln, '.', 'NaN'), 'ESACC %c %d %d %d %f %f %f %f');
+%                         if numel(d) == 8
+%                             n_s = n_s+1; s_dat{n_s} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7), d(8)};
+%                             all_sum{end,1}{8} = all_sum{end,1}{8} + 1;
+%                         end
+%                     elseif startsWith(ln, 'EBLINK')
+%                         d = sscanf(ln, 'EBLINK %c %d %d %d');
+%                         if numel(d) == 4
+%                             n_b = n_b+1; b_dat{n_b} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4)};
+%                             all_sum{end,1}{9} = all_sum{end,1}{9} + 1;
+%                         end
+%                     end
+%                 end
+%             end
+%             fclose(fid);
+% 
+%             if tsk == 1, acc_tr_t1 = acc_tr_t1 + blk_max_raw_tr; else, acc_tr_t2 = acc_tr_t2 + blk_max_raw_tr; end
+%             if n_f > 0, all_fix = [all_fix; f_dat(1:n_f)]; end
+%             if n_s > 0, all_sac = [all_sac; s_dat(1:n_s)]; end
+%             if n_b > 0, all_blk = [all_blk; b_dat(1:n_b)]; end
+%         end
+%     end
+% end
+% 
+% v_fix = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','x','y','pupil'};
+% v_sac = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','sx','sy','ex','ey'};
+% v_blk = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur'};
+% v_sum = {'subj_id','block','task','trial_id','stim_id','onset_time','n_fix','n_sac','n_blink'};
+% 
+% fix = cell2table(vertcat(all_fix{:}), 'VariableNames', v_fix);
+% sac = cell2table(vertcat(all_sac{:}), 'VariableNames', v_sac);
+% blk = cell2table(vertcat(all_blk{:}), 'VariableNames', v_blk);
+% sum_tab = cell2table(vertcat(all_sum{:}), 'VariableNames', v_sum);
+% 
+% all_behav = vertcat(all_behav{:});
+% M = outerjoin(fix, all_behav, 'Keys', {'subj_id','task','trial_id','block'}, 'MergeKeys', true, 'Type', 'inner');
+% M = removevars(M, 'stim_id_all_behav'); M = renamevars(M, 'stim_id_fix', 'stim_id');
+% 
+% eye_data = struct(); eye_data.fixations = fix; eye_data.saccades = sac; eye_data.blinks = blk; eye_data.summary = sum_tab;
+% eye_data.merged = M; eye_data.merged.resp_key = cellstr(eye_data.merged.resp_key);
+% eye_data.merged.resp_key(strcmp(eye_data.merged.resp_key,'NA')) = {'none'};
+% eye_data.merged.correct = strcmp(cellstr(eye_data.merged.corr_resp), eye_data.merged.resp_key);
+% save(fullfile(out_dir, 'group_eye_movement.mat'), 'eye_data', '-v7.3');
 
-    mat_file = fullfile(f_path, sprintf('sub%03d_concat.mat', sid));
-    if isfile(mat_file)
-        load(mat_file, 'final_data_output');
-        r1 = final_data_output.results_1_back_all;
-        r1.task = repmat({'1_back'}, height(r1), 1); r1.subj_id = repmat(sid, height(r1), 1); r1.trial_id = (1:height(r1))';
-        r2 = final_data_output.results_2_back_all;
-        r2.task = repmat({'2_back'}, height(r2), 1); r2.subj_id = repmat(sid, height(r2), 1); r2.trial_id = (1:height(r2))';
-
-        f1 = fieldnames(r1); f2 = fieldnames(r2); all_f = unique([f1; f2]);
-        for i = 1:length(all_f)
-            if ~ismember(all_f{i}, f1), r1.(all_f{i}) = repmat({''}, height(r1), 1); end
-            if ~ismember(all_f{i}, f2), r2.(all_f{i}) = repmat({''}, height(r2), 1); end
-        end
-        all_behav = [all_behav; {r1}; {r2}];
-    end
-
-    acc_tr_t1 = 0; acc_tr_t2 = 0;
-    for b = 1:4
-        for t_idx = 1:length(tasks)
-            tsk = tasks(t_idx); t_lbl = task_lbls{t_idx};
-            fn = fullfile(f_path, sprintf('%03d_%01d_%01d.asc', sid, tsk, b));
-            if ~isfile(fn), continue; end
-
-            fid = fopen(fn); [f_dat, s_dat, b_dat] = deal(cell(2000,1));
-            [n_f, n_s, n_b, blk_max_raw_tr] = deal(0); [curr_tr, st_t, st_id] = deal(0, -1, 'NA');
-
-            while ~feof(fid)
-                ln = fgetl(fid);
-                if startsWith(ln, 'MSG')
-                    if contains(ln, 'TRIALID')
-                        raw_tr = sscanf(ln, 'MSG %*d TRIALID %d');
-                        if raw_tr > 0
-                            blk_max_raw_tr = max(blk_max_raw_tr, raw_tr);
-                            curr_tr = raw_tr + (tsk==1)*acc_tr_t1 + (tsk==2)*acc_tr_t2;
-                            all_sum{end+1,1} = {sid, b, t_lbl, curr_tr, 'NA', NaN, 0, 0, 0}; st_t = -1;
-                        end
-                    elseif contains(ln, 'STIM_ONSET') && curr_tr > 0
-                        tmp = textscan(ln, '%*s %f %*s %s'); st_t = tmp{1}; st_id = tmp{2}{1};
-                        all_sum{end,1}{5} = st_id; all_sum{end,1}{6} = st_t;
-                    end
-                elseif curr_tr > 0 && st_t > 0
-                    if startsWith(ln, 'EFIX')
-                        d = sscanf(ln, 'EFIX %c %d %d %d %f %f %d');
-                        if numel(d) == 7
-                            n_f = n_f+1; f_dat{n_f} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7)};
-                            all_sum{end,1}{7} = all_sum{end,1}{7} + 1;
-                        end
-                    elseif startsWith(ln, 'ESACC')
-                        d = sscanf(strrep(ln, '.', 'NaN'), 'ESACC %c %d %d %d %f %f %f %f');
-                        if numel(d) == 8
-                            n_s = n_s+1; s_dat{n_s} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4), d(5), d(6), d(7), d(8)};
-                            all_sum{end,1}{8} = all_sum{end,1}{8} + 1;
-                        end
-                    elseif startsWith(ln, 'EBLINK')
-                        d = sscanf(ln, 'EBLINK %c %d %d %d');
-                        if numel(d) == 4
-                            n_b = n_b+1; b_dat{n_b} = {sid, b, t_lbl, curr_tr, st_id, char(d(1)), d(2), d(3), d(4)};
-                            all_sum{end,1}{9} = all_sum{end,1}{9} + 1;
-                        end
-                    end
-                end
-            end
-            fclose(fid);
-
-            if tsk == 1, acc_tr_t1 = acc_tr_t1 + blk_max_raw_tr; else, acc_tr_t2 = acc_tr_t2 + blk_max_raw_tr; end
-            if n_f > 0, all_fix = [all_fix; f_dat(1:n_f)]; end
-            if n_s > 0, all_sac = [all_sac; s_dat(1:n_s)]; end
-            if n_b > 0, all_blk = [all_blk; b_dat(1:n_b)]; end
-        end
-    end
-end
-
-v_fix = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','x','y','pupil'};
-v_sac = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur','sx','sy','ex','ey'};
-v_blk = {'subj_id','block','task','trial_id','stim_id','eye','onset','offset','dur'};
-v_sum = {'subj_id','block','task','trial_id','stim_id','onset_time','n_fix','n_sac','n_blink'};
-
-fix = cell2table(vertcat(all_fix{:}), 'VariableNames', v_fix);
-sac = cell2table(vertcat(all_sac{:}), 'VariableNames', v_sac);
-blk = cell2table(vertcat(all_blk{:}), 'VariableNames', v_blk);
-sum_tab = cell2table(vertcat(all_sum{:}), 'VariableNames', v_sum);
-
-all_behav = vertcat(all_behav{:});
-M = outerjoin(fix, all_behav, 'Keys', {'subj_id','task','trial_id','block'}, 'MergeKeys', true, 'Type', 'inner');
-M = removevars(M, 'stim_id_all_behav'); M = renamevars(M, 'stim_id_fix', 'stim_id');
-
-eye_data = struct(); eye_data.fixations = fix; eye_data.saccades = sac; eye_data.blinks = blk; eye_data.summary = sum_tab;
-eye_data.merged = M; eye_data.merged.resp_key = cellstr(eye_data.merged.resp_key);
-eye_data.merged.resp_key(strcmp(eye_data.merged.resp_key,'NA')) = {'none'};
-eye_data.merged.correct = strcmp(cellstr(eye_data.merged.corr_resp), eye_data.merged.resp_key);
-save(fullfile(out_dir, 'group_eye_movement.mat'), 'eye_data', '-v7.3');
-
+load(fullfile(base_dir, 'data', 'eye_movement_data', 'group_eye_movement_m.mat'), 'Mw');
 
 comp_idx = strcmp(Mw.condition, 'compared'); 
 iso_idx = strcmp(Mw.condition, 'isolated');
@@ -176,27 +177,29 @@ for s_idx = 1:length(unique_subjs)
     end
 end
 
-results_bb_comp = zeros(height(pairs_bb_comp), 6);
+% add correctness to pairs
+pairs_bb_comp = add_correctness_to_pairs(pairs_bb_comp, Mw, '2b_b');
+pairs_bb_iso = add_correctness_to_pairs(pairs_bb_iso, Mw, '2b_b');
+pairs_ba_comp = add_correctness_to_pairs(pairs_ba_comp, Mw, '2b_a');
+pairs_ba_iso = add_correctness_to_pairs(pairs_ba_iso, Mw, '2b_a');
+
+results_bb_comp = zeros(height(pairs_bb_comp), 7);
 n_bb_comp = 0;
 
 for i = 1:height(pairs_bb_comp)
     pair = pairs_bb_comp(i,:); 
     skey = sprintf('s%d', pair.subj_id);
     if ~isfield(subj_baseline_b_comp, skey), continue; end
-
     baseline_trials = subj_baseline_b_comp.(skey);
     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
-
     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
-
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
     match_score = corr(map_1b_match(:), map_2b(:));
-
     mismatch_scores = nan(n_baseline, 1);
     for j = 1:n_baseline
         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
@@ -204,34 +207,28 @@ for i = 1:height(pairs_bb_comp)
         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
-
     baseline_score = mean(mismatch_scores, 'omitnan');
     n_bb_comp = n_bb_comp + 1;
-    results_bb_comp(n_bb_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
+    results_bb_comp(n_bb_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score, pair.correct];
 end
-
 results_bb_comp = results_bb_comp(1:n_bb_comp,:);
-results_bb_iso = zeros(height(pairs_bb_iso), 6);
-n_bb_iso = 0;
 
+results_bb_iso = zeros(height(pairs_bb_iso), 7);
+n_bb_iso = 0;
 for i = 1:height(pairs_bb_iso)
     pair = pairs_bb_iso(i,:); 
     skey = sprintf('s%d', pair.subj_id);
     if ~isfield(subj_baseline_b_iso, skey), continue; end
-
     baseline_trials = subj_baseline_b_iso.(skey);
     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
-
     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
-
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
     match_score = corr(map_1b_match(:), map_2b(:));
-
     mismatch_scores = nan(n_baseline, 1);
     for j = 1:n_baseline
         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
@@ -239,35 +236,28 @@ for i = 1:height(pairs_bb_iso)
         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
-
     baseline_score = mean(mismatch_scores, 'omitnan');
     n_bb_iso = n_bb_iso + 1;
-    results_bb_iso(n_bb_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
+    results_bb_iso(n_bb_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score, pair.correct];
 end
-
 results_bb_iso = results_bb_iso(1:n_bb_iso,:);
 
-results_ba_comp = zeros(height(pairs_ba_comp), 6);
+results_ba_comp = zeros(height(pairs_ba_comp), 7);
 n_ba_comp = 0;
-
 for i = 1:height(pairs_ba_comp)
     pair = pairs_ba_comp(i,:); 
     skey = sprintf('s%d', pair.subj_id);
     if ~isfield(subj_baseline_b_comp, skey), continue; end
-
     baseline_trials = subj_baseline_b_comp.(skey);
     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
-
     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
-
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
     match_score = corr(map_1b_match(:), map_2b(:));
-
     mismatch_scores = nan(n_baseline, 1);
     for j = 1:n_baseline
         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
@@ -275,34 +265,28 @@ for i = 1:height(pairs_ba_comp)
         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
-
     baseline_score = mean(mismatch_scores, 'omitnan');
     n_ba_comp = n_ba_comp + 1;
-    results_ba_comp(n_ba_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
+    results_ba_comp(n_ba_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score, pair.correct];
 end
-
 results_ba_comp = results_ba_comp(1:n_ba_comp,:);
-results_ba_iso = zeros(height(pairs_ba_iso), 6);
-n_ba_iso = 0;
 
+results_ba_iso = zeros(height(pairs_ba_iso), 7);
+n_ba_iso = 0;
 for i = 1:height(pairs_ba_iso)
     pair = pairs_ba_iso(i,:); 
     skey = sprintf('s%d', pair.subj_id);
     if ~isfield(subj_baseline_b_iso, skey), continue; end
-
     baseline_trials = subj_baseline_b_iso.(skey);
     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
     if length(baseline_trials) < n_baseline, continue; end
     baseline_trials = baseline_trials(1:n_baseline);
-
     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
-
     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
     match_score = corr(map_1b_match(:), map_2b(:));
-
     mismatch_scores = nan(n_baseline, 1);
     for j = 1:n_baseline
         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
@@ -310,18 +294,165 @@ for i = 1:height(pairs_ba_iso)
         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
     end
-
     baseline_score = mean(mismatch_scores, 'omitnan');
     n_ba_iso = n_ba_iso + 1;
-    results_ba_iso(n_ba_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
+    results_ba_iso(n_ba_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score, pair.correct];
 end
-
 results_ba_iso = results_ba_iso(1:n_ba_iso,:);
 
-results_bb_comp = array2table(results_bb_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
-results_bb_iso = array2table(results_bb_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
-results_ba_comp = array2table(results_ba_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
-results_ba_iso = array2table(results_ba_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
+results_bb_comp = array2table(results_bb_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index','correct'});
+results_bb_iso = array2table(results_bb_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index','correct'});
+results_ba_comp = array2table(results_ba_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index','correct'});
+results_ba_iso = array2table(results_ba_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index','correct'});
+
+
+% 
+% results_bb_comp = zeros(height(pairs_bb_comp), 6);
+% n_bb_comp = 0;
+% 
+% for i = 1:height(pairs_bb_comp)
+%     pair = pairs_bb_comp(i,:); 
+%     skey = sprintf('s%d', pair.subj_id);
+%     if ~isfield(subj_baseline_b_comp, skey), continue; end
+% 
+%     baseline_trials = subj_baseline_b_comp.(skey);
+%     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+%     if length(baseline_trials) < n_baseline, continue; end
+%     baseline_trials = baseline_trials(1:n_baseline);
+% 
+%     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+%     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
+%     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+% 
+%     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+%     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+%     match_score = corr(map_1b_match(:), map_2b(:));
+% 
+%     mismatch_scores = nan(n_baseline, 1);
+%     for j = 1:n_baseline
+%         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+%         if height(fix_1b_mismatch) < 2, continue; end
+%         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+%         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
+%     end
+% 
+%     baseline_score = mean(mismatch_scores, 'omitnan');
+%     n_bb_comp = n_bb_comp + 1;
+%     results_bb_comp(n_bb_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
+% end
+% 
+% results_bb_comp = results_bb_comp(1:n_bb_comp,:);
+% results_bb_iso = zeros(height(pairs_bb_iso), 6);
+% n_bb_iso = 0;
+% 
+% for i = 1:height(pairs_bb_iso)
+%     pair = pairs_bb_iso(i,:); 
+%     skey = sprintf('s%d', pair.subj_id);
+%     if ~isfield(subj_baseline_b_iso, skey), continue; end
+% 
+%     baseline_trials = subj_baseline_b_iso.(skey);
+%     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+%     if length(baseline_trials) < n_baseline, continue; end
+%     baseline_trials = baseline_trials(1:n_baseline);
+% 
+%     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+%     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_b, :);
+%     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+% 
+%     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+%     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+%     match_score = corr(map_1b_match(:), map_2b(:));
+% 
+%     mismatch_scores = nan(n_baseline, 1);
+%     for j = 1:n_baseline
+%         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+%         if height(fix_1b_mismatch) < 2, continue; end
+%         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+%         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
+%     end
+% 
+%     baseline_score = mean(mismatch_scores, 'omitnan');
+%     n_bb_iso = n_bb_iso + 1;
+%     results_bb_iso(n_bb_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_b, match_score, baseline_score, match_score - baseline_score];
+% end
+% 
+% results_bb_iso = results_bb_iso(1:n_bb_iso,:);
+% 
+% results_ba_comp = zeros(height(pairs_ba_comp), 6);
+% n_ba_comp = 0;
+% 
+% for i = 1:height(pairs_ba_comp)
+%     pair = pairs_ba_comp(i,:); 
+%     skey = sprintf('s%d', pair.subj_id);
+%     if ~isfield(subj_baseline_b_comp, skey), continue; end
+% 
+%     baseline_trials = subj_baseline_b_comp.(skey);
+%     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+%     if length(baseline_trials) < n_baseline, continue; end
+%     baseline_trials = baseline_trials(1:n_baseline);
+% 
+%     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+%     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
+%     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+% 
+%     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+%     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+%     match_score = corr(map_1b_match(:), map_2b(:));
+% 
+%     mismatch_scores = nan(n_baseline, 1);
+%     for j = 1:n_baseline
+%         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+%         if height(fix_1b_mismatch) < 2, continue; end
+%         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+%         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
+%     end
+% 
+%     baseline_score = mean(mismatch_scores, 'omitnan');
+%     n_ba_comp = n_ba_comp + 1;
+%     results_ba_comp(n_ba_comp,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
+% end
+% 
+% results_ba_comp = results_ba_comp(1:n_ba_comp,:);
+% results_ba_iso = zeros(height(pairs_ba_iso), 6);
+% n_ba_iso = 0;
+% 
+% for i = 1:height(pairs_ba_iso)
+%     pair = pairs_ba_iso(i,:); 
+%     skey = sprintf('s%d', pair.subj_id);
+%     if ~isfield(subj_baseline_b_iso, skey), continue; end
+% 
+%     baseline_trials = subj_baseline_b_iso.(skey);
+%     baseline_trials = baseline_trials(baseline_trials ~= pair.tr_1b_b);
+%     if length(baseline_trials) < n_baseline, continue; end
+%     baseline_trials = baseline_trials(1:n_baseline);
+% 
+%     fix_1b_match = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_1b_b, :);
+%     fix_2b = Mw(task_2b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==pair.tr_2b_a, :);
+%     if height(fix_1b_match) < 2 || height(fix_2b) < 2, continue; end
+% 
+%     map_2b = create_fixation_map(fix_2b.x, fix_2b.y, fix_2b.dur, spatial_params);
+%     map_1b_match = create_fixation_map(fix_1b_match.x, fix_1b_match.y, fix_1b_match.dur, spatial_params);
+%     match_score = corr(map_1b_match(:), map_2b(:));
+% 
+%     mismatch_scores = nan(n_baseline, 1);
+%     for j = 1:n_baseline
+%         fix_1b_mismatch = Mw(task_1b_idx & Mw.subj_id==pair.subj_id & Mw.trial_id==baseline_trials(j), :);
+%         if height(fix_1b_mismatch) < 2, continue; end
+%         map_1b_mismatch = create_fixation_map(fix_1b_mismatch.x, fix_1b_mismatch.y, fix_1b_mismatch.dur, spatial_params);
+%         mismatch_scores(j) = corr(map_1b_mismatch(:), map_2b(:));
+%     end
+% 
+%     baseline_score = mean(mismatch_scores, 'omitnan');
+%     n_ba_iso = n_ba_iso + 1;
+%     results_ba_iso(n_ba_iso,:) = [pair.subj_id, pair.tr_1b_b, pair.tr_2b_a, match_score, baseline_score, match_score - baseline_score];
+% end
+% 
+% results_ba_iso = results_ba_iso(1:n_ba_iso,:);
+% 
+% results_bb_comp = array2table(results_bb_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
+% results_bb_iso = array2table(results_bb_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_b','match_score','baseline_score','reinst_index'});
+% results_ba_comp = array2table(results_ba_comp, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
+% results_ba_iso = array2table(results_ba_iso, 'VariableNames', {'subj_id','tr_1b_b','tr_2b_a','match_score','baseline_score','reinst_index'});
 
 reinstat_res = struct();
 reinstat_res.bb_compared = results_bb_comp;
@@ -350,4 +481,12 @@ function map = create_fixation_map(x, y, dur, params)
     end
     if params.sigma > 0, map = imgaussfilt(map, params.sigma); end
     if sum(map(:)) > 0, map = map / sum(map(:)); end
+end
+function pairs = add_correctness_to_pairs(pairs, Mw, trial_col)
+    pairs.correct = nan(height(pairs), 1);
+    for i = 1:height(pairs)
+        if strcmp(trial_col, '2b_b'), tr_id = pairs.tr_2b_b(i); else, tr_id = pairs.tr_2b_a(i); end
+        match_row = Mw.subj_id == pairs.subj_id(i) & Mw.trial_id == tr_id & strcmp(Mw.task, '2_back');
+        if any(match_row), pairs.correct(i) = Mw.correct(find(match_row, 1)); end
+    end
 end
