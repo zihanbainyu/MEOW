@@ -4,7 +4,7 @@
 fprintf('=== Loading parsed trial data ===\n');
 base_dir = '..';
 res_dir = fullfile(base_dir, 'results');
-load(fullfile(res_dir, 'all_trials_raw.mat'), 'all_trials_table');
+load(fullfile(res_dir, 'all_trials_raw_half.mat'), 'all_trials_table');
 fprintf('loaded %d trials\n', height(all_trials_table));
 
 fprintf('\n=== Preprocessing Pupil Data (Continuous per Subject) ===\n');
@@ -115,33 +115,33 @@ for s_idx = 1:length(unique_subjs)
             
             % SUBTRACT 200 FROM A-B NOVEL TRIALS AFTER PREPROCESSING
             % GRADUALLY SUBTRACT FROM A-B NOVEL TRIALS STARTING AT 0.5s
-            is_ab_novel = strcmp(subj_trials.condition(tr), 'novel') && strcmp(subj_trials.goal(tr), 'A-B');
-            if is_ab_novel
-                trial_data = all_preprocessed.pupil_preprocessed{global_idx};
-                trial_len = length(trial_data);
-                
-                % Start subtracting after 500ms (500 samples at 1000Hz)
-                onset_sample = 700;
-                
-                if trial_len > onset_sample
-                    % Linear ramp: gradually increase subtraction from 0 to 200
-                    ramp_len = 800;  % Ramp over 200ms
-                    
-                    for i = onset_sample+1:min(onset_sample+ramp_len, trial_len)
-                        % Gradually increase from 0 to 200
-                        subtraction_amount = 90 * ((i - onset_sample) / ramp_len);
-                        trial_data(i) = trial_data(i) - subtraction_amount;
-                    end
-                    
-                    % Full 200 subtraction after ramp
-                    if trial_len > onset_sample + ramp_len
-                        trial_data(onset_sample+ramp_len+1:end) = trial_data(onset_sample+ramp_len+1:end) - 90;
-                    end
-                    
-                    all_preprocessed.pupil_preprocessed{global_idx} = trial_data;
-                end
-                % Baseline stays unchanged
-            end
+            % is_ab_novel = strcmp(subj_trials.condition(tr), 'novel') && strcmp(subj_trials.goal(tr), 'A-B');
+            % if is_ab_novel
+            %     trial_data = all_preprocessed.pupil_preprocessed{global_idx};
+            %     trial_len = length(trial_data);
+            % 
+            %     % Start subtracting after 500ms (500 samples at 1000Hz)
+            %     onset_sample = 700;
+            % 
+            %     if trial_len > onset_sample
+            %         % Linear ramp: gradually increase subtraction from 0 to 200
+            %         ramp_len = 800;  % Ramp over 200ms
+            % 
+            %         for i = onset_sample+1:min(onset_sample+ramp_len, trial_len)
+            %             % Gradually increase from 0 to 200
+            %             subtraction_amount = 90 * ((i - onset_sample) / ramp_len);
+            %             trial_data(i) = trial_data(i) - subtraction_amount;
+            %         end
+            % 
+            %         % Full 200 subtraction after ramp
+            %         if trial_len > onset_sample + ramp_len
+            %             trial_data(onset_sample+ramp_len+1:end) = trial_data(onset_sample+ramp_len+1:end) - 90;
+            %         end
+            % 
+            %         all_preprocessed.pupil_preprocessed{global_idx} = trial_data;
+            %     end
+            %     % Baseline stays unchanged
+            % end
             
             all_preprocessed.preprocess_success(global_idx) = true;
         end
@@ -175,7 +175,7 @@ for cond = ["compared", "isolated", "novel"]
     end
 end
 
-save(fullfile(res_dir, 'all_trials_preprocessed.mat'), 'all_preprocessed', '-v7.3');
-fprintf('\nSaved to: %s\n', fullfile(res_dir, 'all_trials_preprocessed.mat'));
+save(fullfile(res_dir, 'all_trials_preprocessed_half.mat'), 'all_preprocessed', '-v7.3');
+fprintf('\nSaved to: %s\n', fullfile(res_dir, 'all_trials_preprocessed_half.mat'));
             
           
