@@ -119,7 +119,6 @@ for s_idx = 1:length(subj_ids)
     end
 end
 
-fprintf('\n=== Parsing Complete ===\n');
 fprintf('Total trials extracted: %d\n', length(all_trials_data));
 
 % Convert to table
