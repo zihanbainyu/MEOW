@@ -3,8 +3,8 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 %% setup
 %%%%%%%%%%%%%%%%%%%%%%%
-% subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617];
-% subj_ids = [618, 619, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631];
+subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631];
+% 
 addpath(genpath('/Users/bai/Documents/GitHub/MEOW/toolbox/bayesFactor-master'));
 base_dir = '..'; 
 res_dir = fullfile(base_dir, 'results');
@@ -14,15 +14,14 @@ min_rt = 0.150;
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% %% load & compute subject-level stats
-% %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% math
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % for s = 1:length(subj_ids)
 %     curr_id = subj_ids(s);
 %     fprintf('processing subject %d...\n', curr_id);
 %     subj_dir = fullfile(base_dir, 'data', sprintf('sub%03d', curr_id));
-%     load(fullfile(subj_dir, sprintf('sub%03d_concat.mat', curr_id)),
-%     'final_data_output');
+%     load(fullfile(subj_dir, sprintf('sub%03d_concat.mat', curr_id)), 'final_data_output');
 %     r1 = final_data_output.results_1_back_all;
 %     r2 = final_data_output.results_2_back_all;
 %     stats = [];
@@ -120,12 +119,12 @@ c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255
 %     all_subjs(s).id = curr_id; all_subjs(s).stats = stats;
 % end
 % save(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
-% 
-% 
-% % %%%%%%%%%%%%%%%%%%%%%%%
-% % %% extract group-level vectors
-% % %%%%%%%%%%%%%%%%%%%%%%%
-% get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%
+% %% extract group-level vectors
+% %%%%%%%%%%%%%%%%%%%%%%%
+get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 % b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
 % b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
 % b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
@@ -134,16 +133,16 @@ c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255
 % b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
 % rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 
-load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
-[pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
+% load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
+% [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
 % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
-% load(fullfile(res_dir, 'gaze_reinstat_res_half.mat'));
-% [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
-%  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
+load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
+[reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+ baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 
-% %%%%%%%%%%%%%%%%%%%%%%%
-% %% extract gaze reinstatement by accuracy
-% %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+%% extract gaze reinstatement
+%%%%%%%%%%%%%%%%%%%%%%%
 % gaze_datasets = {reinstat_res.bb_compared, reinstat_res.bb_isolated};
 % gaze_names = {'bb_compared', 'bb_isolated'};
 % gaze_corr = nan(length(subj_ids), 2); gaze_incorr = nan(length(subj_ids), 2);
@@ -162,393 +161,50 @@ load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
 %     fprintf('  %s: %d subjects\n', gaze_names{c}, n_valid);
 % end
 
-%%%%%%%%%%%%%%%%%%%%%%%
-%% extract pupil time series by condition and correctness
-%%%%%%%%%%%%%%%%%%%%%%%
-valid = all_preprocessed(all_preprocessed.preprocess_success, :);
-max_samp = max(cellfun(@length, valid.pupil_preprocessed));
-sr = valid.sample_rate(1);
-t_pup = (0:max_samp-1)/sr;
-pup_subjs = unique(valid.subj_id);
-n_subjs = length(pup_subjs);
-conds = {'compared', 'isolated', 'novel'};
-goals = {'A-B', 'A-A'};
-gtag = {'ab', 'aa'};
-t_win = t_pup >= 1.0 & t_pup <= 1.5;
+% %%%%%%%%%%%%%%%%%%%%%%%
+% %% extract pupil time series
+% %%%%%%%%%%%%%%%%%%%%%%%
+% valid = all_preprocessed(all_preprocessed.preprocess_success, :);
+% max_samp = max(cellfun(@length, valid.pupil_preprocessed));
+% sr = valid.sample_rate(1);
+% t_pup = (0:max_samp-1)/sr;
+% pup_subjs = unique(valid.subj_id);
+% n_subjs = length(pup_subjs);
+% conds = {'compared', 'isolated', 'novel'};
+% goals = {'A-B', 'A-A'};
+% gtag = {'ab', 'aa'};
+% t_win = t_pup >= 1.0 & t_pup <= 1.5;
+% 
+% pup = struct(); pup_mean = struct();
+% for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n_subjs, max_samp); end, end
+% pup_corr = struct(); pup_incorr = struct();
+% for k = 1:3
+%     fn = sprintf('ab_%s', conds{k}(1:3));
+%     pup_corr.(fn) = nan(n_subjs, max_samp);
+%     pup_incorr.(fn) = nan(n_subjs, max_samp);
+% end
+% 
+% for s = 1:n_subjs
+%     sid = pup_subjs(s); sv = valid(valid.subj_id == sid, :);
+%     for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
+%     for k = 1:3
+%         fn = sprintf('ab_%s', conds{k}(1:3));
+%         sv_corr = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & sv.correct == 1, :);
+%         pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv_corr, max_samp);
+%         sv_incorr = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & sv.correct == 0, :);
+%         pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv_incorr, max_samp);
+%     end
+% end
+% 
+% for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup_mean.(fn) = mean(pup.(fn)(:, t_win), 2, 'omitnan'); end, end
 
-pup = struct(); pup_mean = struct();
-for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n_subjs, max_samp); end, end
-pup_corr = struct(); pup_incorr = struct();
-for k = 1:3
-    fn = sprintf('ab_%s', conds{k}(1:3));
-    pup_corr.(fn) = nan(n_subjs, max_samp);
-    pup_incorr.(fn) = nan(n_subjs, max_samp);
-end
 
-for s = 1:n_subjs
-    sid = pup_subjs(s); sv = valid(valid.subj_id == sid, :);
-    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
-    for k = 1:3
-        fn = sprintf('ab_%s', conds{k}(1:3));
-        sv_corr = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & sv.correct == 1, :);
-        pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv_corr, max_samp);
-        sv_incorr = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & sv.correct == 0, :);
-        pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv_incorr, max_samp);
-    end
-end
-
-for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup_mean.(fn) = mean(pup.(fn)(:, t_win), 2, 'omitnan'); end, end
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% statistical tests
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
 % stat_results = struct();
 
-% fprintf('\n=== PUPIL: CLUSTER PERMUTATION (TIME-RESOLVED) ===\n');
-% t_idx = t_pup >= 0 & t_pup <= 1.5; t_clust = t_pup(t_idx); n_perm = 1000;
-% fprintf('Compared: correct vs incorrect\n');
-% [stat_results.pup_ts_corr_com.clusters, stat_results.pup_ts_corr_com.p, stat_results.pup_ts_corr_com.t] = ...
-%     cluster_perm_ttest(pup_corr.ab_com(:,t_idx), pup_incorr.ab_com(:,t_idx), n_perm);
-% print_clusters('  ', stat_results.pup_ts_corr_com.clusters, stat_results.pup_ts_corr_com.p, t_clust);
-% 
-% fprintf('Isolated: correct vs incorrect\n');
-% [stat_results.pup_ts_corr_iso.clusters, stat_results.pup_ts_corr_iso.p, stat_results.pup_ts_corr_iso.t] = ...
-%     cluster_perm_ttest(pup_corr.ab_iso(:,t_idx), pup_incorr.ab_iso(:,t_idx), n_perm);
-% print_clusters('  ', stat_results.pup_ts_corr_iso.clusters, stat_results.pup_ts_corr_iso.p, t_clust);
-% 
-% diff_ts_com = pup_corr.ab_com(:,t_idx) - pup_incorr.ab_com(:,t_idx);
-% diff_ts_iso = pup_corr.ab_iso(:,t_idx) - pup_incorr.ab_iso(:,t_idx);
-% fprintf('Interaction (time-resolved): (corr-incorr) compared > isolated\n');
-% [stat_results.pup_ts_corr_int.clusters, stat_results.pup_ts_corr_int.p, stat_results.pup_ts_corr_int.t] = ...
-%     cluster_perm_ttest(diff_ts_com, diff_ts_iso, n_perm);
-% print_clusters('  ', stat_results.pup_ts_corr_int.clusters, stat_results.pup_ts_corr_int.p, t_clust);
-
-% close all;
-%% statistical tests: 3x2 rm-anova (condition x correctness)
-pup_corr_win_com = mean(pup_corr.ab_com(:, t_win), 2, 'omitnan');
-pup_incorr_win_com = mean(pup_incorr.ab_com(:, t_win), 2, 'omitnan');
-pup_corr_win_iso = mean(pup_corr.ab_iso(:, t_win), 2, 'omitnan');
-pup_incorr_win_iso = mean(pup_incorr.ab_iso(:, t_win), 2, 'omitnan');
-pup_corr_win_nov = mean(pup_corr.ab_nov(:, t_win), 2, 'omitnan');
-pup_incorr_win_nov = mean(pup_incorr.ab_nov(:, t_win), 2, 'omitnan');
-
-cond_comp = mean(pup.ab_com(:, t_win), 2, 'omitnan');
-cond_iso = mean(pup.ab_iso(:, t_win), 2, 'omitnan');
-cond_nov = mean(pup.ab_nov(:, t_win), 2, 'omitnan');
-
-% pup_corr_win_com(pup_subjs==624)=[]; pup_incorr_win_com(pup_subjs==624)=[]; pup_corr_win_iso(pup_subjs==624)=[]; pup_incorr_win_iso(pup_subjs==624)=[]; pup_corr_win_nov(pup_subjs==624)=[]; pup_incorr_win_nov(pup_subjs==624)=[]; cond_comp(pup_subjs==624)=[]; cond_iso(pup_subjs==624)=[]; cond_nov(pup_subjs==624)=[];
-
-[stat_results.pup_3x2, stat_results.pup_3x2_ph] = run_3x2_anova_correctness('pupil 3x2', ...
-    pup_corr_win_com, pup_incorr_win_com, pup_corr_win_iso, pup_incorr_win_iso, pup_corr_win_nov, pup_incorr_win_nov, ...
-    cond_comp, cond_iso, cond_nov);
-
-%% fig. pupil timeseries
-figure('color','w','position',[50 50 1200 500]);
-subplot(1,2,1); hold on;
-plot_pup_ts(t_pup, pup.ab_com, c_comp, 'compared');
-plot_pup_ts(t_pup, pup.ab_iso, c_iso, 'isolated');
-plot_pup_ts(t_pup, pup.ab_nov, c_nov, 'novel');
-xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
-title('A-B Lure', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-subplot(1,2,2); hold on;
-plot_pup_ts(t_pup, pup.aa_com, c_comp, 'compared');
-plot_pup_ts(t_pup, pup.aa_iso, c_iso, 'isolated');
-plot_pup_ts(t_pup, pup.aa_nov, c_nov, 'novel');
-xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
-title('A-A Target', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-sgtitle('Pupil by Condition', 'FontSize', 16, 'FontWeight', 'bold');
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'pupil_condition.pdf'), '-dpdf', '-vector');
-
-figure('color','w','position',[50 50 1800 500]);
-subplot(1,3,1); hold on;
-plot_pup_ts(t_pup, pup_corr.ab_com, c_comp, 'correct');
-plot_pup_ts(t_pup, pup_incorr.ab_com, [c_comp*0.5 + [1 1 1]*0.5], 'incorrect');
-xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
-title('Compared', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-
-subplot(1,3,2); hold on;
-plot_pup_ts(t_pup, pup_corr.ab_iso, c_iso, 'correct');
-plot_pup_ts(t_pup, pup_incorr.ab_iso, [c_iso*0.5 + [1 1 1]*0.5], 'incorrect');
-xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
-title('Isolated', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-
-subplot(1,3,3); hold on;
-plot_pup_ts(t_pup, pup_corr.ab_nov, c_nov, 'correct');
-plot_pup_ts(t_pup, pup_incorr.ab_nov, [c_nov*0.5 + [1 1 1]*0.5], 'incorrect');
-xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
-title('Novel', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'pupil_correctness.pdf'), '-dpdf', '-vector');
-
-%% pupil by condition and correctness (window-averaged)
-figure('color','w','position',[50 50 1400 500]);
-subplot(1,3,1);
-mat_comp = [pup_corr_win_com, pup_incorr_win_com];
-raincloud(mat_comp, {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Compared', []);
-add_sig(mat_comp, [1 2]);
-subplot(1,3,2);
-mat_iso = [pup_corr_win_iso, pup_incorr_win_iso];
-raincloud(mat_iso, {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Isolated', []);
-add_sig(mat_iso, [1 2]);
-subplot(1,3,3);
-mat_nov = [pup_corr_win_nov, pup_incorr_win_nov];
-raincloud(mat_nov, {c_nov, c_nov*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Novel', []);
-add_sig(mat_nov, [1 2]);
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'pupil_correctness_raincloud.pdf'), '-dpdf', '-vector');
-
-
-function [res, posthoc] = run_3x2_anova_correctness(lbl, cc, ci, ic, ii, nc, ni, cond_comp, cond_iso, cond_nov)
-    t = table(cc, ci, ic, ii, nc, ni, 'VariableNames', {'cc','ci','ic','ii','nc','ni'});
-    within = table({'comp';'comp';'iso';'iso';'nov';'nov'}, {'corr';'incorr';'corr';'incorr';'corr';'incorr'}, 'VariableNames', {'cond','correctness'});
-    rm = fitrm(t, 'cc-ni~1', 'WithinDesign', within);
-    tbl = ranova(rm, 'WithinModel', 'cond*correctness'); eps = epsilon(rm); m = mauchly(rm);
-    rows = {'(Intercept):cond', '(Intercept):correctness', '(Intercept):cond:correctness'};
-    labels = {'condition', 'correctness', 'interaction'};
-    term_names = string(tbl.Properties.RowNames);
-    fprintf('\n%s:\n', lbl);
-    for i = 1:3
-        idx = find(contains(term_names, rows{i}), 1);
-        if ~isempty(idx)
-            f = tbl.F(idx); p_gg = tbl.pValueGG(idx); df1 = tbl.DF(idx); df2_gg = tbl.DF(idx+1) * eps.GreenhouseGeisser;
-            mauch_p = m.pValue(1); ep = eps.GreenhouseGeisser; s_ef = tbl.SumSq(idx); s_er = tbl.SumSq(idx+1); eta = s_ef/(s_ef+s_er);
-            fprintf('  %s: F(%d,%.1f)=%.2f, p=%.4f (GG), mauchly p=%.3f, eps=%.3f, eta=%.2f %s\n', ...
-                labels{i}, df1, df2_gg, f, p_gg, mauch_p, ep, eta, repmat('*',1,(p_gg<0.05)+(p_gg<0.01)+(p_gg<0.001)));
-            if i==1, res.cond.F=f; res.cond.p=p_gg; res.cond.eta=eta; res.cond.mauchly_p=mauch_p; res.cond.eps=ep; end
-            if i==2, res.corr.F=f; res.corr.p=p_gg; res.corr.eta=eta; res.corr.mauchly_p=mauch_p; res.corr.eps=ep; end
-            if i==3, res.int.F=f; res.int.p=p_gg; res.int.eta=eta; res.int.mauchly_p=mauch_p; res.int.eps=ep; end
-        end
-    end
-    n = length(cc); subj = (1:n)';
-    bf_tbl = table(subj, cc, ci, ic, ii, nc, ni, 'VariableNames', {'subj','cc','ci','ic','ii','nc','ni'});
-    bf_long = stack(bf_tbl, {'cc','ci','ic','ii','nc','ni'}, 'NewDataVariableName','y', 'IndexVariableName','cell');
-    bf_long.subj = categorical(bf_long.subj); bf_long.cell = categorical(bf_long.cell);
-    res.bf10 = bf.anova(bf_long, 'y~cell', 'treatAsRandom', {'subj'}, 'verbose', false);
-    if res.bf10<1, fprintf('  BF01=%.2f (evidence for null)\n', 1/res.bf10); else, fprintf('  BF10=%.2f (evidence for effect)\n', res.bf10); end
-    
-    % CONDITION POST-HOCS using trial-weighted overall means
-    fprintf('  condition post-hoc (holm-bonf):\n');
-    [~,pc1,~,sc1] = ttest(cond_comp, cond_iso); 
-    [~,pc2,~,sc2] = ttest(cond_iso, cond_nov); 
-    [~,pc3,~,sc3] = ttest(cond_comp, cond_nov);
-    pvals_cond = [pc1 pc2 pc3]; adj_cond = holm_bonf(pvals_cond); df = sc1.df;
-    posthoc.cond_comp_iso.t=sc1.tstat; posthoc.cond_comp_iso.p=pc1; posthoc.cond_comp_iso.p_adj=adj_cond(1); posthoc.cond_comp_iso.d=sc1.tstat/sqrt(df+1);
-    posthoc.cond_iso_nov.t=sc2.tstat; posthoc.cond_iso_nov.p=pc2; posthoc.cond_iso_nov.p_adj=adj_cond(2); posthoc.cond_iso_nov.d=sc2.tstat/sqrt(df+1);
-    posthoc.cond_comp_nov.t=sc3.tstat; posthoc.cond_comp_nov.p=pc3; posthoc.cond_comp_nov.p_adj=adj_cond(3); posthoc.cond_comp_nov.d=sc3.tstat/sqrt(df+1);
-    fprintf('    comp>iso: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc1.tstat, posthoc.cond_comp_iso.d, adj_cond(1), repmat('*',1,(adj_cond(1)<0.05)+(adj_cond(1)<0.01)+(adj_cond(1)<0.001)));
-    fprintf('    iso>nov: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc2.tstat, posthoc.cond_iso_nov.d, adj_cond(2), repmat('*',1,(adj_cond(2)<0.05)+(adj_cond(2)<0.01)+(adj_cond(2)<0.001)));
-    fprintf('    comp>nov: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc3.tstat, posthoc.cond_comp_nov.d, adj_cond(3), repmat('*',1,(adj_cond(3)<0.05)+(adj_cond(3)<0.01)+(adj_cond(3)<0.001)));
-    
-    % CORRECTNESS POST-HOCS (within each condition)
-    fprintf('  correctness post-hoc (holm-bonf):\n');
-    [~,p1,~,s1] = ttest(cc, ci); [~,p2,~,s2] = ttest(ic, ii); [~,p3,~,s3] = ttest(nc, ni);
-    [~,p4,~,s4] = ttest(cc-ci, ic-ii); [~,p5,~,s5] = ttest(cc-ci, nc-ni); [~,p6,~,s6] = ttest(ic-ii, nc-ni);
-    pvals = [p1 p2 p3 p4 p5 p6]; adj = holm_bonf(pvals);
-    posthoc.comp_corr_incorr.t=s1.tstat; posthoc.comp_corr_incorr.p=p1; posthoc.comp_corr_incorr.p_adj=adj(1); posthoc.comp_corr_incorr.d=s1.tstat/sqrt(df+1);
-    posthoc.iso_corr_incorr.t=s2.tstat; posthoc.iso_corr_incorr.p=p2; posthoc.iso_corr_incorr.p_adj=adj(2); posthoc.iso_corr_incorr.d=s2.tstat/sqrt(df+1);
-    posthoc.nov_corr_incorr.t=s3.tstat; posthoc.nov_corr_incorr.p=p3; posthoc.nov_corr_incorr.p_adj=adj(3); posthoc.nov_corr_incorr.d=s3.tstat/sqrt(df+1);
-    posthoc.comp_vs_iso.t=s4.tstat; posthoc.comp_vs_iso.p=p4; posthoc.comp_vs_iso.p_adj=adj(4); posthoc.comp_vs_iso.d=s4.tstat/sqrt(df+1);
-    posthoc.comp_vs_nov.t=s5.tstat; posthoc.comp_vs_nov.p=p5; posthoc.comp_vs_nov.p_adj=adj(5); posthoc.comp_vs_nov.d=s5.tstat/sqrt(df+1);
-    posthoc.iso_vs_nov.t=s6.tstat; posthoc.iso_vs_nov.p=p6; posthoc.iso_vs_nov.p_adj=adj(6); posthoc.iso_vs_nov.d=s6.tstat/sqrt(df+1);
-    fprintf('    comp corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s1.tstat, posthoc.comp_corr_incorr.d, adj(1), repmat('*',1,(adj(1)<0.05)+(adj(1)<0.01)+(adj(1)<0.001)));
-    fprintf('    iso corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s2.tstat, posthoc.iso_corr_incorr.d, adj(2), repmat('*',1,(adj(2)<0.05)+(adj(2)<0.01)+(adj(2)<0.001)));
-    fprintf('    nov corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s3.tstat, posthoc.nov_corr_incorr.d, adj(3), repmat('*',1,(adj(3)<0.05)+(adj(3)<0.01)+(adj(3)<0.001)));
-    fprintf('    (comp-iso) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s4.tstat, posthoc.comp_vs_iso.d, adj(4), repmat('*',1,(adj(4)<0.05)+(adj(4)<0.01)+(adj(4)<0.001)));
-    fprintf('    (comp-nov) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s5.tstat, posthoc.comp_vs_nov.d, adj(5), repmat('*',1,(adj(5)<0.05)+(adj(5)<0.01)+(adj(5)<0.001)));
-    fprintf('    (iso-nov) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s6.tstat, posthoc.iso_vs_nov.d, adj(6), repmat('*',1,(adj(6)<0.05)+(adj(6)<0.01)+(adj(6)<0.001)));
-end
-
-
-%% helper functions
-function a = avg_pup_cond(sv, cond, goal, maxs)
-    tr = sv(strcmp(sv.condition,cond) & strcmp(sv.goal,goal), :);
-    if height(tr)==0, a=nan(1,maxs); return; end
-    m = nan(height(tr), maxs);
-    for i = 1:height(tr)
-        p = tr.pupil_preprocessed{i} - mean(tr.baseline_pupil_preprocessed{i},'omitnan');
-        m(i,1:length(p)) = p';
-    end
-    a = mean(m,1,'omitnan');
-end
-
-function a = avg_pup_cond_correctness(sv, maxs)
-    if height(sv)==0, a=nan(1,maxs); return; end
-    m = nan(height(sv), maxs);
-    for i = 1:height(sv)
-        p = sv.pupil_preprocessed{i} - mean(sv.baseline_pupil_preprocessed{i},'omitnan');
-        m(i,1:length(p)) = p';
-    end
-    a = mean(m,1,'omitnan');
-end
-
-
-function plot_pup_ts(t, d, col, lbl)
-    mu = mean(d,1,'omitnan'); nv = sum(~isnan(d(:,1)));
-    if nv==0, return; end
-    se = std(d,0,1,'omitnan')/sqrt(nv);
-    plot(t, mu, 'Color', col, 'LineWidth', 2.5, 'DisplayName', lbl);
-    vi = ~isnan(mu);
-    if sum(vi)>1
-        fill([t(vi) fliplr(t(vi))], [mu(vi)+se(vi) fliplr(mu(vi)-se(vi))], col, 'FaceAlpha', 0.2, 'EdgeColor', 'none', 'HandleVisibility', 'off');
-    end
-end
-
-function [clusters, p_vals, t_obs] = cluster_perm_ttest(d1, d2, n_perm)
-    [n_subj, n_t] = size(d1); t_obs = zeros(1, n_t);
-    for t = 1:n_t, [~,~,~,s] = ttest(d1(:,t), d2(:,t)); t_obs(t) = s.tstat; end
-    t_thresh = tinv(0.975, n_subj-1);
-    [clusters, cl_stats] = find_clusters(abs(t_obs) > t_thresh, t_obs);
-    if isempty(clusters), p_vals = []; return; end
-    null_max = zeros(n_perm, 1);
-    for p = 1:n_perm
-        signs = (rand(n_subj,1) > 0.5)*2 - 1;
-        d1p = d1; d2p = d2;
-        for s = 1:n_subj, if signs(s)<0, tmp = d1p(s,:); d1p(s,:) = d2p(s,:); d2p(s,:) = tmp; end, end
-        t_perm = zeros(1, n_t);
-        for t = 1:n_t, [~,~,~,s] = ttest(d1p(:,t), d2p(:,t)); t_perm(t) = s.tstat; end
-        [~, perm_stats] = find_clusters(abs(t_perm) > t_thresh, t_perm);
-        if ~isempty(perm_stats), null_max(p) = max(perm_stats); end
-    end
-    p_vals = arrayfun(@(i) mean(null_max >= cl_stats(i)), 1:length(clusters));
-end
-
-function [clusters, cl_stats] = find_clusters(above_thresh, t_vals)
-    clusters = {}; cl_stats = []; in_cl = false; cl_start = 0;
-    for t = 1:length(above_thresh)
-        if above_thresh(t) && ~in_cl, cl_start = t; in_cl = true;
-        elseif ~above_thresh(t) && in_cl, clusters{end+1} = cl_start:(t-1); cl_stats(end+1) = sum(abs(t_vals(cl_start:(t-1)))); in_cl = false; end
-    end
-    if in_cl, clusters{end+1} = cl_start:length(above_thresh); cl_stats(end+1) = sum(abs(t_vals(cl_start:end))); end
-end
-
-function print_clusters(prefix, clusters, p_vals, t_vec)
-    if isempty(clusters), fprintf('%sno sig clusters\n', prefix); return; end
-    for i = 1:length(clusters)
-        if p_vals(i) < 0.05
-            fprintf('%s%.3f-%.3fs, p=%.3f %s\n', prefix, t_vec(clusters{i}(1)), t_vec(clusters{i}(end)), p_vals(i), repmat('*',1,(p_vals(i)<0.05)+(p_vals(i)<0.01)+(p_vals(i)<0.001)));
-        end
-    end
-    if all(p_vals >= 0.05), fprintf('%sno sig clusters\n', prefix); end
-end
-
-function res = run_2x2_anova_correctness(comp_corr, comp_incorr, iso_corr, iso_incorr)
-    t = table(comp_corr, comp_incorr, iso_corr, iso_incorr, 'VariableNames', {'CC','CI','IC','II'});
-    within = table({'Comp';'Comp';'Iso';'Iso'}, {'Corr';'Incorr';'Corr';'Incorr'}, 'VariableNames', {'Cond','Correctness'});
-    rm = fitrm(t, 'CC-II~1', 'WithinDesign', within);
-    tbl = ranova(rm, 'WithinModel', 'Cond*Correctness');
-    
-    fprintf('\n2x2 rm-ANOVA: Condition × Correctness\n');
-    rows = {'Cond', 'Correctness', 'Cond:Correctness'};
-    term_names = string(tbl.Properties.RowNames);
-    for i = 1:3
-        idx = find(contains(term_names, rows{i}), 1);
-        if ~isempty(idx)
-            f = tbl.F(idx); p = tbl.pValue(idx);
-            s_ef = tbl.SumSq(idx);
-            if idx<height(tbl), s_er = tbl.SumSq(idx+1); else, s_er = NaN; end
-            eta = s_ef/(s_ef+s_er);
-            fprintf('  %s: F=%.2f, p=%.4f, eta=%.2f %s\n', rows{i}, f, p, eta, repmat('*',1,(p<0.05)+(p<0.01)+(p<0.001)));
-            if i==1, res.main_cond.F=f; res.main_cond.p=p; res.main_cond.eta=eta; end
-            if i==2, res.main_corr.F=f; res.main_corr.p=p; res.main_corr.eta=eta; end
-            if i==3, res.interact.F=f; res.interact.p=p; res.interact.eta=eta; end
-        end
-    end
-    
-    fprintf('  Post-hoc (Holm-Bonf):\n');
-    pairs = {comp_corr, comp_incorr, 'Comp: corr>incorr'; 
-             iso_corr, iso_incorr, 'Iso: corr>incorr';
-             comp_corr-comp_incorr, iso_corr-iso_incorr, 'Interaction contrast'};
-    p_raw = zeros(1,3); stats = cell(1,3);
-    for k=1:3, [~, p_raw(k), ~, stats{k}] = ttest(pairs{k,1}, pairs{k,2}); end
-    p_adj = holm_bonf(p_raw);
-    
-    for k=1:3
-        s = stats{k}; d = s.tstat/sqrt(s.df+1);
-        fprintf('    %s: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', pairs{k,3}, s.df, s.tstat, d, p_adj(k), repmat('*',1,(p_adj(k)<0.05)+(p_adj(k)<0.01)+(p_adj(k)<0.001)));
-    end
-    
-    res.posthoc.comp.t = stats{1}.tstat; res.posthoc.comp.p = p_raw(1); res.posthoc.comp.p_adj = p_adj(1);
-    res.posthoc.iso.t = stats{2}.tstat; res.posthoc.iso.p = p_raw(2); res.posthoc.iso.p_adj = p_adj(2);
-    res.posthoc.int_contrast.t = stats{3}.tstat; res.posthoc.int_contrast.p = p_raw(3); res.posthoc.int_contrast.p_adj = p_adj(3);
-end
-
-% %%%%%%%%%%%%%%%%%%%%%%%
-% %% RM-ANOVA: gaze reinstatement
-% %%%%%%%%%%%%%%%%%%%%%%%
-% fprintf('\n=== RM-ANOVA: GAZE REINSTATEMENT ===\n');
-% within_gaze = table(categorical({'compared';'compared';'isolated';'isolated'}), ...
-%                     categorical({'correct';'incorrect';'correct';'incorrect'}), ...
-%                     'VariableNames', {'Condition','Accuracy'});
-% t_gaze = table(gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2), ...
-%                'VariableNames', {'comp_corr','comp_incorr','iso_corr','iso_incorr'});
-% rm_gaze = fitrm(t_gaze, 'comp_corr-iso_incorr~1', 'WithinDesign', within_gaze);
-% tbl_gaze = ranova(rm_gaze, 'WithinModel', 'Condition*Accuracy');
-% fprintf('Main effect Condition: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(1), tbl_gaze.DF(2), tbl_gaze.F(1), tbl_gaze.pValue(1));
-% fprintf('Main effect Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(3), tbl_gaze.DF(4), tbl_gaze.F(3), tbl_gaze.pValue(3));
-% fprintf('Interaction Condition*Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(5), tbl_gaze.DF(6), tbl_gaze.F(5), tbl_gaze.pValue(5));
-% stat_results.gaze_rm_anova.table = tbl_gaze;
-% stat_results.gaze_rm_anova.cond_F = tbl_gaze.F(1); stat_results.gaze_rm_anova.cond_p = tbl_gaze.pValue(1);
-% stat_results.gaze_rm_anova.acc_F = tbl_gaze.F(3); stat_results.gaze_rm_anova.acc_p = tbl_gaze.pValue(3);
-% stat_results.gaze_rm_anova.int_F = tbl_gaze.F(5); stat_results.gaze_rm_anova.int_p = tbl_gaze.pValue(5);
-% [~,p1,~,s1] = ttest(gaze_corr(:,1), gaze_incorr(:,1)); [~,p2,~,s2] = ttest(gaze_corr(:,2), gaze_incorr(:,2));
-% fprintf('Post-hoc paired t-tests:\n');
-% fprintf('  compared: t(%d)=%.2f, p=%.4f %s\n', s1.df, s1.tstat, p1, repmat('*',1,(p1<0.05)+(p1<0.01)+(p1<0.001)));
-% fprintf('  isolated: t(%d)=%.2f, p=%.4f %s\n', s2.df, s2.tstat, p2, repmat('*',1,(p2<0.05)+(p2<0.01)+(p2<0.001)));
-% stat_results.gaze_rm_anova.posthoc_comp = s1; stat_results.gaze_rm_anova.posthoc_comp_p = p1;
-% stat_results.gaze_rm_anova.posthoc_iso = s2; stat_results.gaze_rm_anova.posthoc_iso_p = p2;
-
-% %%%%%%%%%%%%%%%%%%%%%%
-% % RM-ANOVA: pupil dilation
-% %%%%%%%%%%%%%%%%%%%%%%
-% fprintf('\n=== RM-ANOVA: PUPIL DILATION (BB) ===\n');
-% within_pup = table(categorical({'compared';'compared';'isolated';'isolated';'novel';'novel'}), ...
-%                    categorical({'correct';'incorrect';'correct';'incorrect';'correct';'incorrect'}), ...
-%                    'VariableNames', {'Condition','Accuracy'});
-% t_pup = table(pup_corr(:,1), pup_incorr(:,1), pup_corr(:,2), pup_incorr(:,2), pup_corr(:,3), pup_incorr(:,3), ...
-%               'VariableNames', {'comp_corr','comp_incorr','iso_corr','iso_incorr','nov_corr','nov_incorr'});
-% rm_pup = fitrm(t_pup, 'comp_corr-nov_incorr~1', 'WithinDesign', within_pup);
-% tbl_pup = ranova(rm_pup, 'WithinModel', 'Condition*Accuracy');
-% fprintf('Main effect Condition: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_pup.DF(1), tbl_pup.DF(2), tbl_pup.F(1), tbl_pup.pValue(1));
-% fprintf('Main effect Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_pup.DF(3), tbl_pup.DF(4), tbl_pup.F(3), tbl_pup.pValue(3));
-% fprintf('Interaction Condition*Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_pup.DF(5), tbl_pup.DF(6), tbl_pup.F(5), tbl_pup.pValue(5));
-% stat_results.pup_rm_anova.table = tbl_pup;
-% stat_results.pup_rm_anova.cond_F = tbl_pup.F(1); stat_results.pup_rm_anova.cond_p = tbl_pup.pValue(1);
-% stat_results.pup_rm_anova.acc_F = tbl_pup.F(3); stat_results.pup_rm_anova.acc_p = tbl_pup.pValue(3);
-% stat_results.pup_rm_anova.int_F = tbl_pup.F(5); stat_results.pup_rm_anova.int_p = tbl_pup.pValue(5);
-% [~,p1,~,s1] = ttest(pup_corr(:,1), pup_incorr(:,1)); [~,p2,~,s2] = ttest(pup_corr(:,2), pup_incorr(:,2)); [~,p3,~,s3] = ttest(pup_corr(:,3), pup_incorr(:,3));
-% fprintf('Post-hoc paired t-tests:\n');
-% fprintf('  compared: t(%d)=%.2f, p=%.4f %s\n', s1.df, s1.tstat, p1, repmat('*',1,(p1<0.05)+(p1<0.01)+(p1<0.001)));
-% fprintf('  isolated: t(%d)=%.2f, p=%.4f %s\n', s2.df, s2.tstat, p2, repmat('*',1,(p2<0.05)+(p2<0.01)+(p2<0.001)));
-% fprintf('  novel: t(%d)=%.2f, p=%.4f %s\n', s3.df, s3.tstat, p3, repmat('*',1,(p3<0.05)+(p3<0.01)+(p3<0.001)));
-% stat_results.pup_rm_anova.posthoc_comp = s1; stat_results.pup_rm_anova.posthoc_comp_p = p1;
-% stat_results.pup_rm_anova.posthoc_iso = s2; stat_results.pup_rm_anova.posthoc_iso_p = p2;
-% stat_results.pup_rm_anova.posthoc_nov = s3; stat_results.pup_rm_anova.posthoc_nov_p = p3;
-
-
-% figure('color','w','position',[50 50 800 400]);
-% subplot(1,2,1);
-% data = [gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2)];
-% raincloud(data, {[0.2 0.7 0.2], [0.8 0.2 0.2], [0.2 0.7 0.2], [0.8 0.2 0.2]}, ...
-%     {'Comp Corr','Comp Incorr','Iso Corr','Iso Incorr'}, 'Gaze Reinstatement Index', 'Gaze Reinstatement (BB)', [-0.1 0.5]);
-% add_sig(data, [1 2; 3 4]);
-
-% subplot(1,2,2);
-% data = [pup_corr(:,1), pup_incorr(:,1), pup_corr(:,2), pup_incorr(:,2), pup_corr(:,3), pup_incorr(:,3)];
-% raincloud(data, {[0.2 0.7 0.2], [0.8 0.2 0.2], [0.2 0.7 0.2], [0.8 0.2 0.2], [0.2 0.7 0.2], [0.8 0.2 0.2]}, ...
-%     {'Comp Corr','Comp Incorr','Iso Corr','Iso Incorr','Nov Corr','Nov Incorr'}, 'Pupil Change (a.u.)', 'Pupil Dilation (BB)', []);
-% add_sig(data, [1 2; 3 4]); 5 6]);
-% sgtitle('Correct vs Incorrect Trials', 'FontSize', 16, 'FontWeight', 'bold');
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'accuracy_gaze_pupil.pdf'), '-dpdf', '-vector');
-
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%% statistical tests
-%%%%%%%%%%%%%%%%%%%%%%%
-% within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
-% stat_results = struct();
-% 
 % %% 1-back tests
 % fprintf('\n=== 1-BACK STATS ===\n');
 % [~, stat_results.b1_rt_sam_v_sim.p, ~, stat_results.b1_rt_sam_v_sim.stats] = ttest(b1_rt_sam, b1_rt_sim);
@@ -573,33 +229,88 @@ end
 % fprintf('Overall d'': t(%d)=%.2f, p=%.4f\n', stat_results.rec_overall.stats.df, stat_results.rec_overall.stats.tstat, stat_results.rec_overall.p);
 % fprintf('Comp v Iso: t(%d)=%.2f, p=%.4f\n', stat_results.rec_comp_v_iso.stats.df, stat_results.rec_comp_v_iso.stats.tstat, stat_results.rec_comp_v_iso.p);
 
-%% pupil tests
-% fprintf('\n=== PUPIL STATS ===\n');
-% [stat_results.pup_lure, stat_results.pup_lure_posthoc] = run_rm_anova('Pupil A-B', pup_mean.ab_com, pup_mean.ab_iso, pup_mean.ab_nov, within);
-% [stat_results.pup_target, stat_results.pup_target_posthoc] = run_rm_anova('Pupil A-A', pup_mean.aa_com, pup_mean.aa_iso, pup_mean.aa_nov, within);
-% % 
-% fprintf('\n=== PUPIL TIME SERIES (CLUSTER PERM) ===\n');
-% t_idx = t_pup >= 0 & t_pup <= 1.5; t_clust = t_pup(t_idx); n_perm = 1000;
-% fprintf('A-B trials:\n');
-% [stat_results.pup_ts_ab_ci.clusters, stat_results.pup_ts_ab_ci.p, stat_results.pup_ts_ab_ci.t] = cluster_perm_ttest(pup.ab_com(:,t_idx), pup.ab_iso(:,t_idx), n_perm);
-% print_clusters('  comp vs iso', stat_results.pup_ts_ab_ci.clusters, stat_results.pup_ts_ab_ci.p, t_clust);
-% [stat_results.pup_ts_ab_in.clusters, stat_results.pup_ts_ab_in.p, stat_results.pup_ts_ab_in.t] = cluster_perm_ttest(pup.ab_iso(:,t_idx), pup.ab_nov(:,t_idx), n_perm);
-% print_clusters('  iso vs nov', stat_results.pup_ts_ab_in.clusters, stat_results.pup_ts_ab_in.p, t_clust);
-% [stat_results.pup_ts_ab_cn.clusters, stat_results.pup_ts_ab_cn.p, stat_results.pup_ts_ab_cn.t] = cluster_perm_ttest(pup.ab_com(:,t_idx), pup.ab_nov(:,t_idx), n_perm);
-% print_clusters('  comp vs nov', stat_results.pup_ts_ab_cn.clusters, stat_results.pup_ts_ab_cn.p, t_clust);
-% fprintf('A-A trials:\n');
-% [stat_results.pup_ts_aa_ci.clusters, stat_results.pup_ts_aa_ci.p, stat_results.pup_ts_aa_ci.t] = cluster_perm_ttest(pup.aa_com(:,t_idx), pup.aa_iso(:,t_idx), n_perm);
-% print_clusters('  comp vs iso', stat_results.pup_ts_aa_ci.clusters, stat_results.pup_ts_aa_ci.p, t_clust);
-% [stat_results.pup_ts_aa_in.clusters, stat_results.pup_ts_aa_in.p, stat_results.pup_ts_aa_in.t] = cluster_perm_ttest(pup.aa_iso(:,t_idx), pup.aa_nov(:,t_idx), n_perm);
-% print_clusters('  iso vs nov', stat_results.pup_ts_aa_in.clusters, stat_results.pup_ts_aa_in.p, t_clust);
-% [stat_results.pup_ts_aa_cn.clusters, stat_results.pup_ts_aa_cn.p, stat_results.pup_ts_aa_cn.t] = cluster_perm_ttest(pup.aa_com(:,t_idx), pup.aa_nov(:,t_idx), n_perm);
-% print_clusters('  comp vs nov', stat_results.pup_ts_aa_cn.clusters, stat_results.pup_ts_aa_cn.p, t_clust);
+%%%%%%%%%%%%%%%%%%%%%%%
+%% extract gaze reinstatement by correctness
+%%%%%%%%%%%%%%%%%%%%%%%
+% gaze_datasets = {reinstat_res.bb_compared, reinstat_res.bb_isolated};
+% gaze_names = {'bb_compared', 'bb_isolated'};
+% gaze_corr = nan(length(subj_ids), 2); 
+% gaze_incorr = nan(length(subj_ids), 2);
+% gaze_overall = nan(length(subj_ids), 2);
 % 
-% %% gaze reinstatement tests
-% fprintf('\n=== GAZE REINSTATEMENT STATS ===\n');
+% for c = 1:2
+%     cond_data = gaze_datasets{c};
+%     for s = 1:length(subj_ids)
+%         sid = subj_ids(s); subj_idx = cond_data.subj_id == sid;
+%         if sum(subj_idx) > 0 && ismember('correct', cond_data.Properties.VariableNames)
+%             subj_data = cond_data(subj_idx, :);
+%             corr_trials = subj_data.correct == 1; 
+%             incorr_trials = subj_data.correct == 0;
+% 
+%             % Overall (trial-weighted)
+%             gaze_overall(s,c) = mean(subj_data.reinst_index, 'omitnan');
+% 
+%             % Split by correctness
+%             if sum(corr_trials) > 0, gaze_corr(s,c) = mean(subj_data.reinst_index(corr_trials), 'omitnan'); end
+%             if sum(incorr_trials) > 0, gaze_incorr(s,c) = mean(subj_data.reinst_index(incorr_trials), 'omitnan'); end
+%         end
+%     end
+%     n_valid = sum(~isnan(gaze_corr(:,c)) & ~isnan(gaze_incorr(:,c)));
+%     fprintf('  %s: %d subjects with both correct and incorrect\n', gaze_names{c}, n_valid);
+% end
+
+% 
+% %% statistical tests: 2x2 rm-anova (condition x correctness)
+% fprintf('\n=== GAZE: 2x2 ANOVA (CONDITION x CORRECTNESS) ===\n');
+% [stat_results.gaze_2x2, stat_results.gaze_2x2_ph] = run_2x2_anova_correctness('gaze 2x2', ...
+%     gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2), ...
+%     gaze_overall(:,1), gaze_overall(:,2));
+
+% %% raincloud plot: gaze by condition and correctness
+% figure('color','w','position',[50 50 900 500]);
+% 
+% subplot(1,2,1);
+% mat_comp = [gaze_corr(:,1), gaze_incorr(:,1)];
+% raincloud(mat_comp, {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Gaze reinstatement', 'Compared', []);
+% add_sig(mat_comp, [1 2]);
+% 
+% subplot(1,2,2);
+% mat_iso = [gaze_corr(:,2), gaze_incorr(:,2)];
+% raincloud(mat_iso, {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Gaze reinstatement', 'Isolated', []);
+% add_sig(mat_iso, [1 2]);
+% 
+% sgtitle('Gaze Reinstatement by Correctness (S624 excluded)', 'FontSize', 16, 'FontWeight', 'bold');
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'gaze_correctness_raincloud.pdf'), '-dpdf', '-vector');
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% gaze reinstatement anova
+%%%%%%%%%%%%%%%%%%%%%%%
+% fprintf('\n=== RM-ANOVA: GAZE REINSTATEMENT ===\n');
+% within_gaze = table(categorical({'compared';'compared';'isolated';'isolated'}), ...
+%                     categorical({'correct';'incorrect';'correct';'incorrect'}), ...
+%                     'VariableNames', {'Condition','Accuracy'});
+% t_gaze = table(gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2), ...
+%                'VariableNames', {'comp_corr','comp_incorr','iso_corr','iso_incorr'});
+% rm_gaze = fitrm(t_gaze, 'comp_corr-iso_incorr~1', 'WithinDesign', within_gaze);
+% tbl_gaze = ranova(rm_gaze, 'WithinModel', 'Condition*Accuracy');
+% fprintf('Main effect Condition: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(1), tbl_gaze.DF(2), tbl_gaze.F(1), tbl_gaze.pValue(1));
+% fprintf('Main effect Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(3), tbl_gaze.DF(4), tbl_gaze.F(3), tbl_gaze.pValue(3));
+% fprintf('Interaction Condition*Accuracy: F(%.0f,%.0f)=%.2f, p=%.4f\n', tbl_gaze.DF(5), tbl_gaze.DF(6), tbl_gaze.F(5), tbl_gaze.pValue(5));
+% stat_results.gaze_rm_anova.table = tbl_gaze;
+% stat_results.gaze_rm_anova.cond_F = tbl_gaze.F(1); stat_results.gaze_rm_anova.cond_p = tbl_gaze.pValue(1);
+% stat_results.gaze_rm_anova.acc_F = tbl_gaze.F(3); stat_results.gaze_rm_anova.acc_p = tbl_gaze.pValue(3);
+% stat_results.gaze_rm_anova.int_F = tbl_gaze.F(5); stat_results.gaze_rm_anova.int_p = tbl_gaze.pValue(5);
+% [~,p1,~,s1] = ttest(gaze_corr(:,1), gaze_incorr(:,1)); [~,p2,~,s2] = ttest(gaze_corr(:,2), gaze_incorr(:,2));
+% fprintf('Post-hoc paired t-tests:\n');
+% fprintf('  compared: t(%d)=%.2f, p=%.4f %s\n', s1.df, s1.tstat, p1, repmat('*',1,(p1<0.05)+(p1<0.01)+(p1<0.001)));
+% fprintf('  isolated: t(%d)=%.2f, p=%.4f %s\n', s2.df, s2.tstat, p2, repmat('*',1,(p2<0.05)+(p2<0.01)+(p2<0.001)));
+% stat_results.gaze_rm_anova.posthoc_comp = s1; stat_results.gaze_rm_anova.posthoc_comp_p = p1;
+% stat_results.gaze_rm_anova.posthoc_iso = s2; stat_results.gaze_rm_anova.posthoc_iso_p = p2;
 % stat_results.gaze_2x2 = run_2x2_anova(reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso);
-% n_perm=1000;
+
 % 
+% n_perm=1000;
 % fprintf('\n=== GAZE PERMUTATION (MATCH VS MISMATCH) ===\n');
 % [stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_comp.obs] = run_permutation(match_bb_comp, baseline_bb_comp, n_perm);
 % [stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs] = run_permutation(match_bb_iso, baseline_bb_iso, n_perm);
@@ -609,7 +320,7 @@ end
 % fprintf('BB iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs);
 % fprintf('BA comp: p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_comp.obs);
 % fprintf('BA iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_iso.p, stat_results.gaze_match_ba_iso.obs);
-% 
+
 % %% gaze-behavior correlation
 % fprintf('\n=== GAZE-BEHAVIOR CORRELATIONS ===\n');
 % valid = ~isnan(reinst_bb_comp) & ~isnan(b2_ldi_c) & b2_ldi_c <= 0.8;
@@ -621,25 +332,67 @@ end
 % stat_results.corr_gr_ldi_iso.n = sum(valid);
 % fprintf('Iso:  r=%.3f, p=%.4f, n=%d\n', stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p, stat_results.corr_gr_ldi_iso.n);
 
+% %% pupil anova (condition x correctness)
+% pup_corr_win_com = mean(pup_corr.ab_com(:, t_win), 2, 'omitnan');
+% pup_incorr_win_com = mean(pup_incorr.ab_com(:, t_win), 2, 'omitnan');
+% pup_corr_win_iso = mean(pup_corr.ab_iso(:, t_win), 2, 'omitnan');
+% pup_incorr_win_iso = mean(pup_incorr.ab_iso(:, t_win), 2, 'omitnan');
+% pup_corr_win_nov = mean(pup_corr.ab_nov(:, t_win), 2, 'omitnan');
+% pup_incorr_win_nov = mean(pup_incorr.ab_nov(:, t_win), 2, 'omitnan');
+% 
+% cond_comp = mean(pup.ab_com(:, t_win), 2, 'omitnan');
+% cond_iso = mean(pup.ab_iso(:, t_win), 2, 'omitnan');
+% cond_nov = mean(pup.ab_nov(:, t_win), 2, 'omitnan');
+
+% pup_corr_win_com(pup_subjs==624)=[]; pup_incorr_win_com(pup_subjs==624)=[]; pup_corr_win_iso(pup_subjs==624)=[]; pup_incorr_win_iso(pup_subjs==624)=[]; pup_corr_win_nov(pup_subjs==624)=[]; pup_incorr_win_nov(pup_subjs==624)=[]; cond_comp(pup_subjs==624)=[]; cond_iso(pup_subjs==624)=[]; cond_nov(pup_subjs==624)=[];
+
+% [stat_results.pup_3x2, stat_results.pup_3x2_ph] = run_3x2_anova_correctness('pupil 3x2', ...
+%     pup_corr_win_com, pup_incorr_win_com, pup_corr_win_iso, pup_incorr_win_iso, pup_corr_win_nov, pup_incorr_win_nov, ...
+%     cond_comp, cond_iso, cond_nov);
 
 
-%%%%%%%%%%%%%%%%%%%%%%%
+% fprintf('\n=== PUPIL: CLUSTER PERMUTATION (TIME-RESOLVED) ===\n');
+% t_idx = t_pup >= 0 & t_pup <= 1.5; t_clust = t_pup(t_idx); n_perm = 1000;
+% fprintf('Compared: correct vs incorrect\n');
+% [stat_results.pup_ts_corr_com.clusters, stat_results.pup_ts_corr_com.p, stat_results.pup_ts_corr_com.t] = ...
+%     cluster_perm_ttest(pup_corr.ab_com(:,t_idx), pup_incorr.ab_com(:,t_idx), n_perm);
+% print_clusters('  ', stat_results.pup_ts_corr_com.clusters, stat_results.pup_ts_corr_com.p, t_clust);
+% 
+% fprintf('Isolated: correct vs incorrect\n');
+% [stat_results.pup_ts_corr_iso.clusters, stat_results.pup_ts_corr_iso.p, stat_results.pup_ts_corr_iso.t] = ...
+%     cluster_perm_ttest(pup_corr.ab_iso(:,t_idx), pup_incorr.ab_iso(:,t_idx), n_perm);
+% print_clusters('  ', stat_results.pup_ts_corr_iso.clusters, stat_results.pup_ts_corr_iso.p, t_clust);
+% 
+% diff_ts_com = pup_corr.ab_com(:,t_idx) - pup_incorr.ab_com(:,t_idx);
+% diff_ts_iso = pup_corr.ab_iso(:,t_idx) - pup_incorr.ab_iso(:,t_idx);
+% fprintf('Interaction (time-resolved): (corr-incorr) compared > isolated\n');
+% [stat_results.pup_ts_corr_int.clusters, stat_results.pup_ts_corr_int.p, stat_results.pup_ts_corr_int.t] = ...
+%     cluster_perm_ttest(diff_ts_com, diff_ts_iso, n_perm);
+% print_clusters('  ', stat_results.pup_ts_corr_int.clusters, stat_results.pup_ts_corr_int.p, t_clust);
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% visualization
-%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %% fig: 1-back
 % figure('color','w','Position',[100 100 1200 400]);
-% subplot(1,3,1); 
+% subplot(1,3,1);
 % data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
 % raincloud(data, {c_same, c_sim, c_new}, {'Hit(Same)','Hit(Sim)','CR(New)'}, 'Accuracy', '', [0,1]);
 % add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(1,3,2); 
+% subplot(1,3,2);
 % data = [b1_rt_sam, b1_rt_sim];
 % raincloud(data, {c_same, c_sim}, {'Hit(Same)','Hit(Sim)'}, 'RT (s)', '');
 % add_sig(data, [1 2]);
 % subplot(1,3,3); hold on;
 % mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
-%               mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
-%               mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
+%     mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
+%     mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
 % draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 % title('Response matrix', 'FontSize', 12);
 % sgtitle('1-Back Task Performance', 'FontSize', 16);
@@ -666,20 +419,20 @@ end
 % add_sig(data, [1 2; 2 3; 1 3]);
 % subplot(3,3,7); hold on;
 % mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
-%             mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
-%             mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+%     mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+%     mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
 % draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 % title('compared', 'FontSize', 14);
 % subplot(3,3,8); hold on;
 % mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
-%            mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
-%            mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+%     mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+%     mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
 % draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 % title('isolated', 'FontSize', 14);
 % subplot(3,3,9); hold on;
 % mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
-%            mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
-%            mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+%     mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+%     mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
 % draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 % title('novel', 'FontSize', 14);
 % sgtitle('2-Back Task Performance', 'FontSize', 16);
@@ -690,7 +443,7 @@ end
 % figure('color','w','Position',[100 100 600 500]);
 % data = [d_tot', rec_d_c', rec_d_i'];
 % hold on;
-% fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none'); 
+% fill([-2, 5, 5, -2], [-2, -2, 0, 0], [0.92 0.92 0.92], 'EdgeColor', 'none');
 % yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
 % raincloud(data, {[0.3 0.3 0.3], c_comp, c_iso}, {'overall','compared','isolated'}, 'd''', 'Validation of Episodic Encoding');
 % add_sig(data, [1 0; 2 3]);
@@ -738,7 +491,7 @@ end
 % sgtitle('Permutation Tests', 'FontSize', 16, 'FontWeight', 'bold');
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(fig_dir, 'gaze_reins_perm.pdf'), '-dpdf', '-vector');
-% 
+
 % %% fig: gaze reinstatement index
 % figure('color','w','position',[50 50 800 600]);
 % data_matrix = [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso];
@@ -760,7 +513,7 @@ end
 % add_sig_perm(data_matrix, pairs_to_test, pvals);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(fig_dir, 'gaze_reins_idx.pdf'), '-dpdf', '-vector');
-% 
+
 % %% fig: gaze-behavior correlation
 % figure('color','w','position',[50 50 800 400]);
 % subplot(1,2,1); hold on;
@@ -776,7 +529,7 @@ end
 % valid = ~isnan(reinst_bb_iso) & ~isnan(b2_ldi_i) & b2_ldi_i <= 0.8;
 % x = reinst_bb_iso(valid); y = b2_ldi_i(valid);
 % scatter(x, y, 60, c_iso, 'filled', 'MarkerFaceAlpha', 0.6);
-% p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
+% % p_fit = polyfit(x, y, 1); x_fit = linspace(min(x), max(x), 100);
 % plot(x_fit, polyval(p_fit, x_fit), 'Color', c_iso, 'LineWidth', 2);
 % xlabel('Gaze Reinstatement Index', 'FontSize', 12); ylabel('LDI', 'FontSize', 12);
 % title(sprintf('isolated: r=%.2f, p=%.3f (n=%d)', stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p, stat_results.corr_gr_ldi_iso.n), 'FontSize', 14);
@@ -785,24 +538,42 @@ end
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(fig_dir, 'gaze_reinstat_ldi.pdf'), '-dpdf', '-vector');
 
-% %% fig: pupil timeseries
+%% fig. pupil timeseries
 % figure('color','w','position',[50 50 1200 500]);
 % subplot(1,2,1); hold on;
 % plot_pup_ts(t_pup, pup.ab_com, c_comp, 'compared');
 % plot_pup_ts(t_pup, pup.ab_iso, c_iso, 'isolated');
 % plot_pup_ts(t_pup, pup.ab_nov, c_nov, 'novel');
-% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
-% title('A-B Lure Discrimination', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+% xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
+% title('A-B Lure', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
 % subplot(1,2,2); hold on;
 % plot_pup_ts(t_pup, pup.aa_com, c_comp, 'compared');
 % plot_pup_ts(t_pup, pup.aa_iso, c_iso, 'isolated');
 % plot_pup_ts(t_pup, pup.aa_nov, c_nov, 'novel');
-% xlabel('Time from stimulus onset (s)', 'FontSize', 14); ylabel('Pupil size change (a.u.)', 'FontSize', 14);
-% title('A-A Target Detection', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
-% sgtitle('Pupil Responses over Time', 'FontSize', 16, 'FontWeight', 'bold');
+% xlabel('Time (s)', 'FontSize', 14); ylabel('Pupil change (a.u.)', 'FontSize', 14);
+% title('A-A Target', 'FontSize', 14); legend('Location', 'best'); grid off; box off; xlim([0 1.5]);
+% sgtitle('Pupil by Condition', 'FontSize', 16, 'FontWeight', 'bold');
 % set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'pupil_ts.pdf'), '-dpdf', '-vector');
+% print(gcf, fullfile(fig_dir, 'pupil_condition.pdf'), '-dpdf', '-vector');
 % 
+% %% fig. pupil by condition and correctness
+% figure('color','w','position',[50 50 1400 500]);
+% subplot(1,3,1);
+% mat_comp = [pup_corr_win_com, pup_incorr_win_com];
+% raincloud(mat_comp, {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Compared', []);
+% add_sig(mat_comp, [1 2]);
+% subplot(1,3,2);
+% mat_iso = [pup_corr_win_iso, pup_incorr_win_iso];
+% raincloud(mat_iso, {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Isolated', []);
+% add_sig(mat_iso, [1 2]);
+% subplot(1,3,3);
+% mat_nov = [pup_corr_win_nov, pup_incorr_win_nov];
+% raincloud(mat_nov, {c_nov, c_nov*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Pupil change (a.u.)', 'Novel', []);
+% add_sig(mat_nov, [1 2]);
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'pupil_correctness_raincloud.pdf'), '-dpdf', '-vector');
+
+
 %%%%%%%%%%%%%%%%%%%%%%%
 %% save comprehensive results
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -819,23 +590,127 @@ end
 %     'stat_results');
 % fprintf('\nALL RESULTS SAVED: %s\n', fullfile(res_dir, 'all_subj_results.mat'));
 
+
 %%%%%%%%%%%%%%%%%%%%%%%
-%% subject-level summary table
+%% extract gaze reinstatement (BB only) by correctness
 %%%%%%%%%%%%%%%%%%%%%%%
-% subj_table = table();
-% subj_table.subj_id = subj_ids';
-% subj_table.ldi_comp = b2_ldi_c;
-% subj_table.ldi_iso = b2_ldi_i;
-% subj_table.ldi_nov = b2_ldi_n;
-% subj_table.rt_lure_comp = b2_rt_l_c;
-% subj_table.rt_lure_iso = b2_rt_l_i;
-% subj_table.rt_lure_nov = b2_rt_l_n;
-% subj_table.gaze_bb_comp = reinst_bb_comp;
-% subj_table.gaze_bb_iso = reinst_bb_iso;
-% subj_table.gaze_ba_comp = reinst_ba_comp;
-% subj_table.gaze_ba_iso = reinst_ba_iso;
+% subj_ids_clean = subj_ids(subj_ids ~= 609);
+% fprintf('Excluded S609, analyzing n=%d subjects\n', length(subj_ids_clean));
 % 
-% writetable(subj_table, fullfile(res_dir, 'subject_summary_table.csv'));
+% gaze_datasets = {reinstat_res.bb_compared, reinstat_res.bb_isolated};
+% gaze_names = {'bb_compared', 'bb_isolated'};
+% gaze_corr = nan(length(subj_ids_clean), 2);
+% gaze_incorr = nan(length(subj_ids_clean), 2);
+% gaze_overall = nan(length(subj_ids_clean), 2);
+% 
+% for c = 1:2
+%     cond_data = gaze_datasets{c};
+%     for s = 1:length(subj_ids_clean)
+%         sid = subj_ids_clean(s);
+%         subj_idx = cond_data.subj_id == sid;
+%         if sum(subj_idx) > 0 && ismember('correct', cond_data.Properties.VariableNames)
+%             subj_data = cond_data(subj_idx, :);
+%             corr_trials = subj_data.correct == 1;
+%             incorr_trials = subj_data.correct == 0;
+%             gaze_overall(s,c) = mean(subj_data.reinst_index, 'omitnan');
+%             if sum(corr_trials) > 0, gaze_corr(s,c) = mean(subj_data.reinst_index(corr_trials), 'omitnan'); end
+%             if sum(incorr_trials) > 0, gaze_incorr(s,c) = mean(subj_data.reinst_index(incorr_trials), 'omitnan'); end
+%         end
+%     end
+%     n_valid = sum(~isnan(gaze_corr(:,c)) & ~isnan(gaze_incorr(:,c)));
+%     fprintf('  %s: %d subjects with both correct and incorrect\n', gaze_names{c}, n_valid);
+% end
+% 
+% [stat_results.gaze_bb_2x2, stat_results.gaze_bb_2x2_ph] = run_2x2_anova_correctness('gaze bb 2x2 (S609 excluded)', ...
+%     gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2), ...
+%     gaze_overall(:,1), gaze_overall(:,2));
+
+clear gaze_corr gaze_incorr gaze_overall extracted_subj_ids
+
+%% extract gaze reinstatement (BB only) by correctness
+gaze_datasets = {reinstat_res.bb_compared, reinstat_res.bb_isolated};
+gaze_corr = nan(length(subj_ids), 2);
+gaze_incorr = nan(length(subj_ids), 2);
+gaze_overall = nan(length(subj_ids), 2);
+extracted_subj_ids = subj_ids;
+
+for c = 1:2
+    cond_data = gaze_datasets{c};
+    for s = 1:length(extracted_subj_ids)
+        sid = extracted_subj_ids(s);
+        subj_idx = cond_data.subj_id == sid;
+        if sum(subj_idx) > 0 && ismember('correct', cond_data.Properties.VariableNames)
+            subj_data = cond_data(subj_idx, :);
+            corr_trials = subj_data.correct == 1;
+            incorr_trials = subj_data.correct == 0;
+            gaze_overall(s,c) = mean(subj_data.reinst_index, 'omitnan');
+            if sum(corr_trials) > 0, gaze_corr(s,c) = mean(subj_data.reinst_index(corr_trials), 'omitnan'); end
+            if sum(incorr_trials) > 0, gaze_incorr(s,c) = mean(subj_data.reinst_index(incorr_trials), 'omitnan'); end
+        end
+    end
+end
+
+exc=[609,606, 608]; for e=exc, idx=find(extracted_subj_ids==e); gaze_corr(idx,:)=[]; gaze_incorr(idx,:)=[]; gaze_overall(idx,:)=[]; extracted_subj_ids(idx)=[]; end; fprintf('Excluded: %s, Final n=%d, Diff SD=%.3f\n', mat2str(exc), length(extracted_subj_ids), std(gaze_corr(:,1)-gaze_incorr(:,1),'omitnan'));
+
+%% Run ANOVA
+[stat_results.gaze_bb_2x2, stat_results.gaze_bb_2x2_ph] = run_2x2_anova_correctness('gaze bb 2x2 (S609 excluded)', ...
+    gaze_corr(:,1), gaze_incorr(:,1), gaze_corr(:,2), gaze_incorr(:,2), ...
+    gaze_overall(:,1), gaze_overall(:,2));
+
+%% raincloud plot: gaze bb by condition and correctness
+figure('color','w','position',[50 50 900 500]);
+
+subplot(1,2,1);
+mat_comp = [gaze_corr(:,1), gaze_incorr(:,1)];
+raincloud(mat_comp, {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Gaze reinstatement', 'Compared', []);
+add_sig(mat_comp, [1 2]);
+
+subplot(1,2,2);
+mat_iso = [gaze_corr(:,2), gaze_incorr(:,2)];
+raincloud(mat_iso, {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'Correct', 'Incorrect'}, 'Gaze reinstatement', 'Isolated', []);
+add_sig(mat_iso, [1 2]);
+
+sgtitle('Gaze Reinstatement (BB) by Correctness', 'FontSize', 16, 'FontWeight', 'bold');
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_bb_correctness_raincloud.pdf'), '-dpdf', '-vector');
+
+function [res, posthoc] = run_2x2_anova_correctness(lbl, cc, ci, ic, ii, cond_comp, cond_iso)
+    t = table(cc, ci, ic, ii, 'VariableNames', {'cc','ci','ic','ii'});
+    within = table({'comp';'comp';'iso';'iso'}, {'corr';'incorr';'corr';'incorr'}, 'VariableNames', {'cond','correctness'});
+    rm = fitrm(t, 'cc-ii~1', 'WithinDesign', within);
+    tbl = ranova(rm, 'WithinModel', 'cond*correctness'); eps = epsilon(rm); m = mauchly(rm);
+    rows = {'(Intercept):cond', '(Intercept):correctness', '(Intercept):cond:correctness'};
+    labels = {'condition', 'correctness', 'interaction'};
+    term_names = string(tbl.Properties.RowNames);
+    for i = 1:3
+        idx = find(contains(term_names, rows{i}), 1);
+        if ~isempty(idx)
+            f = tbl.F(idx); p_gg = tbl.pValueGG(idx); df1 = tbl.DF(idx); df2_gg = tbl.DF(idx+1) * eps.GreenhouseGeisser;
+            mauch_p = m.pValue(1); ep = eps.GreenhouseGeisser; s_ef = tbl.SumSq(idx); s_er = tbl.SumSq(idx+1); eta = s_ef/(s_ef+s_er);
+            fprintf('  %s: F(%d,%.1f)=%.2f, p=%.4f (GG), mauchly p=%.3f, eps=%.3f, eta=%.2f %s\n', ...
+                labels{i}, df1, df2_gg, f, p_gg, mauch_p, ep, eta, repmat('*',1,(p_gg<0.05)+(p_gg<0.01)+(p_gg<0.001)));
+            if i==1, res.cond.F=f; res.cond.p=p_gg; res.cond.eta=eta; res.cond.mauchly_p=mauch_p; res.cond.eps=ep; end
+            if i==2, res.corr.F=f; res.corr.p=p_gg; res.corr.eta=eta; res.corr.mauchly_p=mauch_p; res.corr.eps=ep; end
+            if i==3, res.int.F=f; res.int.p=p_gg; res.int.eta=eta; res.int.mauchly_p=mauch_p; res.int.eps=ep; end
+        end
+    end
+    
+    fprintf('  condition post-hoc (holm-bonf):\n');
+    [~,pc,~,sc] = ttest(cond_comp, cond_iso);
+    posthoc.cond_comp_iso.t=sc.tstat; posthoc.cond_comp_iso.p=pc; posthoc.cond_comp_iso.p_adj=pc; posthoc.cond_comp_iso.d=sc.tstat/sqrt(sc.df+1);
+    fprintf('    comp>iso: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', sc.df, sc.tstat, posthoc.cond_comp_iso.d, pc, repmat('*',1,(pc<0.05)+(pc<0.01)+(pc<0.001)));
+    
+    fprintf('  correctness post-hoc (holm-bonf):\n');
+    [~,p1,~,s1] = ttest(cc, ci); [~,p2,~,s2] = ttest(ic, ii);
+    [~,p3,~,s3] = ttest(cc-ci, ic-ii);
+    pvals = [p1 p2 p3]; adj = holm_bonf(pvals); df = s1.df;
+    posthoc.comp_corr_incorr.t=s1.tstat; posthoc.comp_corr_incorr.p=p1; posthoc.comp_corr_incorr.p_adj=adj(1); posthoc.comp_corr_incorr.d=s1.tstat/sqrt(df+1);
+    posthoc.iso_corr_incorr.t=s2.tstat; posthoc.iso_corr_incorr.p=p2; posthoc.iso_corr_incorr.p_adj=adj(2); posthoc.iso_corr_incorr.d=s2.tstat/sqrt(df+1);
+    posthoc.comp_vs_iso.t=s3.tstat; posthoc.comp_vs_iso.p=p3; posthoc.comp_vs_iso.p_adj=adj(3); posthoc.comp_vs_iso.d=s3.tstat/sqrt(df+1);
+    fprintf('    comp corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s1.tstat, posthoc.comp_corr_incorr.d, adj(1), repmat('*',1,(adj(1)<0.05)+(adj(1)<0.01)+(adj(1)<0.001)));
+    fprintf('    iso corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s2.tstat, posthoc.iso_corr_incorr.d, adj(2), repmat('*',1,(adj(2)<0.05)+(adj(2)<0.01)+(adj(2)<0.001)));
+    fprintf('    (comp-iso) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s3.tstat, posthoc.comp_vs_iso.d, adj(3), repmat('*',1,(adj(3)<0.05)+(adj(3)<0.01)+(adj(3)<0.001)));
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -966,6 +841,227 @@ function adj = holm_bonf(p)
     adj(idx) = as;
 end
 
+function res = run_2x2_anova(r_bb_c, r_bb_i, r_ba_c, r_ba_i)
+    t = table(r_bb_c, r_bb_i, r_ba_c, r_ba_i, 'VariableNames', {'BBC','BBI','BAC','BAI'});
+    within = table({'BB';'BB';'BA';'BA'}, {'Comp';'Iso';'Comp';'Iso'}, 'VariableNames', {'PT','Cond'});
+    rm = fitrm(t, 'BBC-BAI~1', 'WithinDesign', within); tbl = ranova(rm, 'WithinModel', 'PT*Cond');
+    fprintf('\n=== 2x2 ANOVA (Gaze) ===\n');
+    rows = {'PT', 'Cond', 'PT:Cond'}; term_names = string(tbl.Properties.RowNames);
+for i = 1:3
+        idx = find(contains(term_names, rows{i}), 1);
+if ~isempty(idx)
+            f = tbl.F(idx); p = tbl.pValue(idx); s_ef = tbl.SumSq(idx);
+if idx<height(tbl), s_er = tbl.SumSq(idx+1); else, s_er = NaN; end
+            eta = s_ef/(s_ef+s_er);
+            fprintf('  %s: F=%.2f, p=%.4f, eta=%.2f\n', rows{i}, f, p, eta);
+if i==1, res.main_pt.F=f; res.main_pt.p=p; res.main_pt.eta=eta; end
+if i==2, res.main_cond.F=f; res.main_cond.p=p; res.main_cond.eta=eta; end
+if i==3, res.interact.F=f; res.interact.p=p; res.interact.eta=eta; end
+end
+end
+    fprintf('  -- Post-Hoc (Holm-Bonferroni) --\n');
+    pairs = {r_bb_c, r_bb_i, 'BB: Comp-Iso'; r_ba_c, r_ba_i, 'BA: Comp-Iso'; r_bb_c, r_ba_c, 'Comp: BB-BA'; r_bb_i, r_ba_i, 'Iso:  BB-BA'};
+    p_raw = zeros(1,4); stats = cell(1,4);
+for k=1:4, [~, p_raw(k), ~, stats{k}] = ttest(pairs{k,1}, pairs{k,2}); end
+    p_adj = holm_bonf(p_raw);
+    res.posthoc.bb_ci.t = stats{1}.tstat; res.posthoc.bb_ci.df = stats{1}.df; res.posthoc.bb_ci.p = p_raw(1); res.posthoc.bb_ci.p_adj = p_adj(1);
+    res.posthoc.ba_ci.t = stats{2}.tstat; res.posthoc.ba_ci.df = stats{2}.df; res.posthoc.ba_ci.p = p_raw(2); res.posthoc.ba_ci.p_adj = p_adj(2);
+    res.posthoc.comp_bb_ba.t = stats{3}.tstat; res.posthoc.comp_bb_ba.df = stats{3}.df; res.posthoc.comp_bb_ba.p = p_raw(3); res.posthoc.comp_bb_ba.p_adj = p_adj(3);
+    res.posthoc.iso_bb_ba.t = stats{4}.tstat; res.posthoc.iso_bb_ba.df = stats{4}.df; res.posthoc.iso_bb_ba.p = p_raw(4); res.posthoc.iso_bb_ba.p_adj = p_adj(4);
+for k=1:4
+        s = stats{k}; sig = repmat('*',1, p_adj(k)<0.05);
+        fprintf('    %s: t(%d)=%.2f, p=%.4f, p_adj=%.4f %s\n', pairs{k,3}, s.df, s.tstat, p_raw(k), p_adj(k), sig);
+end
+end
+
+% function [res, posthoc] = run_2x2_anova_correctness(lbl, cc, ci, ic, ii, cond_comp, cond_iso)
+%     t = table(cc, ci, ic, ii, 'VariableNames', {'cc','ci','ic','ii'});
+%     within = table({'comp';'comp';'iso';'iso'}, {'corr';'incorr';'corr';'incorr'}, 'VariableNames', {'cond','correctness'});
+%     rm = fitrm(t, 'cc-ii~1', 'WithinDesign', within);
+%     tbl = ranova(rm, 'WithinModel', 'cond*correctness'); eps = epsilon(rm); m = mauchly(rm);
+%     rows = {'(Intercept):cond', '(Intercept):correctness', '(Intercept):cond:correctness'};
+%     labels = {'condition', 'correctness', 'interaction'};
+%     term_names = string(tbl.Properties.RowNames);
+%     fprintf('\n%s:\n', lbl);
+%     for i = 1:3
+%         idx = find(contains(term_names, rows{i}), 1);
+%         if ~isempty(idx)
+%             f = tbl.F(idx); p_gg = tbl.pValueGG(idx); df1 = tbl.DF(idx); df2_gg = tbl.DF(idx+1) * eps.GreenhouseGeisser;
+%             mauch_p = m.pValue(1); ep = eps.GreenhouseGeisser; s_ef = tbl.SumSq(idx); s_er = tbl.SumSq(idx+1); eta = s_ef/(s_ef+s_er);
+%             fprintf('  %s: F(%d,%.1f)=%.2f, p=%.4f (GG), mauchly p=%.3f, eps=%.3f, eta=%.2f %s\n', ...
+%                 labels{i}, df1, df2_gg, f, p_gg, mauch_p, ep, eta, repmat('*',1,(p_gg<0.05)+(p_gg<0.01)+(p_gg<0.001)));
+%             if i==1, res.cond.F=f; res.cond.p=p_gg; res.cond.eta=eta; res.cond.mauchly_p=mauch_p; res.cond.eps=ep; end
+%             if i==2, res.corr.F=f; res.corr.p=p_gg; res.corr.eta=eta; res.corr.mauchly_p=mauch_p; res.corr.eps=ep; end
+%             if i==3, res.int.F=f; res.int.p=p_gg; res.int.eta=eta; res.int.mauchly_p=mauch_p; res.int.eps=ep; end
+%         end
+%     end
+% 
+%     % CONDITION POST-HOCS using trial-weighted overall means
+%     fprintf('  condition post-hoc (holm-bonf):\n');
+%     [~,pc,~,sc] = ttest(cond_comp, cond_iso);
+%     p_adj_cond = pc;
+%     posthoc.cond_comp_iso.t=sc.tstat; posthoc.cond_comp_iso.p=pc; posthoc.cond_comp_iso.p_adj=p_adj_cond; posthoc.cond_comp_iso.d=sc.tstat/sqrt(sc.df+1);
+%     fprintf('    comp>iso: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', sc.df, sc.tstat, posthoc.cond_comp_iso.d, p_adj_cond, repmat('*',1,(p_adj_cond<0.05)+(p_adj_cond<0.01)+(p_adj_cond<0.001)));
+% 
+%     % CORRECTNESS POST-HOCS (within each condition)
+%     fprintf('  correctness post-hoc (holm-bonf):\n');
+%     [~,p1,~,s1] = ttest(cc, ci); [~,p2,~,s2] = ttest(ic, ii);
+%     [~,p3,~,s3] = ttest(cc-ci, ic-ii);
+%     pvals = [p1 p2 p3]; adj = holm_bonf(pvals); df = s1.df;
+%     posthoc.comp_corr_incorr.t=s1.tstat; posthoc.comp_corr_incorr.p=p1; posthoc.comp_corr_incorr.p_adj=adj(1); posthoc.comp_corr_incorr.d=s1.tstat/sqrt(df+1);
+%     posthoc.iso_corr_incorr.t=s2.tstat; posthoc.iso_corr_incorr.p=p2; posthoc.iso_corr_incorr.p_adj=adj(2); posthoc.iso_corr_incorr.d=s2.tstat/sqrt(df+1);
+%     posthoc.comp_vs_iso.t=s3.tstat; posthoc.comp_vs_iso.p=p3; posthoc.comp_vs_iso.p_adj=adj(3); posthoc.comp_vs_iso.d=s3.tstat/sqrt(df+1);
+%     fprintf('    comp corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s1.tstat, posthoc.comp_corr_incorr.d, adj(1), repmat('*',1,(adj(1)<0.05)+(adj(1)<0.01)+(adj(1)<0.001)));
+%     fprintf('    iso corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s2.tstat, posthoc.iso_corr_incorr.d, adj(2), repmat('*',1,(adj(2)<0.05)+(adj(2)<0.01)+(adj(2)<0.001)));
+%     fprintf('    (comp-iso) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s3.tstat, posthoc.comp_vs_iso.d, adj(3), repmat('*',1,(adj(3)<0.05)+(adj(3)<0.01)+(adj(3)<0.001)));
+% end
+
+
+function [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed)
+    valid = all_preprocessed(all_preprocessed.preprocess_success, :);
+    max_samp = max(cellfun(@length, valid.pupil_preprocessed));
+    sr = valid.sample_rate(1); t_pup = (0:max_samp-1)/sr;
+    pup_subjs = unique(valid.subj_id); n = length(pup_subjs);
+    conds = {'compared','isolated','novel'}; goals = {'A-B','A-A'}; gtag = {'ab','aa'};
+    pup = struct(); pup_mean = struct();
+    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n, max_samp); end, end
+    for s = 1:n
+        sv = valid(valid.subj_id == pup_subjs(s), :);
+        for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
+    end
+    t_win = t_pup >= 0.5 & t_pup <= 1.5;
+    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup_mean.(fn) = mean(pup.(fn)(:,t_win), 2, 'omitnan'); end, end
+end
+
+
+function [res, posthoc] = run_3x2_anova_correctness(lbl, cc, ci, ic, ii, nc, ni, cond_comp, cond_iso, cond_nov)
+    t = table(cc, ci, ic, ii, nc, ni, 'VariableNames', {'cc','ci','ic','ii','nc','ni'});
+    within = table({'comp';'comp';'iso';'iso';'nov';'nov'}, {'corr';'incorr';'corr';'incorr';'corr';'incorr'}, 'VariableNames', {'cond','correctness'});
+    rm = fitrm(t, 'cc-ni~1', 'WithinDesign', within);
+    tbl = ranova(rm, 'WithinModel', 'cond*correctness'); eps = epsilon(rm); m = mauchly(rm);
+    rows = {'(Intercept):cond', '(Intercept):correctness', '(Intercept):cond:correctness'};
+    labels = {'condition', 'correctness', 'interaction'};
+    term_names = string(tbl.Properties.RowNames);
+    fprintf('\n%s:\n', lbl);
+    for i = 1:3
+        idx = find(contains(term_names, rows{i}), 1);
+        if ~isempty(idx)
+            f = tbl.F(idx); p_gg = tbl.pValueGG(idx); df1 = tbl.DF(idx); df2_gg = tbl.DF(idx+1) * eps.GreenhouseGeisser;
+            mauch_p = m.pValue(1); ep = eps.GreenhouseGeisser; s_ef = tbl.SumSq(idx); s_er = tbl.SumSq(idx+1); eta = s_ef/(s_ef+s_er);
+            fprintf('  %s: F(%d,%.1f)=%.2f, p=%.4f (GG), mauchly p=%.3f, eps=%.3f, eta=%.2f %s\n', ...
+                labels{i}, df1, df2_gg, f, p_gg, mauch_p, ep, eta, repmat('*',1,(p_gg<0.05)+(p_gg<0.01)+(p_gg<0.001)));
+            if i==1, res.cond.F=f; res.cond.p=p_gg; res.cond.eta=eta; res.cond.mauchly_p=mauch_p; res.cond.eps=ep; end
+            if i==2, res.corr.F=f; res.corr.p=p_gg; res.corr.eta=eta; res.corr.mauchly_p=mauch_p; res.corr.eps=ep; end
+            if i==3, res.int.F=f; res.int.p=p_gg; res.int.eta=eta; res.int.mauchly_p=mauch_p; res.int.eps=ep; end
+        end
+    end
+    n = length(cc); subj = (1:n)';
+    bf_tbl = table(subj, cc, ci, ic, ii, nc, ni, 'VariableNames', {'subj','cc','ci','ic','ii','nc','ni'});
+    bf_long = stack(bf_tbl, {'cc','ci','ic','ii','nc','ni'}, 'NewDataVariableName','y', 'IndexVariableName','cell');
+    bf_long.subj = categorical(bf_long.subj); bf_long.cell = categorical(bf_long.cell);
+    res.bf10 = bf.anova(bf_long, 'y~cell', 'treatAsRandom', {'subj'}, 'verbose', false);
+    if res.bf10<1, fprintf('  BF01=%.2f (evidence for null)\n', 1/res.bf10); else, fprintf('  BF10=%.2f (evidence for effect)\n', res.bf10); end
+    fprintf('  condition post-hoc (holm-bonf):\n');
+    [~,pc1,~,sc1] = ttest(cond_comp, cond_iso); 
+    [~,pc2,~,sc2] = ttest(cond_iso, cond_nov); 
+    [~,pc3,~,sc3] = ttest(cond_comp, cond_nov);
+    pvals_cond = [pc1 pc2 pc3]; adj_cond = holm_bonf(pvals_cond); df = sc1.df;
+    posthoc.cond_comp_iso.t=sc1.tstat; posthoc.cond_comp_iso.p=pc1; posthoc.cond_comp_iso.p_adj=adj_cond(1); posthoc.cond_comp_iso.d=sc1.tstat/sqrt(df+1);
+    posthoc.cond_iso_nov.t=sc2.tstat; posthoc.cond_iso_nov.p=pc2; posthoc.cond_iso_nov.p_adj=adj_cond(2); posthoc.cond_iso_nov.d=sc2.tstat/sqrt(df+1);
+    posthoc.cond_comp_nov.t=sc3.tstat; posthoc.cond_comp_nov.p=pc3; posthoc.cond_comp_nov.p_adj=adj_cond(3); posthoc.cond_comp_nov.d=sc3.tstat/sqrt(df+1);
+    fprintf('    comp>iso: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc1.tstat, posthoc.cond_comp_iso.d, adj_cond(1), repmat('*',1,(adj_cond(1)<0.05)+(adj_cond(1)<0.01)+(adj_cond(1)<0.001)));
+    fprintf('    iso>nov: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc2.tstat, posthoc.cond_iso_nov.d, adj_cond(2), repmat('*',1,(adj_cond(2)<0.05)+(adj_cond(2)<0.01)+(adj_cond(2)<0.001)));
+    fprintf('    comp>nov: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, sc3.tstat, posthoc.cond_comp_nov.d, adj_cond(3), repmat('*',1,(adj_cond(3)<0.05)+(adj_cond(3)<0.01)+(adj_cond(3)<0.001)));
+    
+    fprintf('  correctness post-hoc (holm-bonf):\n');
+    [~,p1,~,s1] = ttest(cc, ci); [~,p2,~,s2] = ttest(ic, ii); [~,p3,~,s3] = ttest(nc, ni);
+    [~,p4,~,s4] = ttest(cc-ci, ic-ii); [~,p5,~,s5] = ttest(cc-ci, nc-ni); [~,p6,~,s6] = ttest(ic-ii, nc-ni);
+    pvals = [p1 p2 p3 p4 p5 p6]; adj = holm_bonf(pvals);
+    posthoc.comp_corr_incorr.t=s1.tstat; posthoc.comp_corr_incorr.p=p1; posthoc.comp_corr_incorr.p_adj=adj(1); posthoc.comp_corr_incorr.d=s1.tstat/sqrt(df+1);
+    posthoc.iso_corr_incorr.t=s2.tstat; posthoc.iso_corr_incorr.p=p2; posthoc.iso_corr_incorr.p_adj=adj(2); posthoc.iso_corr_incorr.d=s2.tstat/sqrt(df+1);
+    posthoc.nov_corr_incorr.t=s3.tstat; posthoc.nov_corr_incorr.p=p3; posthoc.nov_corr_incorr.p_adj=adj(3); posthoc.nov_corr_incorr.d=s3.tstat/sqrt(df+1);
+    posthoc.comp_vs_iso.t=s4.tstat; posthoc.comp_vs_iso.p=p4; posthoc.comp_vs_iso.p_adj=adj(4); posthoc.comp_vs_iso.d=s4.tstat/sqrt(df+1);
+    posthoc.comp_vs_nov.t=s5.tstat; posthoc.comp_vs_nov.p=p5; posthoc.comp_vs_nov.p_adj=adj(5); posthoc.comp_vs_nov.d=s5.tstat/sqrt(df+1);
+    posthoc.iso_vs_nov.t=s6.tstat; posthoc.iso_vs_nov.p=p6; posthoc.iso_vs_nov.p_adj=adj(6); posthoc.iso_vs_nov.d=s6.tstat/sqrt(df+1);
+    fprintf('    comp corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s1.tstat, posthoc.comp_corr_incorr.d, adj(1), repmat('*',1,(adj(1)<0.05)+(adj(1)<0.01)+(adj(1)<0.001)));
+    fprintf('    iso corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s2.tstat, posthoc.iso_corr_incorr.d, adj(2), repmat('*',1,(adj(2)<0.05)+(adj(2)<0.01)+(adj(2)<0.001)));
+    fprintf('    nov corr>incorr: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s3.tstat, posthoc.nov_corr_incorr.d, adj(3), repmat('*',1,(adj(3)<0.05)+(adj(3)<0.01)+(adj(3)<0.001)));
+    fprintf('    (comp-iso) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s4.tstat, posthoc.comp_vs_iso.d, adj(4), repmat('*',1,(adj(4)<0.05)+(adj(4)<0.01)+(adj(4)<0.001)));
+    fprintf('    (comp-nov) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s5.tstat, posthoc.comp_vs_nov.d, adj(5), repmat('*',1,(adj(5)<0.05)+(adj(5)<0.01)+(adj(5)<0.001)));
+    fprintf('    (iso-nov) diff: t(%d)=%.2f, d=%.2f, p_adj=%.4f %s\n', df, s6.tstat, posthoc.iso_vs_nov.d, adj(6), repmat('*',1,(adj(6)<0.05)+(adj(6)<0.01)+(adj(6)<0.001)));
+end
+
+function a = avg_pup_cond(sv, cond, goal, maxs)
+    tr = sv(strcmp(sv.condition,cond) & strcmp(sv.goal,goal), :);
+    if height(tr)==0, a=nan(1,maxs); return; end
+    m = nan(height(tr), maxs);
+    for i = 1:height(tr)
+        p = tr.pupil_preprocessed{i} - mean(tr.baseline_pupil_preprocessed{i},'omitnan');
+        m(i,1:length(p)) = p';
+    end
+    a = mean(m,1,'omitnan');
+end
+
+function a = avg_pup_cond_correctness(sv, maxs)
+    if height(sv)==0, a=nan(1,maxs); return; end
+    m = nan(height(sv), maxs);
+    for i = 1:height(sv)
+        p = sv.pupil_preprocessed{i} - mean(sv.baseline_pupil_preprocessed{i},'omitnan');
+        m(i,1:length(p)) = p';
+    end
+    a = mean(m,1,'omitnan');
+end
+
+
+function plot_pup_ts(t, d, col, lbl)
+    mu = mean(d,1,'omitnan'); nv = sum(~isnan(d(:,1)));
+    if nv==0, return; end
+    se = std(d,0,1,'omitnan')/sqrt(nv);
+    plot(t, mu, 'Color', col, 'LineWidth', 2.5, 'DisplayName', lbl);
+    vi = ~isnan(mu);
+    if sum(vi)>1
+        fill([t(vi) fliplr(t(vi))], [mu(vi)+se(vi) fliplr(mu(vi)-se(vi))], col, 'FaceAlpha', 0.2, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+    end
+end
+
+function [clusters, p_vals, t_obs] = cluster_perm_ttest(d1, d2, n_perm)
+    [n_subj, n_t] = size(d1); t_obs = zeros(1, n_t);
+    for t = 1:n_t, [~,~,~,s] = ttest(d1(:,t), d2(:,t)); t_obs(t) = s.tstat; end
+    t_thresh = tinv(0.975, n_subj-1);
+    [clusters, cl_stats] = find_clusters(abs(t_obs) > t_thresh, t_obs);
+    if isempty(clusters), p_vals = []; return; end
+    null_max = zeros(n_perm, 1);
+    for p = 1:n_perm
+        signs = (rand(n_subj,1) > 0.5)*2 - 1;
+        d1p = d1; d2p = d2;
+        for s = 1:n_subj, if signs(s)<0, tmp = d1p(s,:); d1p(s,:) = d2p(s,:); d2p(s,:) = tmp; end, end
+        t_perm = zeros(1, n_t);
+        for t = 1:n_t, [~,~,~,s] = ttest(d1p(:,t), d2p(:,t)); t_perm(t) = s.tstat; end
+        [~, perm_stats] = find_clusters(abs(t_perm) > t_thresh, t_perm);
+        if ~isempty(perm_stats), null_max(p) = max(perm_stats); end
+    end
+    p_vals = arrayfun(@(i) mean(null_max >= cl_stats(i)), 1:length(clusters));
+end
+
+function [clusters, cl_stats] = find_clusters(above_thresh, t_vals)
+    clusters = {}; cl_stats = []; in_cl = false; cl_start = 0;
+    for t = 1:length(above_thresh)
+        if above_thresh(t) && ~in_cl, cl_start = t; in_cl = true;
+        elseif ~above_thresh(t) && in_cl, clusters{end+1} = cl_start:(t-1); cl_stats(end+1) = sum(abs(t_vals(cl_start:(t-1)))); in_cl = false; end
+    end
+    if in_cl, clusters{end+1} = cl_start:length(above_thresh); cl_stats(end+1) = sum(abs(t_vals(cl_start:end))); end
+end
+
+function print_clusters(prefix, clusters, p_vals, t_vec)
+    if isempty(clusters), fprintf('%sno sig clusters\n', prefix); return; end
+    for i = 1:length(clusters)
+        if p_vals(i) < 0.05
+            fprintf('%s%.3f-%.3fs, p=%.3f %s\n', prefix, t_vec(clusters{i}(1)), t_vec(clusters{i}(end)), p_vals(i), repmat('*',1,(p_vals(i)<0.05)+(p_vals(i)<0.01)+(p_vals(i)<0.001)));
+        end
+    end
+    if all(p_vals >= 0.05), fprintf('%sno sig clusters\n', prefix); end
+end
+
 function [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
           baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids)
     n = length(subj_ids);
@@ -988,91 +1084,3 @@ function [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb
         baseline_ba_iso(i) = mean(reinstat_res.ba_isolated.baseline_score(reinstat_res.ba_isolated.subj_id==sid),'omitnan');
     end
 end
-
-function res = run_2x2_anova(r_bb_c, r_bb_i, r_ba_c, r_ba_i)
-    t = table(r_bb_c, r_bb_i, r_ba_c, r_ba_i, 'VariableNames', {'BBC','BBI','BAC','BAI'});
-    within = table({'BB';'BB';'BA';'BA'}, {'Comp';'Iso';'Comp';'Iso'}, 'VariableNames', {'PT','Cond'});
-    rm = fitrm(t, 'BBC-BAI~1', 'WithinDesign', within); tbl = ranova(rm, 'WithinModel', 'PT*Cond');
-    fprintf('\n=== 2x2 ANOVA (Gaze) ===\n');
-    rows = {'PT', 'Cond', 'PT:Cond'}; term_names = string(tbl.Properties.RowNames);
-    for i = 1:3
-        idx = find(contains(term_names, rows{i}), 1);
-        if ~isempty(idx)
-            f = tbl.F(idx); p = tbl.pValue(idx); s_ef = tbl.SumSq(idx); 
-            if idx<height(tbl), s_er = tbl.SumSq(idx+1); else, s_er = NaN; end
-            eta = s_ef/(s_ef+s_er);
-            fprintf('  %s: F=%.2f, p=%.4f, eta=%.2f\n', rows{i}, f, p, eta);
-            if i==1, res.main_pt.F=f; res.main_pt.p=p; res.main_pt.eta=eta; end
-            if i==2, res.main_cond.F=f; res.main_cond.p=p; res.main_cond.eta=eta; end
-            if i==3, res.interact.F=f; res.interact.p=p; res.interact.eta=eta; end
-        end
-    end
-    fprintf('  -- Post-Hoc (Holm-Bonferroni) --\n');
-    pairs = {r_bb_c, r_bb_i, 'BB: Comp-Iso'; r_ba_c, r_ba_i, 'BA: Comp-Iso'; r_bb_c, r_ba_c, 'Comp: BB-BA'; r_bb_i, r_ba_i, 'Iso:  BB-BA'};
-    p_raw = zeros(1,4); stats = cell(1,4);
-    for k=1:4, [~, p_raw(k), ~, stats{k}] = ttest(pairs{k,1}, pairs{k,2}); end
-    p_adj = holm_bonf(p_raw);
-    res.posthoc.bb_ci.t = stats{1}.tstat; res.posthoc.bb_ci.df = stats{1}.df; res.posthoc.bb_ci.p = p_raw(1); res.posthoc.bb_ci.p_adj = p_adj(1);
-    res.posthoc.ba_ci.t = stats{2}.tstat; res.posthoc.ba_ci.df = stats{2}.df; res.posthoc.ba_ci.p = p_raw(2); res.posthoc.ba_ci.p_adj = p_adj(2);
-    res.posthoc.comp_bb_ba.t = stats{3}.tstat; res.posthoc.comp_bb_ba.df = stats{3}.df; res.posthoc.comp_bb_ba.p = p_raw(3); res.posthoc.comp_bb_ba.p_adj = p_adj(3);
-    res.posthoc.iso_bb_ba.t = stats{4}.tstat; res.posthoc.iso_bb_ba.df = stats{4}.df; res.posthoc.iso_bb_ba.p = p_raw(4); res.posthoc.iso_bb_ba.p_adj = p_adj(4);
-    for k=1:4
-        s = stats{k}; sig = repmat('*',1, p_adj(k)<0.05);
-        fprintf('    %s: t(%d)=%.2f, p=%.4f, p_adj=%.4f %s\n', pairs{k,3}, s.df, s.tstat, p_raw(k), p_adj(k), sig);
-    end
-end
-
-function [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed)
-    valid = all_preprocessed(all_preprocessed.preprocess_success, :);
-    max_samp = max(cellfun(@length, valid.pupil_preprocessed));
-    sr = valid.sample_rate(1); t_pup = (0:max_samp-1)/sr;
-    pup_subjs = unique(valid.subj_id); n = length(pup_subjs);
-    conds = {'compared','isolated','novel'}; goals = {'A-B','A-A'}; gtag = {'ab','aa'};
-    pup = struct(); pup_mean = struct();
-    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n, max_samp); end, end
-    for s = 1:n
-        sv = valid(valid.subj_id == pup_subjs(s), :);
-        for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
-    end
-    t_win = t_pup >= 0.5 & t_pup <= 1.5;
-    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup_mean.(fn) = mean(pup.(fn)(:,t_win), 2, 'omitnan'); end, end
-end
-
-% function [clusters, p_vals, t_obs] = cluster_perm_ttest(d1, d2, n_perm)
-%     [n_subj, n_t] = size(d1);
-%     t_obs = zeros(1, n_t);
-%     for t = 1:n_t, [~,~,~,s] = ttest(d1(:,t), d2(:,t)); t_obs(t) = s.tstat; end
-%     t_thresh = tinv(0.975, n_subj-1);
-%     [clusters, cl_stats] = find_clusters(abs(t_obs) > t_thresh, t_obs);
-%     if isempty(clusters), p_vals = []; return; end
-%     null_max = zeros(n_perm, 1);
-%     for p = 1:n_perm
-%         signs = (rand(n_subj,1) > 0.5)*2 - 1;
-%         d1p = d1; d2p = d2;
-%         for s = 1:n_subj, if signs(s)<0, tmp = d1p(s,:); d1p(s,:) = d2p(s,:); d2p(s,:) = tmp; end, end
-%         t_perm = zeros(1, n_t);
-%         for t = 1:n_t, [~,~,~,s] = ttest(d1p(:,t), d2p(:,t)); t_perm(t) = s.tstat; end
-%         [~, perm_stats] = find_clusters(abs(t_perm) > t_thresh, t_perm);
-%         if ~isempty(perm_stats), null_max(p) = max(perm_stats); end
-%     end
-%     p_vals = arrayfun(@(i) mean(null_max >= cl_stats(i)), 1:length(clusters));
-% end
-% 
-% function [clusters, cl_stats] = find_clusters(above_thresh, t_vals)
-%     clusters = {}; cl_stats = []; in_cl = false; cl_start = 0;
-%     for t = 1:length(above_thresh)
-%         if above_thresh(t) && ~in_cl, cl_start = t; in_cl = true;
-%         elseif ~above_thresh(t) && in_cl, clusters{end+1} = cl_start:(t-1); cl_stats(end+1) = sum(abs(t_vals(cl_start:(t-1)))); in_cl = false; end
-%     end
-%     if in_cl, clusters{end+1} = cl_start:length(above_thresh); cl_stats(end+1) = sum(abs(t_vals(cl_start:end))); end
-% end
-% 
-% function print_clusters(lbl, clusters, p_vals, t_vec)
-%     if isempty(clusters), fprintf('%s: no sig clusters\n', lbl); return; end
-%     for i = 1:length(clusters)
-%         if p_vals(i) < 0.05
-%             fprintf('%s: %.3f-%.3fs, p=%.3f %s\n', lbl, t_vec(clusters{i}(1)), t_vec(clusters{i}(end)), p_vals(i), repmat('*',1,(p_vals(i)<0.05)+(p_vals(i)<0.01)+(p_vals(i)<0.001)));
-%         end
-%     end
-%     if all(p_vals >= 0.05), fprintf('%s: no sig clusters\n', lbl); end
-% end

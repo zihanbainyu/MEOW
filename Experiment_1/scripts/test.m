@@ -158,12 +158,12 @@ end
 save(fullfile(res_dir, 'all_trials_preprocessed_f.mat'), 'all_preprocessed', '-v7.3');
 fprintf('done');
 
-%% Combine
+%% Combine pupil
 clear all; close all; clc;
 base_dir = '..';
 res_dir = fullfile(base_dir, 'results');
 fprintf('Loading first half...\n');
-load(fullfile(res_dir, 'all_trials_preprocessed_f.mat'), 'all_preprocessed');
+load(fullfile(res_dir, 'gaze_reinstat_res_half.mat'));
 first_half = all_preprocessed;
 fprintf('  First half: %d trials\n', height(first_half));
 
@@ -177,3 +177,34 @@ fprintf('\nCombined: %d trials\n', height(all_preprocessed));
 % save combined
 save(fullfile(res_dir, 'all_trials_preprocessed_full_2.mat'), 'all_preprocessed', '-v7.3');
 fprintf('\nSaved to: %s\n', fullfile(res_dir, 'all_trials_preprocessed_full_2.mat'));
+
+
+%% combine gaze reinstatement results from first half and second half
+fprintf('=== Combining gaze reinstatement data ===\n');
+base_dir = '..';
+res_dir = fullfile(base_dir, 'results');
+
+% Load both halves
+fprintf('Loading first half...\n');
+load(fullfile(res_dir, 'gaze_reinstat_res_m.mat'), 'reinstat_res');
+first_half = reinstat_res;
+
+fprintf('Loading second half...\n');
+load(fullfile(res_dir, 'gaze_reinstat_res_half.mat'), 'reinstat_res');
+second_half = reinstat_res;
+
+% Concatenate each field
+fields = fieldnames(first_half);
+reinstat_res = struct();
+for f = 1:length(fields)
+    fn = fields{f};
+    if istable(first_half.(fn)) && istable(second_half.(fn))
+        reinstat_res.(fn) = [first_half.(fn); second_half.(fn)];
+        fprintf('  %s: %d + %d = %d trials\n', fn, height(first_half.(fn)), height(second_half.(fn)), height(reinstat_res.(fn)));
+    end
+end
+
+
+% Save combined
+save(fullfile(res_dir, 'gaze_reinstat_res_full.mat'), 'reinstat_res', '-v7.3');
+fprintf('\nSaved to: %s\n', fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
