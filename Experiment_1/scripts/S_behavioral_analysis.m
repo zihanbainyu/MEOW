@@ -12,7 +12,7 @@ min_rt = 0.150;
 % colors
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
-% load(fullfile(res_dir, 'all_subj_results.mat'));
+load(fullfile(res_dir, 'all_subj_results.mat'));
 % load(fullfile(res_dir, 'spatial_entropy_results.mat'));
 % load(fullfile(res_dir, 'gaze_cumu_res.mat'));
 % load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
@@ -270,21 +270,21 @@ fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A2B2 vs A1B1 gaze overlap
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[stat_results.gaze_a2b2_a1b1_2x2, stat_results.gaze_a2b2_a1b1_2x2_ph] = run_2x2_anova_time_cond('A2B2 vs A1B1 gaze', gaze_a1b1_comp, gaze_a2b2_comp, gaze_a1b1_iso, gaze_a2b2_iso);
+% [stat_results.gaze_a2b2_a1b1_2x2, stat_results.gaze_a2b2_a1b1_2x2_ph] = run_2x2_anova_time_cond('A2B2 vs A1B1 gaze', gaze_a1b1_comp, gaze_a2b2_comp, gaze_a1b1_iso, gaze_a2b2_iso);
 
 
-% n_perm=1000;
-% fprintf('\ngaze permutation match vs mismatch\n');
-% [stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_comp.obs] = run_permutation(match_bb_comp, baseline_bb_comp, n_perm);
-% [stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs] = run_permutation(match_bb_iso, baseline_bb_iso, n_perm);
-% [stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_comp.obs] = run_permutation(match_ba_comp, baseline_ba_comp, n_perm);
-% [stat_results.gaze_match_ba_iso.p, stat_results.gaze_match_ba_iso.obs] = run_permutation(match_ba_iso, baseline_ba_iso, n_perm);
-% fprintf('BB comp: p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_comp.obs);
-% fprintf('BB iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs);
-% fprintf('BA comp: p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_comp.obs);
-% fprintf('BA iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_iso.p, stat_results.gaze_match_ba_iso.obs);
-% 
-% %% spatial entropy
+n_perm=1000;
+fprintf('\ngaze permutation match vs mismatch\n');
+[stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_comp.obs] = run_permutation(match_bb_comp, baseline_bb_comp, n_perm);
+[stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs] = run_permutation(match_bb_iso, baseline_bb_iso, n_perm);
+[stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_comp.obs] = run_permutation(match_ba_comp, baseline_ba_comp, n_perm);
+[stat_results.gaze_match_ba_iso.p, stat_results.gaze_match_ba_iso.obs] = run_permutation(match_ba_iso, baseline_ba_iso, n_perm);
+fprintf('BB comp: p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_comp.obs);
+fprintf('BB iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_bb_iso.p, stat_results.gaze_match_bb_iso.obs);
+fprintf('BA comp: p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_comp.obs);
+fprintf('BA iso:  p=%.4f, obs=%.3f\n', stat_results.gaze_match_ba_iso.p, stat_results.gaze_match_ba_iso.obs);
+
+%% spatial entropy
 % [stat_results.entropy_2x2, stat_results.entropy_2x2_ph] = run_2x2_anova_item_cond('Spatial Entropy 2×2', entropy_a_comp_subj, entropy_a_iso_subj, entropy_b_comp_subj, entropy_b_iso_subj);
 % 
 % %% gaze cumu by fixation
@@ -479,46 +479,46 @@ fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(fig_dir, 'behav_recog.pdf'), '-dpdf', '-vector');
 % 
-% %% fig: gaze match vs mismatch
-% figure('color','w','position',[50 50 1000 800]);
-% subplot(2,2,1);
-% data = [match_bb_comp, baseline_bb_comp];
-% raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'compared B2B1', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp.p);
-% subplot(2,2,2);
-% data = [match_bb_iso, baseline_bb_iso];
-% raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'isolated B2B1', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso.p);
-% subplot(2,2,3);
-% data = [match_ba_comp, baseline_ba_comp];
-% raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'compared A2B1', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_comp.p);
-% subplot(2,2,4);
-% data = [match_ba_iso, baseline_ba_iso];
-% raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'isolated A2B1', [0,1]);
-% set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_iso.p);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'gaze_reins_mmis.pdf'), '-dpdf', '-vector');
+%% fig: gaze match vs mismatch
+figure('color','w','position',[50 50 1000 800]);
+subplot(2,2,1);
+data = [match_bb_comp, baseline_bb_comp];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'compared B2B1', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_comp.p);
+subplot(2,2,2);
+data = [match_bb_iso, baseline_bb_iso];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'isolated B2B1', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_bb_iso.p);
+subplot(2,2,3);
+data = [match_ba_comp, baseline_ba_comp];
+raincloud(data, {c_comp, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'compared A2B1', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_comp.p);
+subplot(2,2,4);
+data = [match_ba_iso, baseline_ba_iso];
+raincloud(data, {c_iso, [200 200 200]/255}, {'match','mismatch'}, 'Spatial Similarity', 'isolated A2B1', [0,1]);
+set(gca, 'YTick', [0 0.25 0.5 0.75 1]); add_sig_perm(data, [1 2], stat_results.gaze_match_ba_iso.p);
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_reins_mmis.pdf'), '-dpdf', '-vector');
 % 
-% %% fig: gaze permutation distributions
-% figure('color','w','position',[50 50 1000 800]);
-% perm_titles = {'compared B2B1', 'isolated B2B1', 'compared A2B1', 'isolated A2B1'};
-% perm_data_A = {match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso};
-% perm_data_B = {baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso};
-% perm_colors = {c_comp, c_iso, c_comp, c_iso};
-% for p = 1:4
-%     subplot(2,2,p);
-%     [p_val, obs_diff, null_dist] = run_permutation_with_dist(perm_data_A{p}, perm_data_B{p}, 1000);
-%     histogram(null_dist, 30, 'FaceColor', [0.6 0.6 0.6], 'EdgeColor', 'w', 'FaceAlpha', 0.7); hold on;
-%     yl = [0 100]; set(gca, 'YTick', [0 25 50 75 100]);
-%     line([obs_diff obs_diff], [0 yl(2)], 'Color', perm_colors{p}, 'LineWidth', 2.5);
-%     title(perm_titles{p}, 'FontSize', 14); xlabel('Gaze Reinstatement Index'); ylabel('Frequency');
-%     legend('null distribution', 'ground-truth data', 'Location', 'northwest');
-%     text(obs_diff, yl(2)*0.8, sprintf(' p = %.3f', p_val), 'Color', perm_colors{p}, 'FontWeight', 'bold');
-%     grid off; box off;
-% end
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'gaze_reins_perm.pdf'), '-dpdf', '-vector');
+%% fig: gaze permutation distributions
+figure('color','w','position',[50 50 1000 800]);
+perm_titles = {'compared B2B1', 'isolated B2B1', 'compared A2B1', 'isolated A2B1'};
+perm_data_A = {match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso};
+perm_data_B = {baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso};
+perm_colors = {c_comp, c_iso, c_comp, c_iso};
+for p = 1:4
+    subplot(2,2,p);
+    [p_val, obs_diff, null_dist] = run_permutation_with_dist(perm_data_A{p}, perm_data_B{p}, 1000);
+    histogram(null_dist, 30, 'FaceColor', [0.6 0.6 0.6], 'EdgeColor', 'w', 'FaceAlpha', 0.7); hold on;
+    yl = [0 100]; set(gca, 'YTick', [0 25 50 75 100]);
+    line([obs_diff obs_diff], [0 yl(2)], 'Color', perm_colors{p}, 'LineWidth', 2.5);
+    title(perm_titles{p}, 'FontSize', 14); xlabel('Gaze Reinstatement Index'); ylabel('Frequency');
+    legend('null distribution', 'ground-truth data', 'Location', 'northwest');
+    text(obs_diff, yl(2)*0.8, sprintf(' p = %.3f', p_val), 'Color', perm_colors{p}, 'FontWeight', 'bold');
+    grid off; box off;
+end
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_reins_perm.pdf'), '-dpdf', '-vector');
 % 
 % %% fig: gaze reinstatement score
 % figure('color','w','position',[50 50 800 600]);
@@ -541,23 +541,64 @@ fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 % add_sig_perm(data_matrix, pairs_to_test, pvals);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(gcf, fullfile(fig_dir, 'gaze_reins_idx.pdf'), '-dpdf', '-vector');
+%% fig: gaze reinstatement score - B2B1 vs A2B1
+figure('color','w','position',[50 50 1000 500]);
+
+% B2B1 - Gaze Consistency
+subplot(1,2,1); hold on;
+data_bb = [reinst_bb_comp, reinst_bb_iso];
+labels_bb = {'Compared', 'Isolated'};
+colors_bb = {c_comp, c_iso};
+yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+raincloud(data_bb, colors_bb, labels_bb, 'Gaze Consistency (r)', 'B2-B1', [-0.1 0.4]);
+set(gca, 'YTick', [-0.1 0 0.1 0.2 0.3 0.4]);
+% Add significance vs chance
+p_bb = [stat_results.gaze_match_bb_comp.p, stat_results.gaze_match_bb_iso.p];
+for i = 1:2
+    if p_bb(i) < 0.05
+        if p_bb(i) < 0.001, txt = '***'; elseif p_bb(i) < 0.01, txt = '**'; else, txt = '*'; end
+        text(i, 0.38, txt, 'HorizontalAlignment', 'center', 'FontSize', 18, 'FontWeight', 'bold');
+    end
+end
+add_sig(data_bb, [1 2]);
+
+% A2B1 - Gaze Reinstatement
+subplot(1,2,2); hold on;
+data_ba = [reinst_ba_comp, reinst_ba_iso];
+labels_ba = {'Compared', 'Isolated'};
+colors_ba = {c_comp, c_iso};
+yline(0, 'r--', 'Chance', 'LineWidth', 2, 'LabelHorizontalAlignment', 'left');
+raincloud(data_ba, colors_ba, labels_ba, 'Gaze Reinstatement (r)', 'A2-B1', [-0.1 0.4]);
+set(gca, 'YTick', [-0.1 0 0.1 0.2 0.3 0.4]);
+% Add significance vs chance
+p_ba = [stat_results.gaze_match_ba_comp.p, stat_results.gaze_match_ba_iso.p];
+for i = 1:2
+    if p_ba(i) < 0.05
+        if p_ba(i) < 0.001, txt = '***'; elseif p_ba(i) < 0.01, txt = '**'; else, txt = '*'; end
+        text(i, 0.38, txt, 'HorizontalAlignment', 'center', 'FontSize', 18, 'FontWeight', 'bold');
+    end
+end
+add_sig(data_ba, [1 2]);
+
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'gaze_consistency_vs_reinstatement.pdf'), '-dpdf', '-vector');
 % 
-%% fig. gaze by condition and correctness
-figure('color','w','position',[50 50 900 500]);
-subplot(1,2,1); raincloud([gaze_bb_corr(:,1), gaze_bb_incorr(:,1)], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze Consistency (r)', 'compared', []); add_sig([gaze_bb_corr(:,1), gaze_bb_incorr(:,1)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
-subplot(1,2,2); raincloud([gaze_bb_corr(:,2), gaze_bb_incorr(:,2)], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze Consistency (r)', 'isolated', []); add_sig([gaze_bb_corr(:,2), gaze_bb_incorr(:,2)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
-print(gcf, fullfile(fig_dir, 'gaze_b2b1_cor.pdf'), '-dpdf', '-vector');
-
-figure('color','w','position',[50 50 900 500]);
-subplot(1,2,1); raincloud([gaze_ba_corr(:,1), gaze_ba_incorr(:,1)], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze reinstatement (r)', 'compared', []); add_sig([gaze_ba_corr(:,1), gaze_ba_incorr(:,1)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
-subplot(1,2,2); raincloud([gaze_ba_corr(:,2), gaze_ba_incorr(:,2)], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze reinstatement (r)', 'isolated', []); add_sig([gaze_ba_corr(:,2), gaze_ba_incorr(:,2)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
-print(gcf, fullfile(fig_dir, 'gaze_a2b1_cor.pdf'), '-dpdf', '-vector');
-
-%% fig. spatial alignment
-figure('color','w','position',[50 50 900 500]);
-subplot(1,2,1); raincloud([gaze_a2b2_comp, gaze_a1b1_comp], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'A2B2', 'A1B1'}, 'Gaze Overlap (r)', 'compared', []); add_sig([gaze_a2b2_comp, gaze_a1b1_comp], [1 2]); set(gca, 'YTick', [0.4 0.5 0.6 0.7 0.8 0.9 1.0], 'YLim', [0.4 1.0], 'XTick', [1 2]);
-subplot(1,2,2); raincloud([gaze_a2b2_iso, gaze_a1b1_iso], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'A2B2', 'A1B1'}, 'Gaze Overlap (r)', 'isolated', []); add_sig([gaze_a2b2_iso, gaze_a1b1_iso], [1 2]); set(gca, 'YTick', [0.4 0.5 0.6 0.7 0.8 0.9 1.0], 'YLim', [0.4 1.0], 'XTick', [1 2]);
-print(gcf, fullfile(fig_dir, 'gaze_a2b2_vs_a1b1.pdf'), '-dpdf', '-vector');
+% %% fig. gaze by condition and correctness
+% figure('color','w','position',[50 50 900 500]);
+% subplot(1,2,1); raincloud([gaze_bb_corr(:,1), gaze_bb_incorr(:,1)], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze Consistency (r)', 'compared', []); add_sig([gaze_bb_corr(:,1), gaze_bb_incorr(:,1)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
+% subplot(1,2,2); raincloud([gaze_bb_corr(:,2), gaze_bb_incorr(:,2)], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze Consistency (r)', 'isolated', []); add_sig([gaze_bb_corr(:,2), gaze_bb_incorr(:,2)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
+% print(gcf, fullfile(fig_dir, 'gaze_b2b1_cor.pdf'), '-dpdf', '-vector');
+% 
+% figure('color','w','position',[50 50 900 500]);
+% subplot(1,2,1); raincloud([gaze_ba_corr(:,1), gaze_ba_incorr(:,1)], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze reinstatement (r)', 'compared', []); add_sig([gaze_ba_corr(:,1), gaze_ba_incorr(:,1)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
+% subplot(1,2,2); raincloud([gaze_ba_corr(:,2), gaze_ba_incorr(:,2)], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'B2 correct', 'B2 incorrect'}, 'Gaze reinstatement (r)', 'isolated', []); add_sig([gaze_ba_corr(:,2), gaze_ba_incorr(:,2)], [1 2]); set(gca, 'YTick', [-0.2 0 0.2 0.4], 'YLim', [-0.2 0.5], 'XTick', [1 2]);
+% print(gcf, fullfile(fig_dir, 'gaze_a2b1_cor.pdf'), '-dpdf', '-vector');
+% 
+% %% fig. spatial alignment
+% figure('color','w','position',[50 50 900 500]);
+% subplot(1,2,1); raincloud([gaze_a2b2_comp, gaze_a1b1_comp], {c_comp, c_comp*0.5+[1 1 1]*0.5}, {'A2B2', 'A1B1'}, 'Gaze Overlap (r)', 'compared', []); add_sig([gaze_a2b2_comp, gaze_a1b1_comp], [1 2]); set(gca, 'YTick', [0.4 0.5 0.6 0.7 0.8 0.9 1.0], 'YLim', [0.4 1.0], 'XTick', [1 2]);
+% subplot(1,2,2); raincloud([gaze_a2b2_iso, gaze_a1b1_iso], {c_iso, c_iso*0.5+[1 1 1]*0.5}, {'A2B2', 'A1B1'}, 'Gaze Overlap (r)', 'isolated', []); add_sig([gaze_a2b2_iso, gaze_a1b1_iso], [1 2]); set(gca, 'YTick', [0.4 0.5 0.6 0.7 0.8 0.9 1.0], 'YLim', [0.4 1.0], 'XTick', [1 2]);
+% print(gcf, fullfile(fig_dir, 'gaze_a2b2_vs_a1b1.pdf'), '-dpdf', '-vector');
 
 % % fig. encoding spatial entropy: A B items (Compared vs Isolated)
 % figure('Position', [100, 100, 1000, 500]);
@@ -651,19 +692,13 @@ print(gcf, fullfile(fig_dir, 'gaze_a2b2_vs_a1b1.pdf'), '-dpdf', '-vector');
 % [r_wm_iso,p_wm_iso] = corr(wm,em_iso); fprintf('isolated-novel: r=%.3f, p=%.4f\n',r_wm_iso,p_wm_iso);
 % [r_wm_avg,p_wm_avg] = corr(wm,em_avg); fprintf('(compared+isolated)/2-novel: r=%.3f, p=%.4f\n',r_wm_avg,p_wm_avg);
 % figure('color','w','position',[50 50 1600 400]);
-% subplot(1,5,1); scatter(ln,lc,80,'filled','MarkerFaceAlpha',0.6); lsline;
-% xlabel('LDI novel','FontSize',14,'FontWeight','bold'); ylabel('LDI compared','FontSize',14,'FontWeight','bold');
-% title(sprintf('r=%.3f, p=%.4f',r_cn,p_cn),'FontSize',12); axis square; grid off; box off; set(gca,'FontSize',12,'LineWidth',1.5);
-% subplot(1,5,2); scatter(wm,em_rel,80,'filled','MarkerFaceAlpha',0.6); lsline;
-% xlabel('WM (d'' total)','FontSize',14,'FontWeight','bold'); ylabel('compared-isolated','FontSize',14,'FontWeight','bold');
-% title(sprintf('r=%.3f, p=%.4f',r_wm_rel,p_wm_rel),'FontSize',12); axis square; grid off; box off; set(gca,'FontSize',12,'LineWidth',1.5);
-% subplot(1,5,3); scatter(wm,em_comp,80,'filled','MarkerFaceAlpha',0.6); lsline;
+% subplot(1,3,2); scatter(ln,lc,80,'filled','MarkerFaceAlpha',0.6); lsline;
 % xlabel('WM (d'' total)','FontSize',14,'FontWeight','bold'); ylabel('compared-novel','FontSize',14,'FontWeight','bold');
 % title(sprintf('r=%.3f, p=%.4f',r_wm_comp,p_wm_comp),'FontSize',12); axis square; grid off; box off; set(gca,'FontSize',12,'LineWidth',1.5);
-% subplot(1,5,4); scatter(wm,em_iso,80,'filled','MarkerFaceAlpha',0.6); lsline;
+% subplot(1,3,3); scatter(wm,em_iso,80,'filled','MarkerFaceAlpha',0.6); lsline;
 % xlabel('WM (d'' total)','FontSize',14,'FontWeight','bold'); ylabel('isolated-novel','FontSize',14,'FontWeight','bold');
 % title(sprintf('r=%.3f, p=%.4f',r_wm_iso,p_wm_iso),'FontSize',12); axis square; grid off; box off; set(gca,'FontSize',12,'LineWidth',1.5);
-% subplot(1,5,5); scatter(wm,em_avg,80,'filled','MarkerFaceAlpha',0.6); lsline;
+% subplot(1,3,1); scatter(wm,em_avg,80,'filled','MarkerFaceAlpha',0.6); lsline;
 % xlabel('WM (d'' total)','FontSize',14,'FontWeight','bold'); ylabel('(compared+isolated)/2-novel','FontSize',14,'FontWeight','bold');
 % title(sprintf('r=%.3f, p=%.4f',r_wm_avg,p_wm_avg),'FontSize',12); axis square; grid off; box off; set(gca,'FontSize',12,'LineWidth',1.5);
 % sgtitle('WM-EM Relationship','FontSize',16,'FontWeight','bold');
