@@ -11,15 +11,15 @@ fig_dir = fullfile(base_dir, 'figures');
 min_rt = 0.150;
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
-% load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
+load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % load(fullfile(res_dir, 'spatial_entropy_results.mat'));
 % load(fullfile(res_dir, 'gaze_cumu_res.mat'));
-load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
-[pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
-fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
-load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
-[reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
- baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
+% load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
+% [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
+% fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
+% load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
+% [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+%  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 % load(fullfile(res_dir, 'gaze_a2b2_vs_a1b1.mat'));
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -128,15 +128,15 @@ load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
 % end
 % save(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % 
-% % get stats from all subject stats
-% get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
-% b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
-% b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
-% b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
-% b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
-% b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
-% b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
-% rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
+% get stats from all subject stats
+get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
+b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
+b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
+b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
+b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
+b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
+rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % % B2B1 gaze consistency
@@ -158,21 +158,21 @@ load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A2B1 gaze reinstatement
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-gaze_ba_corr = nan(length(subj_ids), 2); gaze_ba_incorr = nan(length(subj_ids), 2); gaze_ba_overall = nan(length(subj_ids), 2);
-for c = 1:2
-    if c==1, ba_data = reinstat_res.ba_compared; bb_data = reinstat_res.bb_compared; else, ba_data = reinstat_res.ba_isolated; bb_data = reinstat_res.bb_isolated; end
-    for s = 1:length(subj_ids)
-        sid = subj_ids(s); ba_subj = ba_data(ba_data.subj_id == sid, :); if height(ba_subj) == 0, continue; end
-        ba_subj.b2_correct = nan(height(ba_subj), 1);
-        for i = 1:height(ba_subj), matching_b2 = bb_data(bb_data.subj_id == sid & bb_data.tr_1b_b == ba_subj.tr_1b_b(i), :); if height(matching_b2) == 1, ba_subj.b2_correct(i) = matching_b2.correct; end; end
-        corr_trials = ba_subj.b2_correct == 1; incorr_trials = ba_subj.b2_correct == 0; gaze_ba_overall(s,c) = mean(ba_subj.reinst_index, 'omitnan');
-        if sum(corr_trials) > 0, gaze_ba_corr(s,c) = mean(ba_subj.reinst_index(corr_trials), 'omitnan'); end
-        if sum(incorr_trials) > 0, gaze_ba_incorr(s,c) = mean(ba_subj.reinst_index(incorr_trials), 'omitnan'); end
-    end
-end
-exc_ba = [609, 606, 608, 618]; remaining_subj_ids_ba = subj_ids;
-for e = exc_ba, idx = find(remaining_subj_ids_ba == e); if ~isempty(idx), gaze_ba_corr(idx,:) = []; gaze_ba_incorr(idx,:) = []; gaze_ba_overall(idx,:) = []; remaining_subj_ids_ba(idx) = []; end; end
-fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
+% gaze_ba_corr = nan(length(subj_ids), 2); gaze_ba_incorr = nan(length(subj_ids), 2); gaze_ba_overall = nan(length(subj_ids), 2);
+% for c = 1:2
+%     if c==1, ba_data = reinstat_res.ba_compared; bb_data = reinstat_res.bb_compared; else, ba_data = reinstat_res.ba_isolated; bb_data = reinstat_res.bb_isolated; end
+%     for s = 1:length(subj_ids)
+%         sid = subj_ids(s); ba_subj = ba_data(ba_data.subj_id == sid, :); if height(ba_subj) == 0, continue; end
+%         ba_subj.b2_correct = nan(height(ba_subj), 1);
+%         for i = 1:height(ba_subj), matching_b2 = bb_data(bb_data.subj_id == sid & bb_data.tr_1b_b == ba_subj.tr_1b_b(i), :); if height(matching_b2) == 1, ba_subj.b2_correct(i) = matching_b2.correct; end; end
+%         corr_trials = ba_subj.b2_correct == 1; incorr_trials = ba_subj.b2_correct == 0; gaze_ba_overall(s,c) = mean(ba_subj.reinst_index, 'omitnan');
+%         if sum(corr_trials) > 0, gaze_ba_corr(s,c) = mean(ba_subj.reinst_index(corr_trials), 'omitnan'); end
+%         if sum(incorr_trials) > 0, gaze_ba_incorr(s,c) = mean(ba_subj.reinst_index(incorr_trials), 'omitnan'); end
+%     end
+% end
+% exc_ba = [609, 606, 608, 618]; remaining_subj_ids_ba = subj_ids;
+% for e = exc_ba, idx = find(remaining_subj_ids_ba == e); if ~isempty(idx), gaze_ba_corr(idx,:) = []; gaze_ba_incorr(idx,:) = []; gaze_ba_overall(idx,:) = []; remaining_subj_ids_ba(idx) = []; end; end
+% fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 
 % % %%%%%%%%%%%%%%%%%%%%%%%
 % % extract cumulative gaze reinstatement
@@ -192,9 +192,9 @@ fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %% statistical tests
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% stat_results = struct();
-% within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
-% n = length(subj_ids);
+stat_results = struct();
+within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
+n = length(subj_ids);
 cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % fprintf('\nStatistics (n=%d)\n', n);
 % 
@@ -217,7 +217,7 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % [stat_results.b2_dprime, stat_results.b2_dprime_ph] = run_rm_anova('d-prime', b2_dp_c, b2_dp_i, b2_dp_n, within);
 % [stat_results.b2_rt_lure, stat_results.b2_rt_lure_ph] = run_rm_anova('RT lure', b2_rt_l_c, b2_rt_l_i, b2_rt_l_n, within);
 % [stat_results.b2_rt_target, stat_results.b2_rt_target_ph] = run_rm_anova('RT target', b2_rt_t_c, b2_rt_t_i, b2_rt_t_n, within);
-% 
+
 % %% recognition (planned tests, no correction)
 % fprintf('\n--- Post-task recognition ---\n');
 % [~,p,~,s] = ttest(rec_d_c); stat_results.rec_comp_v0 = struct('t',s.tstat,'df',s.df,'d',mean(rec_d_c,'omitnan')/std(rec_d_c,'omitnan'),'p',p);
@@ -351,64 +351,88 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % visualization
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %% fig: 1-back
-% figure('color','w','Position',[100 100 1200 400]);
-% subplot(1,3,1);
-% data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
-% raincloud(data, {c_same, c_sim, c_new}, {'same','similar','different'}, 'Accuracy', '', [0,1]);
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(1,3,2);
-% data = [b1_rt_sam, b1_rt_sim];
-% raincloud(data, {c_same, c_sim}, {'same','similar'}, 'RT (s)', '');
-% add_sig(data, [1 2]);
-% subplot(1,3,3); hold on;
-% mat_1_back = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
-%     mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
-%     mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
-% draw_matrix(mat_1_back, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('Response matrix', 'FontSize', 12);
-% set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
-% 
-% %% fig: 2-back
-% figure('color','w','Position',[50 50 1200 900]);
-% subplot(3,3,1);
-% data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
-% set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,4);
-% data = [b2_dp_c, b2_dp_i, b2_dp_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Target Detection');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,2);
-% data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0,1.5]);
-% add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0 0.5 1 1.5])
-% subplot(3,3,5);
-% data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
-% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Target Detection)');
-% add_sig(data, [1 2; 2 3; 1 3]);
-% subplot(3,3,7); hold on;
-% mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
-%     mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
-%     mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
-% draw_matrix(mat_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('compared', 'FontSize', 14);
-% subplot(3,3,8); hold on;
-% mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
-%     mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
-%     mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
-% draw_matrix(mat_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('isolated', 'FontSize', 14);
-% subplot(3,3,9); hold on;
-% mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
-%     mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
-%     mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
-% draw_matrix(mat_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-% title('novel', 'FontSize', 14);
-% set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
-% print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
-% 
+%% fig: 1-back
+figure('color','w','Position',[100 100 1200 400]);
+subplot(1,2,1);
+data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
+raincloud(data, {c_same, c_sim, c_new}, {'same','similar','different'}, 'Accuracy', '', [0.4,1]);
+add_sig(data, [1 2; 2 3; 1 3]);
+subplot(1,2,2);
+data = [b1_rt_sam, b1_rt_sim];
+raincloud(data, {c_same, c_sim}, {'same','similar'}, 'RT (s)', '', [0.5,1.3]);
+add_sig(data, [1 2]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3])
+set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
+
+%% fig: 2-back
+figure('color','w','Position',[50 50 1200 900]);
+subplot(2,2,1);
+data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
+set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
+subplot(2,2,3);
+data = [b2_dp_c, b2_dp_i, b2_dp_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Target Detection', [1.5,5.5]);
+add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [1.5 2.5 3.5 4.5 5.5]);
+subplot(2,2,2);
+data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0.5,1.3]);
+add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
+subplot(2,2,4);
+data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
+raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Target Detection)', [0.5,1.3]);
+add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
+set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
+
+%% fig: confusion matrices
+n = length(subj_ids);
+se = @(f1, f2) std(get_v(f1, f2), 'omitnan') / sqrt(n);
+
+figure('color','w','Position',[50 50 1400 400]);
+
+subplot(1,4,1); hold on;
+mat_1 = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
+    mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
+    mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
+se_1 = [se('one','acc_same'), se('one','err_same_as_sim'), se('one','err_same_as_new');
+    se('one','err_sim_as_same'), se('one','acc_sim'), se('one','err_sim_as_new');
+    se('one','err_new_as_same'), se('one','err_new_as_sim'), se('one','acc_new')];
+draw_matrix(mat_1, se_1, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('1-back', 'FontSize', 14);
+
+subplot(1,4,2); hold on;
+mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
+    mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+    mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+se_comp = [se('two','acc_AA_comp'), se('two','err_AA_comp_as_k'), se('two','err_AA_comp_as_n');
+    se('two','err_AB_comp_as_j'), se('two','acc_AB_comp'), se('two','err_AB_comp_as_n');
+    se('two','err_AN_comp_as_j'), se('two','err_AN_comp_as_k'), se('two','acc_AN_comp')];
+draw_matrix(mat_comp, se_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('2-back: compared', 'FontSize', 14);
+
+subplot(1,4,3); hold on;
+mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
+    mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+    mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+se_iso = [se('two','acc_AA_iso'), se('two','err_AA_iso_as_k'), se('two','err_AA_iso_as_n');
+    se('two','err_AB_iso_as_j'), se('two','acc_AB_iso'), se('two','err_AB_iso_as_n');
+    se('two','err_AN_iso_as_j'), se('two','err_AN_iso_as_k'), se('two','acc_AN_iso')];
+draw_matrix(mat_iso, se_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('2-back: isolated', 'FontSize', 14);
+
+subplot(1,4,4); hold on;
+mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
+    mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+    mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+se_nov = [se('two','acc_AA_nov'), se('two','err_AA_nov_as_k'), se('two','err_AA_nov_as_n');
+    se('two','err_AB_nov_as_j'), se('two','acc_AB_nov'), se('two','err_AB_nov_as_n');
+    se('two','err_AN_nov_as_j'), se('two','err_AN_nov_as_k'), se('two','acc_AN_nov')];
+draw_matrix(mat_nov, se_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+title('2-back: novel', 'FontSize', 14);
+
+set(gcf, 'Renderer', 'painters', 'PaperPositionMode', 'auto');
+print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 % %% fig: recognition
 % figure('color','w','Position',[100 100 500 500]);
 % data = [rec_d_c', rec_d_i']; hold on;
@@ -680,77 +704,79 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % print(gcf, fullfile(fig_dir, 'pupil_correctness_raincloud.pdf'), '-dpdf', '-vector');
 
 
-valid = all_preprocessed(all_preprocessed.preprocess_success, :);
-max_samp = max(cellfun(@length, valid.pupil_preprocessed));
-sr = valid.sample_rate(1);
-t_pup = (0:max_samp-1)/sr;
-pup_subjs = unique(valid.subj_id);
-n_subjs = length(pup_subjs);
-conds = {'compared','isolated','novel'}; goals = {'A-B','A-A'}; gtag = {'ab','aa'};
-t_win = t_pup >= 1.0 & t_pup <= 1.5;
-fprintf('pupil: %d subjs, %d samples (%.2fs)\n', n_subjs, max_samp, t_pup(end));
+% valid = all_preprocessed(all_preprocessed.preprocess_success, :);
+% max_samp = max(cellfun(@length, valid.pupil_preprocessed));
+% sr = valid.sample_rate(1);
+% t_pup = (0:max_samp-1)/sr;
+% pup_subjs = unique(valid.subj_id);
+% n_subjs = length(pup_subjs);
+% conds = {'compared','isolated','novel'}; goals = {'A-B','A-A'}; gtag = {'ab','aa'};
+% t_win = t_pup >= 1.0 & t_pup <= 1.5;
+% fprintf('pupil: %d subjs, %d samples (%.2fs)\n', n_subjs, max_samp, t_pup(end));
+% 
+% pup = struct(); pup_corr = struct(); pup_incorr = struct();
+% for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n_subjs, max_samp); end, end
+% for k = 1:3, fn = sprintf('ab_%s', conds{k}(1:3)); pup_corr.(fn) = nan(n_subjs, max_samp); pup_incorr.(fn) = nan(n_subjs, max_samp); end
+% 
+% for s = 1:n_subjs
+%     sid = pup_subjs(s); sv = valid(valid.subj_id == sid, :);
+%     for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
+%     % for k = 1:3
+%     %     fn = sprintf('ab_%s', conds{k}(1:3));
+%     %     pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv(strcmp(sv.condition,conds{k}) & strcmp(sv.goal,'A-B') & sv.correct==1, :), max_samp);
+%     %     pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv(strcmp(sv.condition,conds{k}) & strcmp(sv.goal,'A-B') & sv.correct==0, :), max_samp);
+%     % end
+%     for k = 1:3
+%     fn = sprintf('ab_%s', conds{k}(1:3));
+%     sv_lure = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & strcmp(cellstr(sv.corr_resp), 'k'), :);
+%     pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv_lure(sv_lure.correct == 1, :), max_samp);
+%     pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv_lure(sv_lure.correct == 0, :), max_samp);
+%     end
+% end
+% 
+% exc_pup = false(size(pup_subjs));
+% pup_lure_corr  = [mean(pup_corr.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup_corr.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup_corr.ab_nov(~exc_pup, t_win),2,'omitnan')];
+% pup_lure_incorr = [mean(pup_incorr.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_nov(~exc_pup, t_win),2,'omitnan')];
+% pup_lure_cond  = [mean(pup.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_nov(~exc_pup, t_win),2,'omitnan')];
+% pup_targ_cond  = [mean(pup.aa_com(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_nov(~exc_pup, t_win),2,'omitnan')];
 
-pup = struct(); pup_corr = struct(); pup_incorr = struct();
-for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn) = nan(n_subjs, max_samp); end, end
-for k = 1:3, fn = sprintf('ab_%s', conds{k}(1:3)); pup_corr.(fn) = nan(n_subjs, max_samp); pup_incorr.(fn) = nan(n_subjs, max_samp); end
+% fprintf('\n--- Pupil: Lure trials (condition × correctness) ---\n');
+% [stat_results.pup_3x2, stat_results.pup_3x2_ph] = run_3x2_anova_correctness('pupil lure 3x2', ...
+%     pup_lure_corr(:,1), pup_lure_incorr(:,1), pup_lure_corr(:,2), pup_lure_incorr(:,2), pup_lure_corr(:,3), pup_lure_incorr(:,3), ...
+%     pup_lure_cond(:,1), pup_lure_cond(:,2), pup_lure_cond(:,3));
+% 
+% fprintf('\n--- Pupil: Target trials (condition main effect) ---\n');
+% within_3 = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
+% [stat_results.pup_targ_cond, stat_results.pup_targ_cond_ph] = run_rm_anova('Pupil target', pup_targ_cond(:,1), pup_targ_cond(:,2), pup_targ_cond(:,3), within_3);
 
-for s = 1:n_subjs
-    sid = pup_subjs(s); sv = valid(valid.subj_id == sid, :);
-    for g = 1:2, for k = 1:3, fn = sprintf('%s_%s', gtag{g}, conds{k}(1:3)); pup.(fn)(s,:) = avg_pup_cond(sv, conds{k}, goals{g}, max_samp); end, end
-    % for k = 1:3
-    %     fn = sprintf('ab_%s', conds{k}(1:3));
-    %     pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv(strcmp(sv.condition,conds{k}) & strcmp(sv.goal,'A-B') & sv.correct==1, :), max_samp);
-    %     pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv(strcmp(sv.condition,conds{k}) & strcmp(sv.goal,'A-B') & sv.correct==0, :), max_samp);
-    % end
-    for k = 1:3
-    fn = sprintf('ab_%s', conds{k}(1:3));
-    sv_lure = sv(strcmp(sv.condition, conds{k}) & strcmp(sv.goal, 'A-B') & strcmp(cellstr(sv.corr_resp), 'k'), :);
-    pup_corr.(fn)(s,:) = avg_pup_cond_correctness(sv_lure(sv_lure.correct == 1, :), max_samp);
-    pup_incorr.(fn)(s,:) = avg_pup_cond_correctness(sv_lure(sv_lure.correct == 0, :), max_samp);
-    end
-end
+% %% fig: pupil timeseries
+% figure('color','w','position',[50 50 1200 500]);
+% subplot(1,2,1); hold on;
+% plot_pup_ts(t_pup, pup.ab_com(~exc_pup,:), c_comp, 'compared');
+% plot_pup_ts(t_pup, pup.ab_iso(~exc_pup,:), c_iso, 'isolated');
+% plot_pup_ts(t_pup, pup.ab_nov(~exc_pup,:), c_nov, 'novel');
+% xlabel('Time (s)'); ylabel('Baseline-corrected pupil change');
+% title('Lure Discrimination'); legend('Location','best'); grid off; box off; xlim([0 1.5]);
+% subplot(1,2,2); hold on;
+% plot_pup_ts(t_pup, pup.aa_com(~exc_pup,:), c_comp, 'compared');
+% plot_pup_ts(t_pup, pup.aa_iso(~exc_pup,:), c_iso, 'isolated');
+% plot_pup_ts(t_pup, pup.aa_nov(~exc_pup,:), c_nov, 'novel');
+% xlabel('Time (s)'); ylabel('Baseline-corrected pupil change');
+% title('Target Detection'); legend('Location','best'); grid off; box off; xlim([0 1.5]);
+% print(gcf, fullfile(fig_dir, 'pupil_condition.pdf'), '-dpdf', '-vector');
 
-exc_pup = false(size(pup_subjs));
-pup_lure_corr  = [mean(pup_corr.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup_corr.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup_corr.ab_nov(~exc_pup, t_win),2,'omitnan')];
-pup_lure_incorr = [mean(pup_incorr.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_nov(~exc_pup, t_win),2,'omitnan')];
-pup_lure_cond  = [mean(pup.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_nov(~exc_pup, t_win),2,'omitnan')];
-pup_targ_cond  = [mean(pup.aa_com(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_nov(~exc_pup, t_win),2,'omitnan')];
-
-fprintf('\n--- Pupil: Lure trials (condition × correctness) ---\n');
-[stat_results.pup_3x2, stat_results.pup_3x2_ph] = run_3x2_anova_correctness('pupil lure 3x2', ...
-    pup_lure_corr(:,1), pup_lure_incorr(:,1), pup_lure_corr(:,2), pup_lure_incorr(:,2), pup_lure_corr(:,3), pup_lure_incorr(:,3), ...
-    pup_lure_cond(:,1), pup_lure_cond(:,2), pup_lure_cond(:,3));
-
-fprintf('\n--- Pupil: Target trials (condition main effect) ---\n');
-within_3 = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
-[stat_results.pup_targ_cond, stat_results.pup_targ_cond_ph] = run_rm_anova('Pupil target', pup_targ_cond(:,1), pup_targ_cond(:,2), pup_targ_cond(:,3), within_3);
-
-%% fig: pupil timeseries
-figure('color','w','position',[50 50 1200 500]);
-subplot(1,2,1); hold on;
-plot_pup_ts(t_pup, pup.ab_com(~exc_pup,:), c_comp, 'compared');
-plot_pup_ts(t_pup, pup.ab_iso(~exc_pup,:), c_iso, 'isolated');
-plot_pup_ts(t_pup, pup.ab_nov(~exc_pup,:), c_nov, 'novel');
-xlabel('Time (s)'); ylabel('Baseline-corrected pupil change');
-title('Lure Discrimination'); legend('Location','best'); grid off; box off; xlim([0 1.5]);
-subplot(1,2,2); hold on;
-plot_pup_ts(t_pup, pup.aa_com(~exc_pup,:), c_comp, 'compared');
-plot_pup_ts(t_pup, pup.aa_iso(~exc_pup,:), c_iso, 'isolated');
-plot_pup_ts(t_pup, pup.aa_nov(~exc_pup,:), c_nov, 'novel');
-xlabel('Time (s)'); ylabel('Baseline-corrected pupil change');
-title('Target Detection'); legend('Location','best'); grid off; box off; xlim([0 1.5]);
-print(gcf, fullfile(fig_dir, 'pupil_condition.pdf'), '-dpdf', '-vector');
-
-%% fig: pupil by correctness
-cols_all = [c_comp; c_iso; c_nov];
-figure('color','w','position',[50 50 1200 300]);
-for k = 1:3
-    subplot(1,3,k);
-    mat = [pup_lure_corr(:,k), pup_lure_incorr(:,k)];
-    raincloud(mat, {cols_all(k,:), cols_all(k,:)*0.5+0.5}, {'correct','incorrect'}, 'Pupil change (1–1.5s)', conds{k}, [-600 300]);
-    add_sig(mat, [1 2]); set(gca, 'YTick', [-600 -400 -200 0 200]);
-end
-print(gcf, fullfile(fig_dir, 'pupil_correctness.pdf'), '-dpdf', '-vector');
+% %% fig: pupil by correctness
+% cols_all = [c_comp; c_iso; c_nov];
+% figure('color','w','position',[50 50 1200 300]);
+% for k = 1:3
+%     subplot(1,3,k);
+%     mat = [pup_lure_corr(:,k), pup_lure_incorr(:,k)];
+%     raincloud(mat, {cols_all(k,:), cols_all(k,:)*0.5+0.5}, {'correct','incorrect'}, 'Pupil change (1–1.5s)', conds{k}, [-600 300]);
+%     add_sig(mat, [1 2]);
+%     ylim([-600 400]);
+%     set(gca, 'YTick', [-600 -400 -200 0 200]);
+% end
+% print(gcf, fullfile(fig_dir, 'pupil_correctness.pdf'), '-dpdf', '-vector');
 
 %% save comprehensive results
 %%%%%%%%%%%%%%%%%%%%%
@@ -808,9 +834,9 @@ function raincloud(mat, cols, xlbls, ylbl, ttl, ylims)
         rectangle('Position', [i-0.06, q(1), 0.12, q(3)-q(1)], 'FaceColor', cols{i}, 'EdgeColor','k', 'LineWidth',1.2);
         plot([i-0.06, i+0.06], [q(2), q(2)], 'k-', 'LineWidth', 2);
     end
-    set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 18);
+    set(gca, 'XTick', 1:n_grps, 'XTickLabel', xlbls, 'FontSize', 20);
     if ~isempty(ttl), title(ttl, 'FontSize', 20); end
-    ylabel(ylbl,'FontSize',18,'FontWeight','bold'); xlim([0.2, n_grps+0.8]);
+    ylabel(ylbl,'FontSize',20); xlim([0.2, n_grps+0.8]);
     if nargin>5 && ~isempty(ylims), ylim(ylims); else, ylim(auto_lim); end
     grid off; set(gca,'GridAlpha',0.1); box off; hold off;
 end
@@ -835,17 +861,19 @@ function add_sig(data, pairs)
     if line_lvl>0, ylim([cl(1), base+(line_lvl*step)+step]); end; hold off;
 end
 
-function draw_matrix(mat, cols, ylbl, xlbl)
+function draw_matrix(mat, se_mat, cols, ylbl, xlbl)
     hold on;
-    for r=1:3
-        for c=1:3
-            v = mat(r,c); t_c = (v>0.5)*[1 1 1] + (v<=0.5)*[0.2 0.2 0.2];           
-            patch([c-0.48 c+0.48 c+0.48 c-0.48], [r-0.48 r-0.48 r+0.48 r+0.48], cols{r}, 'EdgeColor','none','FaceAlpha',v);
-            text(c, r, sprintf('%.2f',v), 'HorizontalAlignment','center', 'Color',t_c, 'FontWeight','bold', 'FontSize',10);
-            if r==1, text(c, 0.4, xlbl{c}, 'HorizontalAlignment','center', 'Color',cols{c}, 'FontWeight','bold', 'FontSize',10); end
+    for r = 1:3
+        for c = 1:3
+            v = mat(r,c); s = se_mat(r,c);
+            t_c = (v > 0.5)*[1 1 1] + (v <= 0.5)*[0.2 0.2 0.2];
+            patch([c-0.48 c+0.48 c+0.48 c-0.48], [r-0.48 r-0.48 r+0.48 r+0.48], cols{r}, 'EdgeColor','none', 'FaceAlpha',v);
+            text(c, r-0.08, sprintf('%.2f', v), 'HorizontalAlignment','center', 'Color',t_c, 'FontWeight','bold', 'FontSize',10);
+            text(c, r+0.18, sprintf('±%.2f', s), 'HorizontalAlignment','center', 'Color',t_c, 'FontSize',8);
+            if r == 1, text(c, 0.4, xlbl{c}, 'HorizontalAlignment','center', 'Color',cols{c}, 'FontWeight','bold', 'FontSize',10); end
         end
         text(0.4, r, ylbl{r}, 'HorizontalAlignment','right', 'Color',cols{r}, 'FontWeight','bold', 'FontSize',10);
-    end 
+    end
     axis ij equal; xlim([0.2 3.8]); ylim([0.3 3.5]); set(gca, 'XTick', [], 'YTick', [], 'XColor', 'none', 'YColor', 'none'); hold off;
 end
 
