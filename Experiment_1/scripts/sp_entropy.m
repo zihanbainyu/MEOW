@@ -1,261 +1,261 @@
-% clear; clc; close all;
-% 
-% base_dir = '..'; 
-% res_dir = fullfile(base_dir, 'results');
-% out_dir = fullfile(res_dir, 'gaze_entropy_temporal');
-% if ~exist(out_dir, 'dir'), mkdir(out_dir); end
-% 
-% load(fullfile(base_dir, 'data', 'eye_movement_data', 'group_eye_movement_combined.mat'), 'Mw');
-% 
-% spatial_params = struct('xres', 1920, 'yres', 1080, ...
-%     'roi_x', [760, 1160], 'roi_y', [340, 740], ...
-%     'grid_x', 20, 'grid_y', 20, 'sigma', 2);
-% 
-% comp_idx = strcmp(Mw.condition, 'compared'); 
-% iso_idx = strcmp(Mw.condition, 'isolated');
-% ab_idx = strcmp(Mw.goal, 'A-B'); 
-% a_idx = strcmp(Mw.identity, 'A');
-% b_idx = strcmp(Mw.identity, 'B');
-% task_1b_idx = strcmp(Mw.task, '1_back'); 
-% task_2b_idx = strcmp(Mw.task, '2_back');
-% 
-% one_b_a_comp_idx = task_1b_idx & a_idx & comp_idx;
-% one_b_a_iso_idx = task_1b_idx & a_idx & iso_idx;
-% one_b_b_comp_idx = task_1b_idx & b_idx & comp_idx; 
-% one_b_b_iso_idx = task_1b_idx & b_idx & iso_idx;
-% two_b_a_comp_idx = task_2b_idx & ab_idx & a_idx & comp_idx;
-% two_b_a_iso_idx = task_2b_idx & ab_idx & a_idx & iso_idx;
-% two_b_b_comp_idx = task_2b_idx & ab_idx & b_idx & comp_idx; 
-% two_b_b_iso_idx = task_2b_idx & ab_idx & b_idx & iso_idx;
-% 
-% tr_one_b_a_comp = unique(Mw(one_b_a_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_one_b_a_iso = unique(Mw(one_b_a_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_one_b_b_comp = unique(Mw(one_b_b_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_one_b_b_iso = unique(Mw(one_b_b_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_two_b_a_comp = unique(Mw(two_b_a_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_two_b_a_iso = unique(Mw(two_b_a_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_two_b_b_comp = unique(Mw(two_b_b_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% tr_two_b_b_iso = unique(Mw(two_b_b_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
-% 
-% pairs_bb_comp = innerjoin(tr_one_b_b_comp, tr_two_b_b_comp, 'Keys', {'subj_id','stim_id'}, ...
-%     'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
-% pairs_bb_comp.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
-% 
-% pairs_bb_iso = innerjoin(tr_one_b_b_iso, tr_two_b_b_iso, 'Keys', {'subj_id','stim_id'}, ...
-%     'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
-% pairs_bb_iso.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
-% 
-% fprintf('Matched B-B pairs: compared=%d, isolated=%d\n', height(pairs_bb_comp), height(pairs_bb_iso));
+clear; clc; close all;
 
-% 
-% fprintf('\n=== A item Entropy (1-back encoding) ===\n');
-% 
-% subjs_a_comp = unique(tr_one_b_a_comp.subj_id);
-% subjs_a_iso = unique(tr_one_b_a_iso.subj_id);
-% common_subjs_a = intersect(subjs_a_comp, subjs_a_iso);
-% 
-% entropy_a_comp_subj = zeros(length(common_subjs_a), 1);
-% entropy_a_iso_subj = zeros(length(common_subjs_a), 1);
-% 
-% for i = 1:length(common_subjs_a)
-%     sid = common_subjs_a(i);
-%     trials_comp = tr_one_b_a_comp(tr_one_b_a_comp.subj_id == sid, :);
-%     trials_iso = tr_one_b_a_iso(tr_one_b_a_iso.subj_id == sid, :);
-% 
-%     subj_entropy_comp = [];
-%     for j = 1:height(trials_comp)
-%         fix_a = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_comp.trial_id(j), :);
-%         if height(fix_a) >= 2
-%             map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%             ent = compute_spatial_entropy(map_a);
-%             if ent > 0, subj_entropy_comp = [subj_entropy_comp; ent]; end
-%         end
-%     end
-% 
-%     subj_entropy_iso = [];
-%     for j = 1:height(trials_iso)
-%         fix_a = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_iso.trial_id(j), :);
-%         if height(fix_a) >= 2
-%             map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%             ent = compute_spatial_entropy(map_a);
-%             if ent > 0, subj_entropy_iso = [subj_entropy_iso; ent]; end
-%         end
-%     end
-% 
-%     entropy_a_comp_subj(i) = mean(subj_entropy_comp);
-%     entropy_a_iso_subj(i) = mean(subj_entropy_iso);
-% end
-% 
-% [~, p_entropy_a, ~, stats_entropy_a] = ttest(entropy_a_comp_subj, entropy_a_iso_subj);
-% fprintf('Compared: M=%.3f (SD=%.3f)\n', mean(entropy_a_comp_subj), std(entropy_a_comp_subj));
-% fprintf('Isolated: M=%.3f (SD=%.3f)\n', mean(entropy_a_iso_subj), std(entropy_a_iso_subj));
-% fprintf('t(%d) = %.3f, p = %.4f\n', stats_entropy_a.df, stats_entropy_a.tstat, p_entropy_a);
-% 
-% fprintf('\n=== B item Entropy (1-back encoding) ===\n');
-% 
-% subjs_b_comp = unique(tr_one_b_b_comp.subj_id);
-% subjs_b_iso = unique(tr_one_b_b_iso.subj_id);
-% common_subjs_b = intersect(subjs_b_comp, subjs_b_iso);
-% 
-% entropy_b_comp_subj = zeros(length(common_subjs_b), 1);
-% entropy_b_iso_subj = zeros(length(common_subjs_b), 1);
-% 
-% for i = 1:length(common_subjs_b)
-%     sid = common_subjs_b(i);
-%     trials_comp = tr_one_b_b_comp(tr_one_b_b_comp.subj_id == sid, :);
-%     trials_iso = tr_one_b_b_iso(tr_one_b_b_iso.subj_id == sid, :);
-% 
-%     subj_entropy_comp = [];
-%     for j = 1:height(trials_comp)
-%         fix_b = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_comp.trial_id(j), :);
-%         if height(fix_b) >= 2
-%             map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-%             ent = compute_spatial_entropy(map_b);
-%             if ent > 0, subj_entropy_comp = [subj_entropy_comp; ent]; end
-%         end
-%     end
-% 
-%     subj_entropy_iso = [];
-%     for j = 1:height(trials_iso)
-%         fix_b = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_iso.trial_id(j), :);
-%         if height(fix_b) >= 2
-%             map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-%             ent = compute_spatial_entropy(map_b);
-%             if ent > 0, subj_entropy_iso = [subj_entropy_iso; ent]; end
-%         end
-%     end
-% 
-%     entropy_b_comp_subj(i) = mean(subj_entropy_comp);
-%     entropy_b_iso_subj(i) = mean(subj_entropy_iso);
-% end
-% 
-% [~, p_entropy_b, ~, stats_entropy_b] = ttest(entropy_b_comp_subj, entropy_b_iso_subj);
-% fprintf('Compared: M=%.3f (SD=%.3f)\n', mean(entropy_b_comp_subj), std(entropy_b_comp_subj));
-% fprintf('Isolated: M=%.3f (SD=%.3f)\n', mean(entropy_b_iso_subj), std(entropy_b_iso_subj));
-% fprintf('t(%d) = %.3f, p = %.4f\n', stats_entropy_b.df, stats_entropy_b.tstat, p_entropy_b);
-% 
-% fprintf('\n=== A-B Fixation Overlap during 1-back (Encoding) ===\n');
-% 
-% tr_one_b_a_comp.base_id = regexprep(tr_one_b_a_comp.stim_id, '_A_', '_BASE_');
-% tr_one_b_b_comp_temp = tr_one_b_b_comp;
-% tr_one_b_b_comp_temp.base_id = regexprep(tr_one_b_b_comp_temp.stim_id, '_B_', '_BASE_');
-% 
-% ab_pairs_comp = innerjoin(tr_one_b_a_comp, tr_one_b_b_comp_temp, ...
-%     'Keys', {'subj_id', 'base_id'}, ...
-%     'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
-%     'RightVariables', {'trial_id', 'stim_id'});
-% ab_pairs_comp.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
-% 
-% tr_one_b_a_iso_temp = tr_one_b_a_iso;
-% tr_one_b_a_iso_temp.base_id = regexprep(tr_one_b_a_iso_temp.stim_id, '_A_', '_BASE_');
-% tr_one_b_b_iso_temp = tr_one_b_b_iso;
-% tr_one_b_b_iso_temp.base_id = regexprep(tr_one_b_b_iso_temp.stim_id, '_B_', '_BASE_');
-% 
-% ab_pairs_iso = innerjoin(tr_one_b_a_iso_temp, tr_one_b_b_iso_temp, ...
-%     'Keys', {'subj_id', 'base_id'}, ...
-%     'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
-%     'RightVariables', {'trial_id', 'stim_id'});
-% ab_pairs_iso.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
-% 
-% overlap_comp = zeros(height(ab_pairs_comp), 1);
-% for i = 1:height(ab_pairs_comp)
-%     pair = ab_pairs_comp(i, :);
-%     fix_a = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
-%     fix_b = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
-% 
-%     if height(fix_a) < 2 || height(fix_b) < 2, continue; end
-% 
-%     map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%     map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-% 
-%     if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
-% 
-%     overlap_comp(i) = corr(map_a(:), map_b(:));
-% end
-% 
-% overlap_iso = zeros(height(ab_pairs_iso), 1);
-% for i = 1:height(ab_pairs_iso)
-%     pair = ab_pairs_iso(i, :);
-%     fix_a = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
-%     fix_b = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
-% 
-%     if height(fix_a) < 2 || height(fix_b) < 2, continue; end
-% 
-%     map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%     map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-% 
-%     if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
-% 
-%     overlap_iso(i) = corr(map_a(:), map_b(:));
-% end
-% 
-% overlap_comp_valid = overlap_comp(overlap_comp ~= 0);
-% overlap_iso_valid = overlap_iso(overlap_iso ~= 0);
-% 
-% fprintf('Compared: M=%.3f (SD=%.3f), N=%d pairs\n', ...
-%     mean(overlap_comp_valid), std(overlap_comp_valid), length(overlap_comp_valid));
-% fprintf('Isolated: M=%.3f (SD=%.3f), N=%d pairs\n', ...
-%     mean(overlap_iso_valid), std(overlap_iso_valid), length(overlap_iso_valid));
-% 
-% [~, p_overlap] = ttest2(overlap_comp_valid, overlap_iso_valid);
-% fprintf('t-test: p = %.4f\n', p_overlap);
-% 
-% fprintf('\n=== A-B Fixation Overlap during 2-back (Retrieval) ===\n');
-% 
-% tr_two_b_a_comp.base_id = regexprep(tr_two_b_a_comp.stim_id, '_A_', '_BASE_');
-% tr_two_b_b_comp_temp = tr_two_b_b_comp;
-% tr_two_b_b_comp_temp.base_id = regexprep(tr_two_b_b_comp_temp.stim_id, '_B_', '_BASE_');
-% 
-% ab_pairs_2b_comp = innerjoin(tr_two_b_a_comp, tr_two_b_b_comp_temp, ...
-%     'Keys', {'subj_id', 'base_id'}, ...
-%     'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
-%     'RightVariables', {'trial_id', 'stim_id'});
-% ab_pairs_2b_comp.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
-% 
-% tr_two_b_a_iso.base_id = regexprep(tr_two_b_a_iso.stim_id, '_A_', '_BASE_');
-% tr_two_b_b_iso_temp = tr_two_b_b_iso;
-% tr_two_b_b_iso_temp.base_id = regexprep(tr_two_b_b_iso_temp.stim_id, '_B_', '_BASE_');
-% 
-% ab_pairs_2b_iso = innerjoin(tr_two_b_a_iso, tr_two_b_b_iso_temp, ...
-%     'Keys', {'subj_id', 'base_id'}, ...
-%     'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
-%     'RightVariables', {'trial_id', 'stim_id'});
-% ab_pairs_2b_iso.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
-% 
-% overlap_2b_comp = zeros(height(ab_pairs_2b_comp), 1);
-% for i = 1:height(ab_pairs_2b_comp)
-%     pair = ab_pairs_2b_comp(i, :);
-%     fix_a = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
-%     fix_b = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
-% 
-%     if height(fix_a) < 2 || height(fix_b) < 2, continue; end
-% 
-%     map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%     map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-% 
-%     if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
-% 
-%     overlap_2b_comp(i) = corr(map_a(:), map_b(:));
-% end
-% 
-% overlap_2b_iso = zeros(height(ab_pairs_2b_iso), 1);
-% for i = 1:height(ab_pairs_2b_iso)
-%     pair = ab_pairs_2b_iso(i, :);
-%     fix_a = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
-%     fix_b = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
-% 
-%     if height(fix_a) < 2 || height(fix_b) < 2, continue; end
-% 
-%     map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
-%     map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
-% 
-%     if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
-% 
-%     overlap_2b_iso(i) = corr(map_a(:), map_b(:));
-% end
-% 
-% overlap_2b_comp_valid = overlap_2b_comp(overlap_2b_comp ~= 0);
-% overlap_2b_iso_valid = overlap_2b_iso(overlap_2b_iso ~= 0);
+base_dir = '..'; 
+res_dir = fullfile(base_dir, 'results');
+out_dir = fullfile(res_dir, 'gaze_entropy_temporal');
+if ~exist(out_dir, 'dir'), mkdir(out_dir); end
+
+load(fullfile(base_dir, 'data', 'eye_movement_data', 'group_eye_movement_combined.mat'), 'Mw');
+
+spatial_params = struct('xres', 1920, 'yres', 1080, ...
+    'roi_x', [760, 1160], 'roi_y', [340, 740], ...
+    'grid_x', 20, 'grid_y', 20, 'sigma', 2);
+
+comp_idx = strcmp(Mw.condition, 'compared'); 
+iso_idx = strcmp(Mw.condition, 'isolated');
+ab_idx = strcmp(Mw.goal, 'A-B'); 
+a_idx = strcmp(Mw.identity, 'A');
+b_idx = strcmp(Mw.identity, 'B');
+task_1b_idx = strcmp(Mw.task, '1_back'); 
+task_2b_idx = strcmp(Mw.task, '2_back');
+
+one_b_a_comp_idx = task_1b_idx & a_idx & comp_idx;
+one_b_a_iso_idx = task_1b_idx & a_idx & iso_idx;
+one_b_b_comp_idx = task_1b_idx & b_idx & comp_idx; 
+one_b_b_iso_idx = task_1b_idx & b_idx & iso_idx;
+two_b_a_comp_idx = task_2b_idx & ab_idx & a_idx & comp_idx;
+two_b_a_iso_idx = task_2b_idx & ab_idx & a_idx & iso_idx;
+two_b_b_comp_idx = task_2b_idx & ab_idx & b_idx & comp_idx; 
+two_b_b_iso_idx = task_2b_idx & ab_idx & b_idx & iso_idx;
+
+tr_one_b_a_comp = unique(Mw(one_b_a_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_one_b_a_iso = unique(Mw(one_b_a_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_one_b_b_comp = unique(Mw(one_b_b_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_one_b_b_iso = unique(Mw(one_b_b_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_two_b_a_comp = unique(Mw(two_b_a_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_two_b_a_iso = unique(Mw(two_b_a_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_two_b_b_comp = unique(Mw(two_b_b_comp_idx, {'subj_id', 'trial_id', 'stim_id'}));
+tr_two_b_b_iso = unique(Mw(two_b_b_iso_idx, {'subj_id', 'trial_id', 'stim_id'}));
+
+pairs_bb_comp = innerjoin(tr_one_b_b_comp, tr_two_b_b_comp, 'Keys', {'subj_id','stim_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
+pairs_bb_comp.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
+
+pairs_bb_iso = innerjoin(tr_one_b_b_iso, tr_two_b_b_iso, 'Keys', {'subj_id','stim_id'}, ...
+    'LeftVariables', {'subj_id','trial_id','stim_id'}, 'RightVariables', {'trial_id'});
+pairs_bb_iso.Properties.VariableNames = {'subj_id','tr_1b_b','stim_id','tr_2b_b'};
+
+fprintf('Matched B-B pairs: compared=%d, isolated=%d\n', height(pairs_bb_comp), height(pairs_bb_iso));
+
+
+fprintf('\n=== A item Entropy (1-back encoding) ===\n');
+
+subjs_a_comp = unique(tr_one_b_a_comp.subj_id);
+subjs_a_iso = unique(tr_one_b_a_iso.subj_id);
+common_subjs_a = intersect(subjs_a_comp, subjs_a_iso);
+
+entropy_a_comp_subj = zeros(length(common_subjs_a), 1);
+entropy_a_iso_subj = zeros(length(common_subjs_a), 1);
+
+for i = 1:length(common_subjs_a)
+    sid = common_subjs_a(i);
+    trials_comp = tr_one_b_a_comp(tr_one_b_a_comp.subj_id == sid, :);
+    trials_iso = tr_one_b_a_iso(tr_one_b_a_iso.subj_id == sid, :);
+
+    subj_entropy_comp = [];
+    for j = 1:height(trials_comp)
+        fix_a = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_comp.trial_id(j), :);
+        if height(fix_a) >= 2
+            map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+            ent = compute_spatial_entropy(map_a);
+            if ent > 0, subj_entropy_comp = [subj_entropy_comp; ent]; end
+        end
+    end
+
+    subj_entropy_iso = [];
+    for j = 1:height(trials_iso)
+        fix_a = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_iso.trial_id(j), :);
+        if height(fix_a) >= 2
+            map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+            ent = compute_spatial_entropy(map_a);
+            if ent > 0, subj_entropy_iso = [subj_entropy_iso; ent]; end
+        end
+    end
+
+    entropy_a_comp_subj(i) = mean(subj_entropy_comp);
+    entropy_a_iso_subj(i) = mean(subj_entropy_iso);
+end
+
+[~, p_entropy_a, ~, stats_entropy_a] = ttest(entropy_a_comp_subj, entropy_a_iso_subj);
+fprintf('Compared: M=%.3f (SD=%.3f)\n', mean(entropy_a_comp_subj), std(entropy_a_comp_subj));
+fprintf('Isolated: M=%.3f (SD=%.3f)\n', mean(entropy_a_iso_subj), std(entropy_a_iso_subj));
+fprintf('t(%d) = %.3f, p = %.4f\n', stats_entropy_a.df, stats_entropy_a.tstat, p_entropy_a);
+
+fprintf('\n=== B item Entropy (1-back encoding) ===\n');
+
+subjs_b_comp = unique(tr_one_b_b_comp.subj_id);
+subjs_b_iso = unique(tr_one_b_b_iso.subj_id);
+common_subjs_b = intersect(subjs_b_comp, subjs_b_iso);
+
+entropy_b_comp_subj = zeros(length(common_subjs_b), 1);
+entropy_b_iso_subj = zeros(length(common_subjs_b), 1);
+
+for i = 1:length(common_subjs_b)
+    sid = common_subjs_b(i);
+    trials_comp = tr_one_b_b_comp(tr_one_b_b_comp.subj_id == sid, :);
+    trials_iso = tr_one_b_b_iso(tr_one_b_b_iso.subj_id == sid, :);
+
+    subj_entropy_comp = [];
+    for j = 1:height(trials_comp)
+        fix_b = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_comp.trial_id(j), :);
+        if height(fix_b) >= 2
+            map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+            ent = compute_spatial_entropy(map_b);
+            if ent > 0, subj_entropy_comp = [subj_entropy_comp; ent]; end
+        end
+    end
+
+    subj_entropy_iso = [];
+    for j = 1:height(trials_iso)
+        fix_b = Mw(task_1b_idx & Mw.subj_id == sid & Mw.trial_id == trials_iso.trial_id(j), :);
+        if height(fix_b) >= 2
+            map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+            ent = compute_spatial_entropy(map_b);
+            if ent > 0, subj_entropy_iso = [subj_entropy_iso; ent]; end
+        end
+    end
+
+    entropy_b_comp_subj(i) = mean(subj_entropy_comp);
+    entropy_b_iso_subj(i) = mean(subj_entropy_iso);
+end
+
+[~, p_entropy_b, ~, stats_entropy_b] = ttest(entropy_b_comp_subj, entropy_b_iso_subj);
+fprintf('Compared: M=%.3f (SD=%.3f)\n', mean(entropy_b_comp_subj), std(entropy_b_comp_subj));
+fprintf('Isolated: M=%.3f (SD=%.3f)\n', mean(entropy_b_iso_subj), std(entropy_b_iso_subj));
+fprintf('t(%d) = %.3f, p = %.4f\n', stats_entropy_b.df, stats_entropy_b.tstat, p_entropy_b);
+
+fprintf('\n=== A-B Fixation Overlap during 1-back (Encoding) ===\n');
+
+tr_one_b_a_comp.base_id = regexprep(tr_one_b_a_comp.stim_id, '_A_', '_BASE_');
+tr_one_b_b_comp_temp = tr_one_b_b_comp;
+tr_one_b_b_comp_temp.base_id = regexprep(tr_one_b_b_comp_temp.stim_id, '_B_', '_BASE_');
+
+ab_pairs_comp = innerjoin(tr_one_b_a_comp, tr_one_b_b_comp_temp, ...
+    'Keys', {'subj_id', 'base_id'}, ...
+    'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
+    'RightVariables', {'trial_id', 'stim_id'});
+ab_pairs_comp.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
+
+tr_one_b_a_iso_temp = tr_one_b_a_iso;
+tr_one_b_a_iso_temp.base_id = regexprep(tr_one_b_a_iso_temp.stim_id, '_A_', '_BASE_');
+tr_one_b_b_iso_temp = tr_one_b_b_iso;
+tr_one_b_b_iso_temp.base_id = regexprep(tr_one_b_b_iso_temp.stim_id, '_B_', '_BASE_');
+
+ab_pairs_iso = innerjoin(tr_one_b_a_iso_temp, tr_one_b_b_iso_temp, ...
+    'Keys', {'subj_id', 'base_id'}, ...
+    'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
+    'RightVariables', {'trial_id', 'stim_id'});
+ab_pairs_iso.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
+
+overlap_comp = zeros(height(ab_pairs_comp), 1);
+for i = 1:height(ab_pairs_comp)
+    pair = ab_pairs_comp(i, :);
+    fix_a = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
+    fix_b = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
+
+    if height(fix_a) < 2 || height(fix_b) < 2, continue; end
+
+    map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+    map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+
+    if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
+
+    overlap_comp(i) = corr(map_a(:), map_b(:));
+end
+
+overlap_iso = zeros(height(ab_pairs_iso), 1);
+for i = 1:height(ab_pairs_iso)
+    pair = ab_pairs_iso(i, :);
+    fix_a = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
+    fix_b = Mw(task_1b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
+
+    if height(fix_a) < 2 || height(fix_b) < 2, continue; end
+
+    map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+    map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+
+    if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
+
+    overlap_iso(i) = corr(map_a(:), map_b(:));
+end
+
+overlap_comp_valid = overlap_comp(overlap_comp ~= 0);
+overlap_iso_valid = overlap_iso(overlap_iso ~= 0);
+
+fprintf('Compared: M=%.3f (SD=%.3f), N=%d pairs\n', ...
+    mean(overlap_comp_valid), std(overlap_comp_valid), length(overlap_comp_valid));
+fprintf('Isolated: M=%.3f (SD=%.3f), N=%d pairs\n', ...
+    mean(overlap_iso_valid), std(overlap_iso_valid), length(overlap_iso_valid));
+
+[~, p_overlap] = ttest2(overlap_comp_valid, overlap_iso_valid);
+fprintf('t-test: p = %.4f\n', p_overlap);
+
+fprintf('\n=== A-B Fixation Overlap during 2-back (Retrieval) ===\n');
+
+tr_two_b_a_comp.base_id = regexprep(tr_two_b_a_comp.stim_id, '_A_', '_BASE_');
+tr_two_b_b_comp_temp = tr_two_b_b_comp;
+tr_two_b_b_comp_temp.base_id = regexprep(tr_two_b_b_comp_temp.stim_id, '_B_', '_BASE_');
+
+ab_pairs_2b_comp = innerjoin(tr_two_b_a_comp, tr_two_b_b_comp_temp, ...
+    'Keys', {'subj_id', 'base_id'}, ...
+    'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
+    'RightVariables', {'trial_id', 'stim_id'});
+ab_pairs_2b_comp.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
+
+tr_two_b_a_iso.base_id = regexprep(tr_two_b_a_iso.stim_id, '_A_', '_BASE_');
+tr_two_b_b_iso_temp = tr_two_b_b_iso;
+tr_two_b_b_iso_temp.base_id = regexprep(tr_two_b_b_iso_temp.stim_id, '_B_', '_BASE_');
+
+ab_pairs_2b_iso = innerjoin(tr_two_b_a_iso, tr_two_b_b_iso_temp, ...
+    'Keys', {'subj_id', 'base_id'}, ...
+    'LeftVariables', {'subj_id', 'trial_id', 'stim_id', 'base_id'}, ...
+    'RightVariables', {'trial_id', 'stim_id'});
+ab_pairs_2b_iso.Properties.VariableNames = {'subj_id', 'tr_a', 'stim_a', 'base_id', 'tr_b', 'stim_b'};
+
+overlap_2b_comp = zeros(height(ab_pairs_2b_comp), 1);
+for i = 1:height(ab_pairs_2b_comp)
+    pair = ab_pairs_2b_comp(i, :);
+    fix_a = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
+    fix_b = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
+
+    if height(fix_a) < 2 || height(fix_b) < 2, continue; end
+
+    map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+    map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+
+    if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
+
+    overlap_2b_comp(i) = corr(map_a(:), map_b(:));
+end
+
+overlap_2b_iso = zeros(height(ab_pairs_2b_iso), 1);
+for i = 1:height(ab_pairs_2b_iso)
+    pair = ab_pairs_2b_iso(i, :);
+    fix_a = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_a, :);
+    fix_b = Mw(task_2b_idx & Mw.subj_id == pair.subj_id & Mw.trial_id == pair.tr_b, :);
+
+    if height(fix_a) < 2 || height(fix_b) < 2, continue; end
+
+    map_a = create_fixation_map(fix_a.x, fix_a.y, fix_a.dur, spatial_params);
+    map_b = create_fixation_map(fix_b.x, fix_b.y, fix_b.dur, spatial_params);
+
+    if sum(map_a(:)) == 0 || sum(map_b(:)) == 0, continue; end
+
+    overlap_2b_iso(i) = corr(map_a(:), map_b(:));
+end
+
+overlap_2b_comp_valid = overlap_2b_comp(overlap_2b_comp ~= 0);
+overlap_2b_iso_valid = overlap_2b_iso(overlap_2b_iso ~= 0);
 
 
 %% Cumulative gaze reinstatement (baseline-corrected)

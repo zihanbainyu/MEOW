@@ -11,9 +11,10 @@ fig_dir = fullfile(base_dir, 'figures');
 min_rt = 0.150;
 c_comp = [180 174 211]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255; 
 c_sim  = [255 191 205]/255; c_same = [97 125 184]/255; c_new = [219 219 219]/255;
-load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
+cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
+% load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
+
 % load(fullfile(res_dir, 'spatial_entropy_results.mat'));
-% load(fullfile(res_dir, 'gaze_cumu_res.mat'));
 % load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
 % [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
 % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
@@ -21,6 +22,153 @@ load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
 %  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 % load(fullfile(res_dir, 'gaze_a2b2_vs_a1b1.mat'));
+
+%% cumulative A2-A1 consistency (per-trial slope)
+load(fullfile(res_dir, 'cumu_reinstat_aa.mat'));
+aa_subj_traj_comp = subj_traj_comp; aa_subj_traj_iso = subj_traj_iso;
+aa_n_fix = n_fix_to_plot; aa_common = common_subjs;
+
+fix_cols_comp = cumulative_results_comp{:, 4:3+aa_n_fix};
+fix_cols_iso = cumulative_results_iso{:, 4:3+aa_n_fix};
+x_fix = (1:aa_n_fix)'; x_fix_c = x_fix - mean(x_fix);
+
+slope_aa_comp = nan(height(cumulative_results_comp), 1);
+for i = 1:height(cumulative_results_comp)
+    y = fix_cols_comp(i, :)'; v = ~isnan(y);
+    if sum(v) >= 2, slope_aa_comp(i) = x_fix_c(v) \ y(v); end
+end
+slope_aa_iso = nan(height(cumulative_results_iso), 1);
+for i = 1:height(cumulative_results_iso)
+    y = fix_cols_iso(i, :)'; v = ~isnan(y);
+    if sum(v) >= 2, slope_aa_iso(i) = x_fix_c(v) \ y(v); end
+end
+
+T_sc = table(cumulative_results_comp.subj_id, slope_aa_comp, 'VariableNames', {'subj_id','slope'});
+T_si = table(cumulative_results_iso.subj_id, slope_aa_iso, 'VariableNames', {'subj_id','slope'});
+T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
+ss_c = grpstats(T_sc, 'subj_id', 'mean', 'DataVars', 'slope'); ss_c.Properties.VariableNames{'mean_slope'} = 'slope';
+ss_i = grpstats(T_si, 'subj_id', 'mean', 'DataVars', 'slope'); ss_i.Properties.VariableNames{'mean_slope'} = 'slope';
+common_slope = intersect(ss_c.subj_id, ss_i.subj_id);
+common_slope(common_slope == 609) = [];
+
+[~, ic] = ismember(common_slope, ss_c.subj_id);
+[~, ii] = ismember(common_slope, ss_i.subj_id);
+aa_slopes_c = ss_c.slope(ic); 
+aa_slopes_i = ss_i.slope(ii);
+
+fprintf('\nCumulative A2A1 Consistency (per-trial slope)\n');
+[~, p_sc, ~, st_sc] = ttest(aa_slopes_c, 0, 'Tail', 'right');
+[~, p_si, ~, st_si] = ttest(aa_slopes_i, 0, 'Tail', 'right');
+fprintf('Compared:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(aa_slopes_c), std(aa_slopes_c), st_sc.df, st_sc.tstat, p_sc, mean(aa_slopes_c)/std(aa_slopes_c));
+fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(aa_slopes_i), std(aa_slopes_i), st_si.df, st_si.tstat, p_si, mean(aa_slopes_i)/std(aa_slopes_i));
+[~, p_aa_diff, ci_aa_diff, st_aa_diff] = ttest(aa_slopes_c, aa_slopes_i);
+d_aa_diff = mean(aa_slopes_c - aa_slopes_i) / std(aa_slopes_c - aa_slopes_i);
+fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
+    mean(aa_slopes_c-aa_slopes_i), std(aa_slopes_c-aa_slopes_i), st_aa_diff.df, st_aa_diff.tstat, p_aa_diff, d_aa_diff, ci_aa_diff(1), ci_aa_diff(2));
+
+[p_wilcox_aa, ~, wstats_aa] = signrank(aa_slopes_c, aa_slopes_i);
+fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats_aa.zval, p_wilcox_aa);
+
+valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
+aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
+aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
+aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
+valid_aa(aa_common == 609) = false;
+
+aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
+aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
+aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+
+figure('color', 'w', 'position', [50 50 600 600]);
+subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+fn = 1:aa_n_fix;
+fill([fn, fliplr(fn)], [aa_mean_comp + aa_sem_comp, fliplr(aa_mean_comp - aa_sem_comp)], c_comp, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+fill([fn, fliplr(fn)], [aa_mean_iso + aa_sem_iso, fliplr(aa_mean_iso - aa_sem_iso)], c_iso, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+plot(fn, aa_mean_comp, 'o', 'Color', c_comp, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_comp);
+plot(fn, aa_mean_iso, 's', 'Color', c_iso, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_iso);
+x_ln = linspace(1, aa_n_fix, 50); x_ln_c = x_ln - mean((1:aa_n_fix)');
+plot(x_ln, mean(aa_slopes_c) * x_ln_c + mean(aa_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
+plot(x_ln, mean(aa_slopes_i) * x_ln_c + mean(aa_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
+yline(0, 'k--', 'LineWidth', 1.5);
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
+legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+xlim([0, n_fix_to_plot + 0.5]);
+set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
+box off; grid off;
+print(gcf, fullfile(fig_dir, 'gaze_cumu_aa.pdf'), '-dpdf', '-vector');
+
+%% cumulative cross-item reinstatement (B1→A2): per-trial slope
+load(fullfile(res_dir, 'cumu_reinstat_ba.mat'));
+fix_cols_comp = cumulative_results_comp{:, 4:3+n_fix_to_plot};
+fix_cols_iso = cumulative_results_iso{:, 4:3+n_fix_to_plot};
+x_fix = (1:n_fix_to_plot)'; x_fix_c = x_fix - mean(x_fix);
+
+slope_comp_trials = nan(height(cumulative_results_comp), 1);
+for i = 1:height(cumulative_results_comp)
+    y = fix_cols_comp(i, :)'; v = ~isnan(y);
+    if sum(v) >= 2, slope_comp_trials(i) = x_fix_c(v) \ y(v); end
+end
+slope_iso_trials = nan(height(cumulative_results_iso), 1);
+for i = 1:height(cumulative_results_iso)
+    y = fix_cols_iso(i, :)'; v = ~isnan(y);
+    if sum(v) >= 2, slope_iso_trials(i) = x_fix_c(v) \ y(v); end
+end
+
+T_sc = table(cumulative_results_comp.subj_id, slope_comp_trials, 'VariableNames', {'subj_id','slope'});
+T_si = table(cumulative_results_iso.subj_id, slope_iso_trials, 'VariableNames', {'subj_id','slope'});
+T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
+subj_slope_comp = grpstats(T_sc, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_comp.Properties.VariableNames{'mean_slope'} = 'slope';
+subj_slope_iso = grpstats(T_si, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_iso.Properties.VariableNames{'mean_slope'} = 'slope';
+common_subjs_slope = intersect(subj_slope_comp.subj_id, subj_slope_iso.subj_id);
+[~, ic] = ismember(common_subjs_slope, subj_slope_comp.subj_id);
+[~, ii] = ismember(common_subjs_slope, subj_slope_iso.subj_id);
+slopes_c = subj_slope_comp.slope(ic); slopes_i = subj_slope_iso.slope(ii);
+
+fprintf('\nCumulative B1A2 Cross-Item Reinstatement (per-trial slope)\n');
+[~, p_sc, ~, st_sc] = ttest(slopes_c, 0, 'Tail', 'right');
+[~, p_si, ~, st_si] = ttest(slopes_i, 0, 'Tail', 'right');
+fprintf('Compared:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_c), std(slopes_c), st_sc.df, st_sc.tstat, p_sc, mean(slopes_c)/std(slopes_c));
+fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_i), std(slopes_i), st_si.df, st_si.tstat, p_si, mean(slopes_i)/std(slopes_i));
+[~, p_diff, ci_diff, st_diff] = ttest(slopes_c, slopes_i);
+d_diff = mean(slopes_c - slopes_i) / std(slopes_c - slopes_i);
+fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
+    mean(slopes_c-slopes_i), std(slopes_c-slopes_i), st_diff.df, st_diff.tstat, p_diff, d_diff, ci_diff(1), ci_diff(2));
+[p_wilcox, ~, wstats] = signrank(slopes_c, slopes_i);
+fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats.zval, p_wilcox);
+
+valid_cumu = ~any(isnan(subj_traj_comp), 2) & ~any(isnan(subj_traj_iso), 2);
+cumu_comp = subj_traj_comp(valid_cumu, :); cumu_iso = subj_traj_iso(valid_cumu, :);
+cumu_mean_comp = mean(cumu_comp, 1); cumu_sem_comp = std(cumu_comp, 0, 1) / sqrt(size(cumu_comp, 1));
+cumu_mean_iso = mean(cumu_iso, 1); cumu_sem_iso = std(cumu_iso, 0, 1) / sqrt(size(cumu_iso, 1));
+
+figure('color', 'w', 'position', [50 50 600 600]);
+subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+fn = 1:n_fix_to_plot;
+fill([fn, fliplr(fn)], [cumu_mean_comp + cumu_sem_comp, fliplr(cumu_mean_comp - cumu_sem_comp)], c_comp, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+fill([fn, fliplr(fn)], [cumu_mean_iso + cumu_sem_iso, fliplr(cumu_mean_iso - cumu_sem_iso)], c_iso, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+plot(fn, cumu_mean_comp, 'o', 'Color', c_comp, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_comp);
+plot(fn, cumu_mean_iso, 's', 'Color', c_iso, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_iso);
+x_ln = linspace(1, n_fix_to_plot, 50); x_ln_c = x_ln - mean(x_fix);
+plot(x_ln, mean(slopes_c) * x_ln_c + mean(cumu_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
+plot(x_ln, mean(slopes_i) * x_ln_c + mean(cumu_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
+yline(0, 'k--', 'LineWidth', 1.5);
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
+legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+xlim([0, n_fix_to_plot + 0.5]);
+set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
+box off; grid off;
+print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
+
+
+[anova_res, anova_posthoc] = run_rm_anova_2x2('Gaze Reinstatement Slope ANOVA', aa_slopes_c, aa_slopes_i, slopes_c, slopes_i);
+
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % % math
@@ -128,15 +276,15 @@ load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % end
 % save(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 % 
-% get stats from all subject stats
-get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
-b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
-b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
-b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
-b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
-b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
-b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
-rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
+
+% get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
+% b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
+% b1_rt_sam = get_v('one','rt_same')'; b1_rt_sim = get_v('one','rt_sim')';
+% b2_ldi_c = get_v('two','ldi_comp')'; b2_ldi_i = get_v('two','ldi_iso')'; b2_ldi_n = get_v('two','ldi_nov')';
+% b2_dp_c = get_v('two','dprime_comp')'; b2_dp_i = get_v('two','dprime_iso')'; b2_dp_n = get_v('two','dprime_nov')';
+% b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b2_rt_l_n = get_v('two','rt_AB_nov')';
+% b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
+% rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % % B2B1 gaze consistency
@@ -155,9 +303,9 @@ rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 % exc_bb = [609, 606, 608]; remaining_subj_ids_bb = subj_ids;
 % for e = exc_bb, idx = find(remaining_subj_ids_bb == e); if ~isempty(idx), gaze_bb_corr(idx,:) = []; gaze_bb_incorr(idx,:) = []; gaze_bb_overall(idx,:) = []; remaining_subj_ids_bb(idx) = []; end; end
 % fprintf('B2-B1 final n=%d\n', length(remaining_subj_ids_bb));
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% A2B1 gaze reinstatement
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %  A2B1 gaze reinstatement
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gaze_ba_corr = nan(length(subj_ids), 2); gaze_ba_incorr = nan(length(subj_ids), 2); gaze_ba_overall = nan(length(subj_ids), 2);
 % for c = 1:2
 %     if c==1, ba_data = reinstat_res.ba_compared; bb_data = reinstat_res.bb_compared; else, ba_data = reinstat_res.ba_isolated; bb_data = reinstat_res.bb_isolated; end
@@ -174,50 +322,95 @@ rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 % for e = exc_ba, idx = find(remaining_subj_ids_ba == e); if ~isempty(idx), gaze_ba_corr(idx,:) = []; gaze_ba_incorr(idx,:) = []; gaze_ba_overall(idx,:) = []; remaining_subj_ids_ba(idx) = []; end; end
 % fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 
-% % %%%%%%%%%%%%%%%%%%%%%%%
-% % extract cumulative gaze reinstatement
-% % %%%%%%%%%%%%%%%%%%%%%%%
-% subj_traj_comp = cumulative_res.subj_traj_comp;
-% subj_traj_iso = cumulative_res.subj_traj_iso;
-% n_fix_to_plot = cumulative_res.n_fix_to_plot;
-% early_range = cumulative_res.early_range;
-% late_range = cumulative_res.late_range;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  A2B1 gaze reinstatement
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% gaze_ba_corr = nan(length(subj_ids), 2); gaze_ba_incorr = nan(length(subj_ids), 2); gaze_ba_overall = nan(length(subj_ids), 2);
+% for c = 1:2
+%     if c==1, ba_data = reinstat_res.ba_compared; bb_data = reinstat_res.bb_compared; else, ba_data = reinstat_res.ba_isolated; bb_data = reinstat_res.bb_isolated; end
+%     for s = 1:length(subj_ids)
+%         sid = subj_ids(s); ba_subj = ba_data(ba_data.subj_id == sid, :); if height(ba_subj) == 0, continue; end
+%         ba_subj.b2_correct = nan(height(ba_subj), 1);
+%         for i = 1:height(ba_subj), matching_b2 = bb_data(bb_data.subj_id == sid & bb_data.tr_1b_b == ba_subj.tr_1b_b(i), :); if height(matching_b2) == 1, ba_subj.b2_correct(i) = matching_b2.correct; end; end
+%         corr_trials = ba_subj.b2_correct == 1; incorr_trials = ba_subj.b2_correct == 0; gaze_ba_overall(s,c) = mean(ba_subj.reinst_index, 'omitnan');
+%         if sum(corr_trials) > 0, gaze_ba_corr(s,c) = mean(ba_subj.reinst_index(corr_trials), 'omitnan'); end
+%         if sum(incorr_trials) > 0, gaze_ba_incorr(s,c) = mean(ba_subj.reinst_index(incorr_trials), 'omitnan'); end
+%     end
+% end
+% exc_ba = [609, 606, 608, 618]; remaining_subj_ids_ba = subj_ids;
+% for e = exc_ba, idx = find(remaining_subj_ids_ba == e); if ~isempty(idx), gaze_ba_corr(idx,:) = []; gaze_ba_incorr(idx,:) = []; gaze_ba_overall(idx,:) = []; remaining_subj_ids_ba(idx) = []; end; end
+% fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 % 
-% mean_comp = mean(subj_traj_comp, 1, 'omitnan');
-% sem_comp = std(subj_traj_comp, 0, 1, 'omitnan') ./ sqrt(sum(~isnan(subj_traj_comp), 1));
-% mean_iso = mean(subj_traj_iso, 1, 'omitnan');
-% sem_iso = std(subj_traj_iso, 0, 1, 'omitnan') ./ sqrt(sum(~isnan(subj_traj_iso), 1));
-% fix_numbers = 1:n_fix_to_plot;
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %% statistical tests
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-stat_results = struct();
-within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
-n = length(subj_ids);
-cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
-% fprintf('\nStatistics (n=%d)\n', n);
+% %% A2-A1 vs A2-B1 gaze comparison
+% load(fullfile(res_dir, 'gaze_aa_consistency', 'gaze_aa_consistency_results.mat'));
+% 
+% ba_comp_by_subj = nan(length(subj_ids), 1); ba_iso_by_subj = nan(length(subj_ids), 1);
+% for s = 1:length(subj_ids)
+%     sid = subj_ids(s);
+%     ba_c = reinstat_res.ba_compared(reinstat_res.ba_compared.subj_id == sid, :);
+%     ba_i = reinstat_res.ba_isolated(reinstat_res.ba_isolated.subj_id == sid, :);
+%     if height(ba_c) > 0, ba_comp_by_subj(s) = mean(ba_c.reinst_index, 'omitnan'); end
+%     if height(ba_i) > 0, ba_iso_by_subj(s) = mean(ba_i.reinst_index, 'omitnan'); end
+% end
+% ba_lookup = table(subj_ids(:), ba_comp_by_subj, ba_iso_by_subj, 'VariableNames', {'subj_id','ba_comp','ba_iso'});
+% 
+% valid_aa = unique_subjs(~isnan(gaze_aa_comp) & ~isnan(gaze_aa_iso));
+% valid_ba = ba_lookup.subj_id(~isnan(ba_lookup.ba_comp) & ~isnan(ba_lookup.ba_iso));
+% common = intersect(valid_aa, valid_ba);
+% [~, idx_aa] = ismember(common, unique_subjs);
+% [~, idx_ba] = ismember(common, ba_lookup.subj_id);
+% 
+% aa_c = gaze_aa_comp(idx_aa); aa_i = gaze_aa_iso(idx_aa);
+% ba_c = ba_lookup.ba_comp(idx_ba); ba_i = ba_lookup.ba_iso(idx_ba);
+% 
+% fprintf('\n--- A2-A1 vs A2-B1 (N=%d) ---\n', length(common));
+% fprintf('A2-A1 comp: M=%.4f (SD=%.4f)\n', mean(aa_c), std(aa_c));
+% fprintf('A2-B1 comp: M=%.4f (SD=%.4f)\n', mean(ba_c), std(ba_c));
+% fprintf('A2-A1 iso:  M=%.4f (SD=%.4f)\n', mean(aa_i), std(aa_i));
+% fprintf('A2-B1 iso:  M=%.4f (SD=%.4f)\n', mean(ba_i), std(ba_i));
+% 
+% [~, p1, ~, s1] = ttest(aa_c, ba_c);
+% fprintf('A2A1 comp vs A2B1 comp: t(%d)=%.3f, p=%.4f, d=%.3f\n', s1.df, s1.tstat, p1, mean(aa_c-ba_c)/std(aa_c-ba_c));
+% [~, p2, ~, s2] = ttest(aa_i, ba_i);
+% fprintf('A2A1 iso vs A2B1 iso:   t(%d)=%.3f, p=%.4f, d=%.3f\n', s2.df, s2.tstat, p2, mean(aa_i-ba_i)/std(aa_i-ba_i));
+% 
+% figure('color','w','position',[50 50 800 600]);
+% data = [aa_c, ba_c, aa_i, ba_i];
+% raincloud(data, {c_comp, c_comp*0.5+0.5, c_iso, c_iso*0.5+0.5}, ...
+%     {'A2-A1 comp','A2-B1 comp','A2-A1 iso','A2-B1 iso'}, ...
+%     'Gaze Reinstatement (r)', 'Self vs Cross-Item Reinstatement', []);
+% yline(0, 'r--', 'LineWidth', 2);
+% add_sig(data, [1 2; 3 4; 1 3; 2 4]);
+% print(gcf, fullfile(fig_dir, 'gaze_aa_vs_ba.pdf'), '-dpdf', '-vector');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% statistical tests
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% stat_results = struct();
+% within = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
+% n = length(subj_ids);
 % 
 % %% 1-back (encoding verification, holm-corrected)
 % fprintf('\n--- Encoding (1-back) performance ---\n');
 % [~,p1,~,s1] = ttest(b1_acc_sam, b1_acc_sim);
 % [~,p2,~,s2] = ttest(b1_acc_sim, b1_acc_new);
 % [~,p3,~,s3] = ttest(b1_rt_sam, b1_rt_sim);
-% adj = holm_bonf([p1 p2 p3]);
+% [~,p4,~,s4] = ttest(b1_acc_sam, b1_acc_new);
+% adj = holm_bonf([p1 p2 p3 p4]);
 % stat_results.b1_acc_sam_v_sim = struct('t',s1.tstat,'df',s1.df,'d',cohend(b1_acc_sam,b1_acc_sim),'p',p1,'p_adj',adj(1));
 % stat_results.b1_acc_sim_v_new = struct('t',s2.tstat,'df',s2.df,'d',cohend(b1_acc_sim,b1_acc_new),'p',p2,'p_adj',adj(2));
 % stat_results.b1_rt_sam_v_sim  = struct('t',s3.tstat,'df',s3.df,'d',cohend(b1_rt_sam,b1_rt_sim),'p',p3,'p_adj',adj(3));
-% fprintf('Acc same v sim: t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s1.df, s1.tstat, stat_results.b1_acc_sam_v_sim.d, p1, adj(1));
+% stat_results.b1_acc_sam_v_new = struct('t',s4.tstat,'df',s4.df,'d',cohend(b1_acc_sam,b1_acc_new),'p',p4,'p_adj',adj(4));
+% fprintf('Acc sam v sim:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s1.df, s1.tstat, stat_results.b1_acc_sam_v_sim.d, p1, adj(1));
 % fprintf('Acc sim v new:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s2.df, s2.tstat, stat_results.b1_acc_sim_v_new.d, p2, adj(2));
-% fprintf('RT same v sim:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s3.df, s3.tstat, stat_results.b1_rt_sam_v_sim.d, p3, adj(3));
-% 
+% fprintf('RT sam v sim:   t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s3.df, s3.tstat, stat_results.b1_rt_sam_v_sim.d, p3, adj(3));
+% fprintf('Acc sam v new:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s4.df, s4.tstat, stat_results.b1_acc_sam_v_new.d, p4, adj(4));
 % %% 2-back (separate ANOVAs, post-hocs holm-corrected within each)
 % fprintf('\n--- Retrieval (2-back) performance ---\n');
 % [stat_results.b2_ldi, stat_results.b2_ldi_ph] = run_rm_anova('LDI', b2_ldi_c, b2_ldi_i, b2_ldi_n, within);
 % [stat_results.b2_dprime, stat_results.b2_dprime_ph] = run_rm_anova('d-prime', b2_dp_c, b2_dp_i, b2_dp_n, within);
 % [stat_results.b2_rt_lure, stat_results.b2_rt_lure_ph] = run_rm_anova('RT lure', b2_rt_l_c, b2_rt_l_i, b2_rt_l_n, within);
 % [stat_results.b2_rt_target, stat_results.b2_rt_target_ph] = run_rm_anova('RT target', b2_rt_t_c, b2_rt_t_i, b2_rt_t_n, within);
-
+% 
 % %% recognition (planned tests, no correction)
 % fprintf('\n--- Post-task recognition ---\n');
 % [~,p,~,s] = ttest(rec_d_c); stat_results.rec_comp_v0 = struct('t',s.tstat,'df',s.df,'d',mean(rec_d_c,'omitnan')/std(rec_d_c,'omitnan'),'p',p);
@@ -237,12 +430,12 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % [r,p] = corr(wm,em_comp); fprintf('compared - novel: r=%.3f, p=%.4f\n',r,p); stat_results.wm_em.r_comp=r; stat_results.wm_em.p_comp=p;
 % [r,p] = corr(wm,em_iso); fprintf('isolated - novel: r=%.3f, p=%.4f\n',r,p); stat_results.wm_em.r_iso=r; stat_results.wm_em.p_iso=p;
 % stat_results.wm_em.n = sum(valid);
-
+% 
 % %% gaze
 % [stat_results.gaze_bb_2x2, stat_results.gaze_bb_2x2_ph] = run_2x2_anova_correctness('B2B1 consistency', gaze_bb_corr(:,1), gaze_bb_incorr(:,1), gaze_bb_corr(:,2), gaze_bb_incorr(:,2), gaze_bb_overall(:,1), gaze_bb_overall(:,2));
 % [stat_results.gaze_ba_2x2, stat_results.gaze_ba_2x2_ph] = run_2x2_anova_correctness('A2-B1 gaze', gaze_ba_corr(:,1), gaze_ba_incorr(:,1), gaze_ba_corr(:,2), gaze_ba_incorr(:,2), gaze_ba_overall(:,1), gaze_ba_overall(:,2));
 % 
-%% A2B2 vs A1B1 gaze overlap
+% % A2B2 vs A1B1 gaze overlap
 % [stat_results.gaze_a2b2_a1b1_2x2, stat_results.gaze_a2b2_a1b1_2x2_ph] = run_2x2_anova_time_cond('A2B2 vs A1B1 gaze', gaze_a1b1_comp, gaze_a2b2_comp, gaze_a1b1_iso, gaze_a2b2_iso);
 % n_perm=1000;
 % fprintf('\ngaze permutation match vs mismatch\n');
@@ -313,7 +506,7 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % end
 % 
 % exc=[609,606, 608]; for e=exc, idx=find(extracted_subj_ids==e); gaze_corr(idx,:)=[]; gaze_incorr(idx,:)=[]; gaze_overall(idx,:)=[]; extracted_subj_ids(idx)=[]; end; fprintf('Excluded: %s, Final n=%d, Diff SD=%.3f\n', mat2str(exc), length(extracted_subj_ids), std(gaze_corr(:,1)-gaze_incorr(:,1),'omitnan'));
-% 
+
 % %% gaze-behavior correlation
 % fprintf('\ngaze behavior correlation\n');
 % valid = ~isnan(reinst_bb_comp) & ~isnan(b2_ldi_c) & b2_ldi_c <= 0.8;
@@ -324,115 +517,93 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % [stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p] = corr(reinst_bb_iso(valid), b2_ldi_i(valid));
 % stat_results.corr_gr_ldi_iso.n = sum(valid);
 % fprintf('Iso:  r=%.3f, p=%.4f, n=%d\n', stat_results.corr_gr_ldi_iso.r, stat_results.corr_gr_ldi_iso.p, stat_results.corr_gr_ldi_iso.n);
-% 
-% %% A2B1 gaze reinstatement x LDI
-% fprintf('\nA2B1 gaze reinstatement x LDI:\n');
-% valid_comp = ~isnan(gaze_ba_comp) & ~isnan(ldi_comp_ba) & ldi_comp_ba <= 0.8;
-% valid_iso = ~isnan(gaze_ba_iso) & ~isnan(ldi_iso_ba) & ldi_iso_ba <= 0.8;
-% [r_ba_comp, p_ba_comp] = corr(gaze_ba_comp(valid_comp), ldi_comp_ba(valid_comp));
-% [r_ba_iso, p_ba_iso] = corr(gaze_ba_iso(valid_iso), ldi_iso_ba(valid_iso));
-% fprintf('  Compared: r=%.3f, p=%.4f, n=%d\n', r_ba_comp, p_ba_comp, sum(valid_comp));
-% fprintf('  Isolated: r=%.3f, p=%.4f, n=%d\n', r_ba_iso, p_ba_iso, sum(valid_iso));
-% 
-% figure('color','w','position',[50 50 500 450]); hold on;
-% scatter(gaze_ba_comp(valid_comp), ldi_comp_ba(valid_comp), 100, c_comp, 'filled', 'MarkerFaceAlpha', 0.7, 'DisplayName', sprintf('Compared (r=%.2f, p=%.3f)', r_ba_comp, p_ba_comp));
-% scatter(gaze_ba_iso(valid_iso), ldi_iso_ba(valid_iso), 100, c_iso, 'filled', 'MarkerFaceAlpha', 0.7, 'DisplayName', sprintf('Isolated (r=%.2f, p=%.3f)', r_ba_iso, p_ba_iso));
-% p_comp = polyfit(gaze_ba_comp(valid_comp), ldi_comp_ba(valid_comp), 1);
-% p_iso = polyfit(gaze_ba_iso(valid_iso), ldi_iso_ba(valid_iso), 1);
-% x_comp = linspace(min(gaze_ba_comp(valid_comp)), max(gaze_ba_comp(valid_comp)), 100);
-% x_iso = linspace(min(gaze_ba_iso(valid_iso)), max(gaze_ba_iso(valid_iso)), 100);
-% plot(x_comp, polyval(p_comp, x_comp), '-', 'Color', c_comp, 'LineWidth', 2.5, 'HandleVisibility', 'off');
-% plot(x_iso, polyval(p_iso, x_iso), '-', 'Color', c_iso, 'LineWidth', 2.5, 'HandleVisibility', 'off');
-% xlabel('A2-B1 gaze reinstatement (r)', 'FontSize', 13); ylabel('LDI', 'FontSize', 13);
-% title('A2-B1 Gaze Reinstatement × LDI', 'FontSize', 14);
-% legend('Location', 'best', 'FontSize', 11); set(gca, 'FontSize', 12, 'Box', 'off', 'LineWidth', 1.5);
-% print(gcf, fullfile(fig_dir, 'corr_a2b1_reinstatement_ldi.pdf'), '-dpdf', '-vector');
-% 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % visualization
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% fig: 1-back
-figure('color','w','Position',[100 100 1200 400]);
-subplot(1,2,1);
-data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
-raincloud(data, {c_same, c_sim, c_new}, {'same','similar','different'}, 'Accuracy', '', [0.4,1]);
-add_sig(data, [1 2; 2 3; 1 3]);
-subplot(1,2,2);
-data = [b1_rt_sam, b1_rt_sim];
-raincloud(data, {c_same, c_sim}, {'same','similar'}, 'RT (s)', '', [0.5,1.3]);
-add_sig(data, [1 2]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3])
-set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
+% %% fig: 1-back
+% figure('color','w','Position',[100 100 1200 400]);
+% subplot(1,2,1);
+% data = [b1_acc_sam, b1_acc_sim, b1_acc_new];
+% raincloud(data, {c_same, c_sim, c_new}, {'same','similar','different'}, 'Accuracy', '', [0.4,1]);
+% add_sig(data, [1 2; 2 3; 1 3]);
+% subplot(1,2,2);
+% data = [b1_rt_sam, b1_rt_sim];
+% raincloud(data, {c_same, c_sim}, {'same','similar'}, 'RT (s)', '', [0.5,1.3]);
+% add_sig(data, [1 2]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3])
+% set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'behav_1back.pdf'), '-dpdf', '-vector');
+% 
+% %% fig: 2-back
+% figure('color','w','Position',[50 50 1200 900]);
+% subplot(2,2,1);
+% data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
+% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
+% set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
+% subplot(2,2,3);
+% data = [b2_dp_c, b2_dp_i, b2_dp_n];
+% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Target Detection', [1.5,5.5]);
+% add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [1.5 2.5 3.5 4.5 5.5]);
+% subplot(2,2,2);
+% data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
+% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0.5,1.3]);
+% add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
+% subplot(2,2,4);
+% data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
+% raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Target Detection)', [0.5,1.3]);
+% add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
+% set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
+% 
+% %% fig: confusion matrices
+% n = length(subj_ids);
+% se = @(f1, f2) std(get_v(f1, f2), 'omitnan') / sqrt(n);
+% 
+% figure('color','w','Position',[50 50 1400 400]);
+% 
+% subplot(1,4,1); hold on;
+% mat_1 = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
+%     mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
+%     mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
+% se_1 = [se('one','acc_same'), se('one','err_same_as_sim'), se('one','err_same_as_new');
+%     se('one','err_sim_as_same'), se('one','acc_sim'), se('one','err_sim_as_new');
+%     se('one','err_new_as_same'), se('one','err_new_as_sim'), se('one','acc_new')];
+% draw_matrix(mat_1, se_1, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+% title('1-back', 'FontSize', 14);
+% 
+% subplot(1,4,2); hold on;
+% mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
+%     mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
+%     mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
+% se_comp = [se('two','acc_AA_comp'), se('two','err_AA_comp_as_k'), se('two','err_AA_comp_as_n');
+%     se('two','err_AB_comp_as_j'), se('two','acc_AB_comp'), se('two','err_AB_comp_as_n');
+%     se('two','err_AN_comp_as_j'), se('two','err_AN_comp_as_k'), se('two','acc_AN_comp')];
+% draw_matrix(mat_comp, se_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+% title('2-back: compared', 'FontSize', 14);
+% 
+% subplot(1,4,3); hold on;
+% mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
+%     mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
+%     mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
+% se_iso = [se('two','acc_AA_iso'), se('two','err_AA_iso_as_k'), se('two','err_AA_iso_as_n');
+%     se('two','err_AB_iso_as_j'), se('two','acc_AB_iso'), se('two','err_AB_iso_as_n');
+%     se('two','err_AN_iso_as_j'), se('two','err_AN_iso_as_k'), se('two','acc_AN_iso')];
+% draw_matrix(mat_iso, se_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+% title('2-back: isolated', 'FontSize', 14);
+% 
+% subplot(1,4,4); hold on;
+% mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
+%     mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
+%     mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
+% se_nov = [se('two','acc_AA_nov'), se('two','err_AA_nov_as_k'), se('two','err_AA_nov_as_n');
+%     se('two','err_AB_nov_as_j'), se('two','acc_AB_nov'), se('two','err_AB_nov_as_n');
+%     se('two','err_AN_nov_as_j'), se('two','err_AN_nov_as_k'), se('two','acc_AN_nov')];
+% draw_matrix(mat_nov, se_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
+% title('2-back: novel', 'FontSize', 14);
+% 
+% set(gcf, 'Renderer', 'painters', 'PaperPositionMode', 'auto');
+% print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 
-%% fig: 2-back
-figure('color','w','Position',[50 50 1200 900]);
-subplot(2,2,1);
-data = [b2_ldi_c, b2_ldi_i, b2_ldi_n];
-raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'LDI', 'Lure Discrimination', [0,1]);
-set(gca, 'YTick', [0 0.5 1]); add_sig(data, [1 2; 2 3; 1 3]);
-subplot(2,2,3);
-data = [b2_dp_c, b2_dp_i, b2_dp_n];
-raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'd''', 'Target Detection', [1.5,5.5]);
-add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [1.5 2.5 3.5 4.5 5.5]);
-subplot(2,2,2);
-data = [b2_rt_l_c, b2_rt_l_i, b2_rt_l_n];
-raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Lure Discrimination)', [0.5,1.3]);
-add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
-subplot(2,2,4);
-data = [b2_rt_t_c, b2_rt_t_i, b2_rt_t_n];
-raincloud(data, {c_comp, c_iso, c_nov}, {'compared','isolated','novel'}, 'RT (s)', 'RT (Target Detection)', [0.5,1.3]);
-add_sig(data, [1 2; 2 3; 1 3]); set(gca, 'YTick', [0.5 0.7 0.9 1.1 1.3]);
-set(gcf, 'Color', 'w'); set(gcf, 'Renderer', 'painters'); set(gcf, 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'behav_2back.pdf'), '-dpdf', '-vector');
-
-%% fig: confusion matrices
-n = length(subj_ids);
-se = @(f1, f2) std(get_v(f1, f2), 'omitnan') / sqrt(n);
-
-figure('color','w','Position',[50 50 1400 400]);
-
-subplot(1,4,1); hold on;
-mat_1 = [mean(get_v('one','acc_same')), mean(get_v('one','err_same_as_sim')), mean(get_v('one','err_same_as_new'));
-    mean(get_v('one','err_sim_as_same')), mean(get_v('one','acc_sim')), mean(get_v('one','err_sim_as_new'));
-    mean(get_v('one','err_new_as_same')), mean(get_v('one','err_new_as_sim')), mean(get_v('one','acc_new'))];
-se_1 = [se('one','acc_same'), se('one','err_same_as_sim'), se('one','err_same_as_new');
-    se('one','err_sim_as_same'), se('one','acc_sim'), se('one','err_sim_as_new');
-    se('one','err_new_as_same'), se('one','err_new_as_sim'), se('one','acc_new')];
-draw_matrix(mat_1, se_1, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-title('1-back', 'FontSize', 14);
-
-subplot(1,4,2); hold on;
-mat_comp = [mean(get_v('two','acc_AA_comp')), mean(get_v('two','err_AA_comp_as_k')), mean(get_v('two','err_AA_comp_as_n'));
-    mean(get_v('two','err_AB_comp_as_j')), mean(get_v('two','acc_AB_comp')), mean(get_v('two','err_AB_comp_as_n'));
-    mean(get_v('two','err_AN_comp_as_j')), mean(get_v('two','err_AN_comp_as_k')), mean(get_v('two','acc_AN_comp'))];
-se_comp = [se('two','acc_AA_comp'), se('two','err_AA_comp_as_k'), se('two','err_AA_comp_as_n');
-    se('two','err_AB_comp_as_j'), se('two','acc_AB_comp'), se('two','err_AB_comp_as_n');
-    se('two','err_AN_comp_as_j'), se('two','err_AN_comp_as_k'), se('two','acc_AN_comp')];
-draw_matrix(mat_comp, se_comp, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-title('2-back: compared', 'FontSize', 14);
-
-subplot(1,4,3); hold on;
-mat_iso = [mean(get_v('two','acc_AA_iso')), mean(get_v('two','err_AA_iso_as_k')), mean(get_v('two','err_AA_iso_as_n'));
-    mean(get_v('two','err_AB_iso_as_j')), mean(get_v('two','acc_AB_iso')), mean(get_v('two','err_AB_iso_as_n'));
-    mean(get_v('two','err_AN_iso_as_j')), mean(get_v('two','err_AN_iso_as_k')), mean(get_v('two','acc_AN_iso'))];
-se_iso = [se('two','acc_AA_iso'), se('two','err_AA_iso_as_k'), se('two','err_AA_iso_as_n');
-    se('two','err_AB_iso_as_j'), se('two','acc_AB_iso'), se('two','err_AB_iso_as_n');
-    se('two','err_AN_iso_as_j'), se('two','err_AN_iso_as_k'), se('two','acc_AN_iso')];
-draw_matrix(mat_iso, se_iso, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-title('2-back: isolated', 'FontSize', 14);
-
-subplot(1,4,4); hold on;
-mat_nov = [mean(get_v('two','acc_AA_nov')), mean(get_v('two','err_AA_nov_as_k')), mean(get_v('two','err_AA_nov_as_n'));
-    mean(get_v('two','err_AB_nov_as_j')), mean(get_v('two','acc_AB_nov')), mean(get_v('two','err_AB_nov_as_n'));
-    mean(get_v('two','err_AN_nov_as_j')), mean(get_v('two','err_AN_nov_as_k')), mean(get_v('two','acc_AN_nov'))];
-se_nov = [se('two','acc_AA_nov'), se('two','err_AA_nov_as_k'), se('two','err_AA_nov_as_n');
-    se('two','err_AB_nov_as_j'), se('two','acc_AB_nov'), se('two','err_AB_nov_as_n');
-    se('two','err_AN_nov_as_j'), se('two','err_AN_nov_as_k'), se('two','acc_AN_nov')];
-draw_matrix(mat_nov, se_nov, {c_same, c_sim, c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
-title('2-back: novel', 'FontSize', 14);
-
-set(gcf, 'Renderer', 'painters', 'PaperPositionMode', 'auto');
-print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 % %% fig: recognition
 % figure('color','w','Position',[100 100 500 500]);
 % data = [rec_d_c', rec_d_i']; hold on;
@@ -577,7 +748,7 @@ print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 % entropy_iso = (entropy_a_iso_subj + entropy_b_iso_subj) / 2;
 % [~,p,~,s] = ttest(entropy_comp, entropy_iso);
 % fprintf('Entropy comp v iso: t(%d)=%.2f, d=%.2f, p=%.4f\n', s.df, s.tstat, cohend(entropy_comp, entropy_iso), p);
-% 
+
 % figure('color','w','position',[50 50 1100 500]);
 % subplot(1,2,1);
 % data_align = [gaze_a1b1_comp, gaze_a2b2_comp, gaze_a1b1_iso, gaze_a2b2_iso];
@@ -739,7 +910,7 @@ print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 % pup_lure_incorr = [mean(pup_incorr.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup_incorr.ab_nov(~exc_pup, t_win),2,'omitnan')];
 % pup_lure_cond  = [mean(pup.ab_com(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.ab_nov(~exc_pup, t_win),2,'omitnan')];
 % pup_targ_cond  = [mean(pup.aa_com(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_iso(~exc_pup, t_win),2,'omitnan'), mean(pup.aa_nov(~exc_pup, t_win),2,'omitnan')];
-
+% 
 % fprintf('\n--- Pupil: Lure trials (condition × correctness) ---\n');
 % [stat_results.pup_3x2, stat_results.pup_3x2_ph] = run_3x2_anova_correctness('pupil lure 3x2', ...
 %     pup_lure_corr(:,1), pup_lure_incorr(:,1), pup_lure_corr(:,2), pup_lure_incorr(:,2), pup_lure_corr(:,3), pup_lure_incorr(:,3), ...
@@ -796,24 +967,6 @@ print(gcf, fullfile(fig_dir, 'confusion_matrices.pdf'), '-dpdf', '-vector');
 %     'stat_results', ...
 %     'c_comp', 'c_iso', 'c_nov');
 % fprintf('\nresults saved: %s\n', fullfile(res_dir, 'all_subj_results.mat'));
-% save(fullfile(res_dir, 'comprehensive_behavioral_results.mat'), ...
-%     'subj_ids', 'all_subj_stats', ...
-%     'acc_AB_comp', 'acc_AB_iso', 'acc_AB_nov', ...
-%     'acc_AA_comp', 'acc_AA_iso', 'acc_AA_nov', ...
-%     'rt_AB_comp', 'rt_AB_iso', 'rt_AB_nov', ...
-%     'rt_AA_comp', 'rt_AA_iso', 'rt_AA_nov', ...
-%     'ldi_comp', 'ldi_iso', 'ldi_nov', ...
-%     'dprime_comp', 'dprime_iso', 'dprime_nov', ...
-%     'reinst_bb_comp', 'reinst_bb_iso', 'reinst_ba_comp', 'reinst_ba_iso', ...
-%     'match_bb_comp', 'match_bb_iso', 'match_ba_comp', 'match_ba_iso', ...
-%     'baseline_bb_comp', 'baseline_bb_iso', 'baseline_ba_comp', 'baseline_ba_iso', ...
-%     'a2b2_comp_subj', 'a2b2_iso_subj', 'a1b1_comp_subj', 'a1b1_iso_subj', ...
-%     'pup', 'pup_mean', 't_pup', 'pup_subjs', ...
-%     'entropy_comp', 'entropy_iso', 'entropy_nov', ... % add actual variable names from spatial_entropy_results
-%     'min_rt', 'c_comp', 'c_iso', 'c_nov', 'c_sim', 'c_same', 'c_new', ...
-%     '-v7.3');
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%
 % functions
@@ -1058,65 +1211,128 @@ end
 
 function [res, posthoc] = run_3x2_anova_correctness(lbl, cc, ci, ic, ii, nc, ni, cond_comp, cond_iso, cond_nov)
     cd = @(x,y) mean(x-y,'omitnan')/std(x-y,'omitnan');
-    t = table(cc, ci, ic, ii, nc, ni, 'VariableNames', {'cc','ci','ic','ii','nc','ni'});
-    within = table({'comp';'comp';'iso';'iso';'nov';'nov'}, {'corr';'incorr';'corr';'incorr';'corr';'incorr'}, 'VariableNames', {'cond','correctness'});
-    rm = fitrm(t, 'cc-ni~1', 'WithinDesign', within);
-    tbl = ranova(rm, 'WithinModel', 'cond*correctness');
-    eps_tbl = epsilon(rm);
-    rows = {'(Intercept):cond', '(Intercept):correctness', '(Intercept):cond:correctness'};
-    labels = {'condition', 'correctness', 'interaction'};
-    fields = {'cond', 'corr', 'int'};
-    term_names = string(tbl.Properties.RowNames);
-    eps_rows = string(eps_tbl.Properties.RowNames);
+    sig = @(p) repmat('*',1,(p<.05)+(p<.01)+(p<.001));
+    n = size(cc,1);
+    data_tbl = table(cc, ci, ic, ii, nc, ni, ...
+        'VariableNames', {'comp_corr', 'comp_incorr', 'iso_corr', 'iso_incorr', 'nov_corr', 'nov_incorr'});
+    
+    Condition = categorical({'comp'; 'comp'; 'iso'; 'iso'; 'nov'; 'nov'});
+    Correctness = categorical({'corr'; 'incorr'; 'corr'; 'incorr'; 'corr'; 'incorr'});
+    within_design = table(Condition, Correctness, 'VariableNames', {'Condition', 'Correctness'});
+    
+    rm = fitrm(data_tbl, 'comp_corr-nov_incorr ~ 1', 'WithinDesign', within_design);
+    
+    atbl = ranova(rm, 'WithinModel', 'Condition*Correctness');
+    
     fprintf('\n%s:\n', lbl);
+    eff_names = {'(Intercept):Condition', '(Intercept):Correctness', '(Intercept):Condition:Correctness'};
+    err_names = {'Error(Condition)', 'Error(Correctness)', 'Error(Condition:Correctness)'};
+    labels = {'condition', 'correctness', 'interaction'};
+    fnames = {'cond', 'corr', 'int'};
+    
     for i = 1:3
-        idx = find(contains(term_names, rows{i}), 1);
-        eps_idx = find(contains(eps_rows, rows{i}), 1);
-        if ~isempty(idx) && ~isempty(eps_idx)
-            f = tbl.F(idx); df1 = tbl.DF(idx);
-            ep = eps_tbl.GreenhouseGeisser(eps_idx);
-            df2_gg = tbl.DF(idx+1) * ep;
-            p_gg = tbl.pValueGG(idx);
-            eta = tbl.SumSq(idx) / (tbl.SumSq(idx) + tbl.SumSq(idx+1));
-            fprintf('  %s: F(%d,%.1f) = %.2f, p = %.4f, eta2_p = %.3f, eps = %.3f\n', ...
-                labels{i}, df1, df2_gg, f, p_gg, eta, ep);
-            res.(fields{i}) = struct('F',f,'p',p_gg,'eta2_p',eta,'eps',ep,'df1',df1,'df2_gg',df2_gg);
-        end
+        F = atbl{eff_names{i}, 'F'};
+        p = atbl{eff_names{i}, 'pValue'};
+        df1 = atbl{eff_names{i}, 'DF'};
+        df_err = atbl{err_names{i}, 'DF'};
+        ss = atbl{eff_names{i}, 'SumSq'};
+        ss_err = atbl{err_names{i}, 'SumSq'};
+        
+        eta = ss / (ss + ss_err); 
+        
+        fprintf('  %s: F(%d,%d) = %.2f, p = %.4f, eta2_p = %.3f %s\n', labels{i}, df1, df_err, F, p, eta, sig(p));
+        res.(fnames{i}) = struct('F',F,'p',p,'eta2_p',eta,'df1',df1,'df2',df_err);
     end
-    n = length(cc); subj = (1:n)';
-    bf_tbl = table(subj, cc, ci, ic, ii, nc, ni, 'VariableNames', {'subj','cc','ci','ic','ii','nc','ni'});
-    bf_long = stack(bf_tbl, {'cc','ci','ic','ii','nc','ni'}, 'NewDataVariableName','y', 'IndexVariableName','cell');
-    bf_long.subj = categorical(bf_long.subj); bf_long.cell = categorical(bf_long.cell);
-    res.bf10 = bf.anova(bf_long, 'y~cell', 'treatAsRandom', {'subj'}, 'verbose', false);
-    if res.bf10 < 1, fprintf('  BF01 = %.2f\n', 1/res.bf10); else, fprintf('  BF10 = %.2f\n', res.bf10); end
 
-    fprintf('  condition:\n');
-    [~,p1,~,s1] = ttest(cond_comp, cond_iso); [~,p2,~,s2] = ttest(cond_iso, cond_nov); [~,p3,~,s3] = ttest(cond_comp, cond_nov);
-    posthoc.cond_comp_iso = struct('t',s1.tstat,'df',s1.df,'d',cd(cond_comp,cond_iso),'p',p1);
-    posthoc.cond_iso_nov  = struct('t',s2.tstat,'df',s2.df,'d',cd(cond_iso,cond_nov),'p',p2);
-    posthoc.cond_comp_nov = struct('t',s3.tstat,'df',s3.df,'d',cd(cond_comp,cond_nov),'p',p3);
-    fprintf('    comp v iso: t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s1.df, s1.tstat, cd(cond_comp,cond_iso), p1, repmat('*',1,(p1<.05)+(p1<.01)+(p1<.001)));
-    fprintf('    iso v nov:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s2.df, s2.tstat, cd(cond_iso,cond_nov), p2, repmat('*',1,(p2<.05)+(p2<.01)+(p2<.001)));
-    fprintf('    comp v nov: t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s3.df, s3.tstat, cd(cond_comp,cond_nov), p3, repmat('*',1,(p3<.05)+(p3<.01)+(p3<.001)));
-
-    fprintf('  correctness simple effects:\n');
-    [~,p1,~,s1] = ttest(cc, ci); [~,p2,~,s2] = ttest(ic, ii); [~,p3,~,s3] = ttest(nc, ni);
-    posthoc.comp_corr = struct('t',s1.tstat,'df',s1.df,'d',cd(cc,ci),'p',p1);
-    posthoc.iso_corr  = struct('t',s2.tstat,'df',s2.df,'d',cd(ic,ii),'p',p2);
-    posthoc.nov_corr  = struct('t',s3.tstat,'df',s3.df,'d',cd(nc,ni),'p',p3);
-    fprintf('    comp corr v incorr: t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s1.df, s1.tstat, cd(cc,ci), p1, repmat('*',1,(p1<.05)+(p1<.01)+(p1<.001)));
-    fprintf('    iso corr v incorr:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s2.df, s2.tstat, cd(ic,ii), p2, repmat('*',1,(p2<.05)+(p2<.01)+(p2<.001)));
-    fprintf('    nov corr v incorr:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s3.df, s3.tstat, cd(nc,ni), p3, repmat('*',1,(p3<.05)+(p3<.01)+(p3<.001)));
-
-    fprintf('  interaction contrasts:\n');
-    [~,p4,~,s4] = ttest(cc-ci, ic-ii); [~,p5,~,s5] = ttest(cc-ci, nc-ni); [~,p6,~,s6] = ttest(ic-ii, nc-ni);
-    posthoc.int_comp_iso = struct('t',s4.tstat,'df',s4.df,'d',cd(cc-ci,ic-ii),'p',p4);
-    posthoc.int_comp_nov = struct('t',s5.tstat,'df',s5.df,'d',cd(cc-ci,nc-ni),'p',p5);
-    posthoc.int_iso_nov  = struct('t',s6.tstat,'df',s6.df,'d',cd(ic-ii,nc-ni),'p',p6);
-    fprintf('    (comp-iso) diff: t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s4.df, s4.tstat, cd(cc-ci,ic-ii), p4, repmat('*',1,(p4<.05)+(p4<.01)+(p4<.001)));
-    fprintf('    (comp-nov) diff: t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s5.df, s5.tstat, cd(cc-ci,nc-ni), p5, repmat('*',1,(p5<.05)+(p5<.01)+(p5<.001)));
-    fprintf('    (iso-nov) diff:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', s6.df, s6.tstat, cd(ic-ii,nc-ni), p6, repmat('*',1,(p6<.05)+(p6<.01)+(p6<.001)));
+    subj_col = (1:n)';
+    bf_cond = table(subj_col, cond_comp, cond_iso, cond_nov, 'VariableNames',{'subj','comp','iso','nov'});
+    bf_cond_long = stack(bf_cond, {'comp','iso','nov'}, 'NewDataVariableName','y', 'IndexVariableName','cond');
+    bf_cond_long.subj = categorical(bf_cond_long.subj); bf_cond_long.cond = categorical(bf_cond_long.cond);
+    
+    res.bf10_cond = bf.anova(bf_cond_long, 'y~cond', 'treatAsRandom',{'subj'}, 'verbose',false);
+    if res.bf10_cond < 1
+        fprintf('  condition BF01 = %.2f\n', 1/res.bf10_cond); 
+    else
+        fprintf('  condition BF10 = %.2f\n', res.bf10_cond); 
+    end
+    
+    all_corr = mean([cc ic nc],2); all_incorr = mean([ci ii ni],2);
+    bf_corr = table(subj_col, all_corr, all_incorr, 'VariableNames',{'subj','corr','incorr'});
+    bf_corr_long = stack(bf_corr, {'corr','incorr'}, 'NewDataVariableName','y', 'IndexVariableName','acc');
+    bf_corr_long.subj = categorical(bf_corr_long.subj); bf_corr_long.acc = categorical(bf_corr_long.acc);
+    res.bf10_corr = bf.anova(bf_corr_long, 'y~acc', 'treatAsRandom',{'subj'}, 'verbose',false);
+    
+    if res.bf10_corr < 1
+        fprintf('  correctness BF01 = %.2f\n', 1/res.bf10_corr); 
+    else
+        fprintf('  correctness BF10 = %.2f\n', res.bf10_corr); 
+    end
+    
+    fprintf('  condition post-hocs:\n');
+    [~,p1,~,s1]=ttest(cond_comp,cond_iso); [~,p2,~,s2]=ttest(cond_iso,cond_nov); [~,p3,~,s3]=ttest(cond_comp,cond_nov);
+    posthoc.cond_ci=struct('t',s1.tstat,'df',s1.df,'d',cd(cond_comp,cond_iso),'p',p1);
+    posthoc.cond_in=struct('t',s2.tstat,'df',s2.df,'d',cd(cond_iso,cond_nov),'p',p2);
+    posthoc.cond_cn=struct('t',s3.tstat,'df',s3.df,'d',cd(cond_comp,cond_nov),'p',p3);
+    fprintf('    comp v iso: t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s1.df,s1.tstat,cd(cond_comp,cond_iso),p1,sig(p1));
+    fprintf('    iso v nov:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s2.df,s2.tstat,cd(cond_iso,cond_nov),p2,sig(p2));
+    fprintf('    comp v nov: t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s3.df,s3.tstat,cd(cond_comp,cond_nov),p3,sig(p3));
+    
+    fprintf('  correctness within condition:\n');
+    [~,p1,~,s1]=ttest(cc,ci); [~,p2,~,s2]=ttest(ic,ii); [~,p3,~,s3]=ttest(nc,ni);
+    posthoc.corr_comp=struct('t',s1.tstat,'df',s1.df,'d',cd(cc,ci),'p',p1);
+    posthoc.corr_iso=struct('t',s2.tstat,'df',s2.df,'d',cd(ic,ii),'p',p2);
+    posthoc.corr_nov=struct('t',s3.tstat,'df',s3.df,'d',cd(nc,ni),'p',p3);
+    fprintf('    comp corr v incorr: t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s1.df,s1.tstat,cd(cc,ci),p1,sig(p1));
+    fprintf('    iso corr v incorr:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s2.df,s2.tstat,cd(ic,ii),p2,sig(p2));
+    fprintf('    nov corr v incorr:  t(%d) = %.2f, d = %.2f, p = %.4f %s\n',s3.df,s3.tstat,cd(nc,ni),p3,sig(p3));
 end
+
+function [res, posthoc] = run_rm_anova_2x2(lbl, ac, ai, bc, bi)
+    within = table({'A2A1'; 'A2A1'; 'B1A2'; 'B1A2'}, {'Comp'; 'Iso'; 'Comp'; 'Iso'}, ...
+        'VariableNames', {'PairType', 'TaskCond'});
+    t = table(ac, ai, bc, bi, 'VariableNames', {'ac','ai','bc','bi'});
+    rm = fitrm(t, 'ac-bi~1', 'WithinDesign', within);
+    tbl = ranova(rm, 'WithinModel', 'PairType*TaskCond');
+    res.df1 = tbl.DF(7); res.df2 = tbl.DF(8);
+    res.F_pair = tbl.F(3); res.p_pair = tbl.pValue(3); res.eta2_pair = tbl.SumSq(3)/(tbl.SumSq(3)+tbl.SumSq(4));
+    res.F_cond = tbl.F(5); res.p_cond = tbl.pValue(5); res.eta2_cond = tbl.SumSq(5)/(tbl.SumSq(5)+tbl.SumSq(6));
+    res.F_int  = tbl.F(7); res.p_int  = tbl.pValue(7); res.eta2_int  = tbl.SumSq(7)/(tbl.SumSq(7)+tbl.SumSq(8));
+    
+    fprintf('\n%s:\n', lbl);
+    fprintf('  Main PairType: F(%d,%d) = %.2f, p = %.4f, eta2_p = %.3f\n', res.df1, res.df2, res.F_pair, res.p_pair, res.eta2_pair);
+    fprintf('  Main TaskCond: F(%d,%d) = %.2f, p = %.4f, eta2_p = %.3f\n', res.df1, res.df2, res.F_cond, res.p_cond, res.eta2_cond);
+    fprintf('  Interaction:   F(%d,%d) = %.2f, p = %.4f, eta2_p = %.3f\n', res.df1, res.df2, res.F_int, res.p_int, res.eta2_int);
+    
+    n = length(ac); subj = (1:n)';
+    bf_tbl = table(subj, ac, ai, bc, bi, 'VariableNames', {'subj','ac','ai','bc','bi'});
+    bf_long = stack(bf_tbl, {'ac','ai','bc','bi'}, 'NewDataVariableName','y', 'IndexVariableName','cond');
+    bf_long.subj = categorical(bf_long.subj);
+    bf_long.PairType = categorical(contains(string(bf_long.cond), 'a')); % true if ac/ai
+    bf_long.TaskCond = categorical(contains(string(bf_long.cond), 'c')); % true if ac/bc
+    
+    try
+        res.bf10 = bf.anova(bf_long, 'y~PairType*TaskCond', 'treatAsRandom', {'subj'}, 'verbose', false);
+        if res.bf10 < 1, fprintf('  BF01 = %.2f\n', 1/res.bf10); else, fprintf('  BF10 = %.2f\n', res.bf10); end
+    catch
+        fprintf('  (Bayes Factor skipped: ensure toolbox supports 2x2 formulation)\n');
+    end
+        cd = @(x,y) mean(x-y,'omitnan')/std(x-y,'omitnan');
+    [~,p1,~,s1] = ttest(ac, ai); [~,p2,~,s2] = ttest(bc, bi); 
+    [~,p3,~,s3] = ttest(ac, bc); [~,p4,~,s4] = ttest(ai, bi);
+    
+    df = s1.df;
+    posthoc.a2a1_comp_iso = struct('t',s1.tstat,'df',df,'d',cd(ac,ai),'p',p1);
+    posthoc.b1a2_comp_iso = struct('t',s2.tstat,'df',df,'d',cd(bc,bi),'p',p2);
+    posthoc.comp_a2a1_b1a2 = struct('t',s3.tstat,'df',df,'d',cd(ac,bc),'p',p3);
+    posthoc.iso_a2a1_b1a2  = struct('t',s4.tstat,'df',df,'d',cd(ai,bi),'p',p4);
+    
+    fprintf('  post-hoc:\n');
+    fprintf('    A2A1 (comp-iso):  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', df, s1.tstat, cd(ac,ai), p1, repmat('*',1,(p1<.05)+(p1<.01)+(p1<.001)));
+    fprintf('    B1A2 (comp-iso):  t(%d) = %.2f, d = %.2f, p = %.4f %s\n', df, s2.tstat, cd(bc,bi), p2, repmat('*',1,(p2<.05)+(p2<.01)+(p2<.001)));
+    fprintf('    comp (A2A1-B1A2): t(%d) = %.2f, d = %.2f, p = %.4f %s\n', df, s3.tstat, cd(ac,bc), p3, repmat('*',1,(p3<.05)+(p3<.01)+(p3<.001)));
+    fprintf('    iso  (A2A1-B1A2): t(%d) = %.2f, d = %.2f, p = %.4f %s\n', df, s4.tstat, cd(ai,bi), p4, repmat('*',1,(p4<.05)+(p4<.01)+(p4<.001)));
+end
+
 function a = avg_pup_cond(sv, cond, goal, maxs)
     tr = sv(strcmp(sv.condition,cond) & strcmp(sv.goal,goal), :);
     if height(tr)==0, a=nan(1,maxs); return; end
