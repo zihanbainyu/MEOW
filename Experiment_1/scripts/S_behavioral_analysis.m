@@ -18,9 +18,9 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
 % [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
 % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
-% load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
-% [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
-%  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
+load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
+[reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+ baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 % load(fullfile(res_dir, 'gaze_a2b2_vs_a1b1.mat'));
 
 %% cumulative A2-A1 consistency (per-trial slope)
@@ -303,24 +303,7 @@ print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 % exc_bb = [609, 606, 608]; remaining_subj_ids_bb = subj_ids;
 % for e = exc_bb, idx = find(remaining_subj_ids_bb == e); if ~isempty(idx), gaze_bb_corr(idx,:) = []; gaze_bb_incorr(idx,:) = []; gaze_bb_overall(idx,:) = []; remaining_subj_ids_bb(idx) = []; end; end
 % fprintf('B2-B1 final n=%d\n', length(remaining_subj_ids_bb));
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %  A2B1 gaze reinstatement
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% gaze_ba_corr = nan(length(subj_ids), 2); gaze_ba_incorr = nan(length(subj_ids), 2); gaze_ba_overall = nan(length(subj_ids), 2);
-% for c = 1:2
-%     if c==1, ba_data = reinstat_res.ba_compared; bb_data = reinstat_res.bb_compared; else, ba_data = reinstat_res.ba_isolated; bb_data = reinstat_res.bb_isolated; end
-%     for s = 1:length(subj_ids)
-%         sid = subj_ids(s); ba_subj = ba_data(ba_data.subj_id == sid, :); if height(ba_subj) == 0, continue; end
-%         ba_subj.b2_correct = nan(height(ba_subj), 1);
-%         for i = 1:height(ba_subj), matching_b2 = bb_data(bb_data.subj_id == sid & bb_data.tr_1b_b == ba_subj.tr_1b_b(i), :); if height(matching_b2) == 1, ba_subj.b2_correct(i) = matching_b2.correct; end; end
-%         corr_trials = ba_subj.b2_correct == 1; incorr_trials = ba_subj.b2_correct == 0; gaze_ba_overall(s,c) = mean(ba_subj.reinst_index, 'omitnan');
-%         if sum(corr_trials) > 0, gaze_ba_corr(s,c) = mean(ba_subj.reinst_index(corr_trials), 'omitnan'); end
-%         if sum(incorr_trials) > 0, gaze_ba_incorr(s,c) = mean(ba_subj.reinst_index(incorr_trials), 'omitnan'); end
-%     end
-% end
-% exc_ba = [609, 606, 608, 618]; remaining_subj_ids_ba = subj_ids;
-% for e = exc_ba, idx = find(remaining_subj_ids_ba == e); if ~isempty(idx), gaze_ba_corr(idx,:) = []; gaze_ba_incorr(idx,:) = []; gaze_ba_overall(idx,:) = []; remaining_subj_ids_ba(idx) = []; end; end
-% fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  A2B1 gaze reinstatement
@@ -342,7 +325,7 @@ print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 % fprintf('A2-B1 final n=%d\n', length(remaining_subj_ids_ba));
 % 
 % %% A2-A1 vs A2-B1 gaze comparison
-% load(fullfile(res_dir, 'gaze_aa_consistency', 'gaze_aa_consistency_results.mat'));
+% load(fullfile(res_dir, 'gaze_aa.mat'));
 % 
 % ba_comp_by_subj = nan(length(subj_ids), 1); ba_iso_by_subj = nan(length(subj_ids), 1);
 % for s = 1:length(subj_ids)
@@ -373,6 +356,8 @@ print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 % fprintf('A2A1 comp vs A2B1 comp: t(%d)=%.3f, p=%.4f, d=%.3f\n', s1.df, s1.tstat, p1, mean(aa_c-ba_c)/std(aa_c-ba_c));
 % [~, p2, ~, s2] = ttest(aa_i, ba_i);
 % fprintf('A2A1 iso vs A2B1 iso:   t(%d)=%.3f, p=%.4f, d=%.3f\n', s2.df, s2.tstat, p2, mean(aa_i-ba_i)/std(aa_i-ba_i));
+% [~, p3, ~, s3] = ttest(aa_c, aa_i);
+% fprintf('A2A1 comp vs A2A1 iso:  t(%d)=%.3f, p=%.4f, d=%.3f\n', s3.df, s3.tstat, p3, mean(aa_c-aa_i)/std(aa_c-aa_i));
 % 
 % figure('color','w','position',[50 50 800 600]);
 % data = [aa_c, ba_c, aa_i, ba_i];
@@ -404,14 +389,15 @@ print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 % fprintf('Acc sim v new:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s2.df, s2.tstat, stat_results.b1_acc_sim_v_new.d, p2, adj(2));
 % fprintf('RT sam v sim:   t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s3.df, s3.tstat, stat_results.b1_rt_sam_v_sim.d, p3, adj(3));
 % fprintf('Acc sam v new:  t(%d)=%.2f, d=%.2f, p=%.4f, p_adj=%.4f\n', s4.df, s4.tstat, stat_results.b1_acc_sam_v_new.d, p4, adj(4));
-% %% 2-back (separate ANOVAs, post-hocs holm-corrected within each)
+
+% %% 2-back
 % fprintf('\n--- Retrieval (2-back) performance ---\n');
 % [stat_results.b2_ldi, stat_results.b2_ldi_ph] = run_rm_anova('LDI', b2_ldi_c, b2_ldi_i, b2_ldi_n, within);
 % [stat_results.b2_dprime, stat_results.b2_dprime_ph] = run_rm_anova('d-prime', b2_dp_c, b2_dp_i, b2_dp_n, within);
 % [stat_results.b2_rt_lure, stat_results.b2_rt_lure_ph] = run_rm_anova('RT lure', b2_rt_l_c, b2_rt_l_i, b2_rt_l_n, within);
 % [stat_results.b2_rt_target, stat_results.b2_rt_target_ph] = run_rm_anova('RT target', b2_rt_t_c, b2_rt_t_i, b2_rt_t_n, within);
-% 
-% %% recognition (planned tests, no correction)
+
+% %% recognition
 % fprintf('\n--- Post-task recognition ---\n');
 % [~,p,~,s] = ttest(rec_d_c); stat_results.rec_comp_v0 = struct('t',s.tstat,'df',s.df,'d',mean(rec_d_c,'omitnan')/std(rec_d_c,'omitnan'),'p',p);
 % fprintf('compared > 0: t(%d)=%.2f, d=%.2f, p=%.4f\n', s.df, s.tstat, stat_results.rec_comp_v0.d, p);
@@ -450,37 +436,7 @@ print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 % 
 % %% spatial entropy
 % [stat_results.entropy_2x2, stat_results.entropy_2x2_ph] = run_2x2_anova_item_cond('Spatial Entropy 2×2', entropy_a_comp_subj, entropy_a_iso_subj, entropy_b_comp_subj, entropy_b_iso_subj);
-% 
-% %% gaze cumu by fixation
-% pvals_fixation = nan(1, n_fix_to_plot);
-% tvals_fixation = nan(1, n_fix_to_plot);
-% dvals_fixation = nan(1, n_fix_to_plot);
-% for f = 1:n_fix_to_plot
-%     comp_fix = subj_traj_comp(:, f);
-%     iso_fix = subj_traj_iso(:, f);
-%     valid = ~isnan(comp_fix) & ~isnan(iso_fix);
-% 
-%     if sum(valid) > 2
-%         [~, pvals_fixation(f), ~, stats] = ttest(comp_fix(valid), iso_fix(valid));
-%         tvals_fixation(f) = stats.tstat;
-%         dvals_fixation(f) = stats.tstat / sqrt(stats.df + 1);
-% 
-%         fprintf('fixation %d: t(%d)=%.2f, d=%.2f, p=%.4f %s\n', ...
-%             f, stats.df, tvals_fixation(f), dvals_fixation(f), pvals_fixation(f), ...
-%             repmat('*', 1, (pvals_fixation(f)<0.05)+(pvals_fixation(f)<0.01)+(pvals_fixation(f)<0.001)));
-%     end
-% end
-% sig_fixations = find(pvals_fixation < 0.05);
-% if ~isempty(sig_fixations)
-%     divergence_point = sig_fixations(1);
-%     fprintf('\ndivergence point: Fixation %d (p=%.4f, d=%.2f)\n', ...
-%         divergence_point, pvals_fixation(divergence_point), dvals_fixation(divergence_point));
-% else
-%     fprintf('\nno significant divergence found\n');
-%     divergence_point = [];
-% end
-% 
-% 
+
 % %% extract gaze reinstatement by correctness
 % clear gaze_corr gaze_incorr gaze_overall extracted_subj_ids
 % gaze_datasets = {reinstat_res.bb_compared, reinstat_res.bb_isolated};
