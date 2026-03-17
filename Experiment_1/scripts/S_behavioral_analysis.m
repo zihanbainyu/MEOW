@@ -18,20 +18,22 @@ cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
 % load(fullfile(res_dir, 'all_trials_pupil.mat'), 'all_preprocessed');
 % [pup, pup_mean, t_pup, pup_subjs] = extract_pupil_subj(all_preprocessed);
 % fprintf('pupil: %d subjs, %d samples (%.2fs)\n', length(pup_subjs), length(t_pup), t_pup(end));
-load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
-[reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
- baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
+% load(fullfile(res_dir, 'gaze_reinstat_res_full.mat'));
+% [reinst_bb_comp, reinst_bb_iso, reinst_ba_comp, reinst_ba_iso, match_bb_comp, match_bb_iso, match_ba_comp, match_ba_iso, ...
+%  baseline_bb_comp, baseline_bb_iso, baseline_ba_comp, baseline_ba_iso] = extract_gaze_subj(reinstat_res, subj_ids);
 % load(fullfile(res_dir, 'gaze_a2b2_vs_a1b1.mat'));
 
 %% cumulative A2-A1 consistency (per-trial slope)
-load(fullfile(res_dir, 'cumu_reinstat_aa.mat'));
+load(fullfile(res_dir, 'cumu_reinstat_aa_cor.mat'));
+
 aa_subj_traj_comp = subj_traj_comp; aa_subj_traj_iso = subj_traj_iso;
 aa_n_fix = n_fix_to_plot; aa_common = common_subjs;
 
-fix_cols_comp = cumulative_results_comp{:, 4:3+aa_n_fix};
-fix_cols_iso = cumulative_results_iso{:, 4:3+aa_n_fix};
+fix_cols_comp = cumulative_results_comp{:, 5:4+aa_n_fix};
+fix_cols_iso  = cumulative_results_iso{:, 5:4+aa_n_fix};
 x_fix = (1:aa_n_fix)'; x_fix_c = x_fix - mean(x_fix);
 
+%% Compute per-trial slopes
 slope_aa_comp = nan(height(cumulative_results_comp), 1);
 for i = 1:height(cumulative_results_comp)
     y = fix_cols_comp(i, :)'; v = ~isnan(y);
@@ -43,6 +45,7 @@ for i = 1:height(cumulative_results_iso)
     if sum(v) >= 2, slope_aa_iso(i) = x_fix_c(v) \ y(v); end
 end
 
+%% Subject-level slopes (all trials)
 T_sc = table(cumulative_results_comp.subj_id, slope_aa_comp, 'VariableNames', {'subj_id','slope'});
 T_si = table(cumulative_results_iso.subj_id, slope_aa_iso, 'VariableNames', {'subj_id','slope'});
 T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
@@ -53,9 +56,10 @@ common_slope(common_slope == 609) = [];
 
 [~, ic] = ismember(common_slope, ss_c.subj_id);
 [~, ii] = ismember(common_slope, ss_i.subj_id);
-aa_slopes_c = ss_c.slope(ic); 
+aa_slopes_c = ss_c.slope(ic);
 aa_slopes_i = ss_i.slope(ii);
 
+%% Print overall slope stats
 fprintf('\nCumulative A2A1 Consistency (per-trial slope)\n');
 [~, p_sc, ~, st_sc] = ttest(aa_slopes_c, 0, 'Tail', 'right');
 [~, p_si, ~, st_si] = ttest(aa_slopes_i, 0, 'Tail', 'right');
@@ -65,22 +69,73 @@ fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(aa
 d_aa_diff = mean(aa_slopes_c - aa_slopes_i) / std(aa_slopes_c - aa_slopes_i);
 fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
     mean(aa_slopes_c-aa_slopes_i), std(aa_slopes_c-aa_slopes_i), st_aa_diff.df, st_aa_diff.tstat, p_aa_diff, d_aa_diff, ci_aa_diff(1), ci_aa_diff(2));
-
 [p_wilcox_aa, ~, wstats_aa] = signrank(aa_slopes_c, aa_slopes_i);
 fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats_aa.zval, p_wilcox_aa);
 
-valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
-aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
-aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
-aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
-aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+%% Slopes by B accuracy
+T_sc_full = table(cumulative_results_comp.subj_id, cumulative_results_comp.correct, slope_aa_comp, ...
+    'VariableNames', {'subj_id','correct','slope'});
+T_sc_full = T_sc_full(~isnan(T_sc_full.slope), :);
+
+T_si_full = table(cumulative_results_iso.subj_id, cumulative_results_iso.correct, slope_aa_iso, ...
+    'VariableNames', {'subj_id','correct','slope'});
+T_si_full = T_si_full(~isnan(T_si_full.slope), :);
+
+ss_c_corr = grpstats(T_sc_full(T_sc_full.correct == 1, :), 'subj_id', 'mean', 'DataVars', 'slope');
+ss_c_corr.Properties.VariableNames{'mean_slope'} = 'slope';
+ss_c_incr = grpstats(T_sc_full(T_sc_full.correct == 0, :), 'subj_id', 'mean', 'DataVars', 'slope');
+ss_c_incr.Properties.VariableNames{'mean_slope'} = 'slope';
+
+ss_i_corr = grpstats(T_si_full(T_si_full.correct == 1, :), 'subj_id', 'mean', 'DataVars', 'slope');
+ss_i_corr.Properties.VariableNames{'mean_slope'} = 'slope';
+ss_i_incr = grpstats(T_si_full(T_si_full.correct == 0, :), 'subj_id', 'mean', 'DataVars', 'slope');
+ss_i_incr.Properties.VariableNames{'mean_slope'} = 'slope';
+
+common_acc = intersect(intersect(ss_c_corr.subj_id, ss_c_incr.subj_id), ...
+                       intersect(ss_i_corr.subj_id, ss_i_incr.subj_id));
+common_acc(common_acc == 609) = [];
+
+[~, ic_c] = ismember(common_acc, ss_c_corr.subj_id);
+[~, ic_i] = ismember(common_acc, ss_c_incr.subj_id);
+[~, ii_c] = ismember(common_acc, ss_i_corr.subj_id);
+[~, ii_i] = ismember(common_acc, ss_i_incr.subj_id);
+
+sl_comp_corr = ss_c_corr.slope(ic_c);
+sl_comp_incr = ss_c_incr.slope(ic_i);
+sl_iso_corr  = ss_i_corr.slope(ii_c);
+sl_iso_incr  = ss_i_incr.slope(ii_i);
+
+%% Print accuracy slope stats
+fprintf('\n--- A2A1 Slopes by B Accuracy (N=%d) ---\n', length(common_acc));
+fprintf('Comp correct:   M=%.4f (SD=%.4f)\n', mean(sl_comp_corr), std(sl_comp_corr));
+fprintf('Comp incorrect: M=%.4f (SD=%.4f)\n', mean(sl_comp_incr), std(sl_comp_incr));
+fprintf('Iso correct:    M=%.4f (SD=%.4f)\n', mean(sl_iso_corr), std(sl_iso_corr));
+fprintf('Iso incorrect:  M=%.4f (SD=%.4f)\n', mean(sl_iso_incr), std(sl_iso_incr));
+
+[~, p_cc, ~, s_cc] = ttest(sl_comp_corr, sl_comp_incr);
+fprintf('Comp corr vs incorr: t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
+    s_cc.df, s_cc.tstat, p_cc, mean(sl_comp_corr-sl_comp_incr)/std(sl_comp_corr-sl_comp_incr));
+
+[~, p_ic, ~, s_ic] = ttest(sl_iso_corr, sl_iso_incr);
+fprintf('Iso corr vs incorr:  t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
+    s_ic.df, s_ic.tstat, p_ic, mean(sl_iso_corr-sl_iso_incr)/std(sl_iso_corr-sl_iso_incr));
+
+comp_acc_diff = sl_comp_corr - sl_comp_incr;
+iso_acc_diff  = sl_iso_corr  - sl_iso_incr;
+[~, p_int, ~, s_int] = ttest(comp_acc_diff, iso_acc_diff);
+fprintf('Interaction (condition x accuracy): t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
+    s_int.df, s_int.tstat, p_int, mean(comp_acc_diff-iso_acc_diff)/std(comp_acc_diff-iso_acc_diff));
+
+%% ============================================================
+%% FIGURE 1: Overall cumulative trajectory (comp vs iso)
+%% ============================================================
 valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
 valid_aa(aa_common == 609) = false;
 
 aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
-aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
-aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
-aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+aa_sem_comp  = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+aa_mean_iso  = mean(aa_subj_traj_iso(valid_aa, :), 1);
+aa_sem_iso   = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
 
 figure('color', 'w', 'position', [50 50 600 600]);
 subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
@@ -93,81 +148,280 @@ x_ln = linspace(1, aa_n_fix, 50); x_ln_c = x_ln - mean((1:aa_n_fix)');
 plot(x_ln, mean(aa_slopes_c) * x_ln_c + mean(aa_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
 plot(x_ln, mean(aa_slopes_i) * x_ln_c + mean(aa_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
 yline(0, 'k--', 'LineWidth', 1.5);
-xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
-ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight', 'normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight', 'normal');
 legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
-xlim([0, n_fix_to_plot + 0.5]);
-set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+xlim([0, aa_n_fix + 0.5]);
+set(gca, 'XTick', 0:aa_n_fix, 'FontSize', 20, 'LineWidth', 1.5);
 set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
 box off; grid off;
 print(gcf, fullfile(fig_dir, 'gaze_cumu_aa.pdf'), '-dpdf', '-vector');
 
-%% cumulative cross-item reinstatement (B1→A2): per-trial slope
-load(fullfile(res_dir, 'cumu_reinstat_ba.mat'));
-fix_cols_comp = cumulative_results_comp{:, 4:3+n_fix_to_plot};
-fix_cols_iso = cumulative_results_iso{:, 4:3+n_fix_to_plot};
-x_fix = (1:n_fix_to_plot)'; x_fix_c = x_fix - mean(x_fix);
+%% ============================================================
+%% FIGURE 2a: Cumulative slopes by B accuracy — COMPARED
+%% ============================================================
+fix_cols_comp_full = cumulative_results_comp{:, 5:4+aa_n_fix};
+fix_cols_iso_full  = cumulative_results_iso{:, 5:4+aa_n_fix};
 
-slope_comp_trials = nan(height(cumulative_results_comp), 1);
-for i = 1:height(cumulative_results_comp)
-    y = fix_cols_comp(i, :)'; v = ~isnan(y);
-    if sum(v) >= 2, slope_comp_trials(i) = x_fix_c(v) \ y(v); end
+n_s = length(common_acc);
+traj_comp_corr = nan(n_s, aa_n_fix); traj_comp_incr = nan(n_s, aa_n_fix);
+traj_iso_corr  = nan(n_s, aa_n_fix); traj_iso_incr  = nan(n_s, aa_n_fix);
+
+for i = 1:n_s
+    sid = common_acc(i);
+    cc = cumulative_results_comp.subj_id == sid & cumulative_results_comp.correct == 1;
+    ci = cumulative_results_comp.subj_id == sid & cumulative_results_comp.correct == 0;
+    ic = cumulative_results_iso.subj_id == sid & cumulative_results_iso.correct == 1;
+    ii_idx = cumulative_results_iso.subj_id == sid & cumulative_results_iso.correct == 0;
+    if sum(cc) > 0, traj_comp_corr(i,:) = mean(fix_cols_comp_full(cc, :), 1, 'omitnan'); end
+    if sum(ci) > 0, traj_comp_incr(i,:) = mean(fix_cols_comp_full(ci, :), 1, 'omitnan'); end
+    if sum(ic) > 0, traj_iso_corr(i,:)  = mean(fix_cols_iso_full(ic, :), 1, 'omitnan'); end
+    if sum(ii_idx) > 0, traj_iso_incr(i,:) = mean(fix_cols_iso_full(ii_idx, :), 1, 'omitnan'); end
 end
-slope_iso_trials = nan(height(cumulative_results_iso), 1);
-for i = 1:height(cumulative_results_iso)
-    y = fix_cols_iso(i, :)'; v = ~isnan(y);
-    if sum(v) >= 2, slope_iso_trials(i) = x_fix_c(v) \ y(v); end
-end
 
-T_sc = table(cumulative_results_comp.subj_id, slope_comp_trials, 'VariableNames', {'subj_id','slope'});
-T_si = table(cumulative_results_iso.subj_id, slope_iso_trials, 'VariableNames', {'subj_id','slope'});
-T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
-subj_slope_comp = grpstats(T_sc, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_comp.Properties.VariableNames{'mean_slope'} = 'slope';
-subj_slope_iso = grpstats(T_si, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_iso.Properties.VariableNames{'mean_slope'} = 'slope';
-common_subjs_slope = intersect(subj_slope_comp.subj_id, subj_slope_iso.subj_id);
-[~, ic] = ismember(common_subjs_slope, subj_slope_comp.subj_id);
-[~, ii] = ismember(common_subjs_slope, subj_slope_iso.subj_id);
-slopes_c = subj_slope_comp.slope(ic); slopes_i = subj_slope_iso.slope(ii);
+x_ln = linspace(1, aa_n_fix, 50); x_ln_c = x_ln - mean((1:aa_n_fix)');
 
-fprintf('\nCumulative B1A2 Cross-Item Reinstatement (per-trial slope)\n');
-[~, p_sc, ~, st_sc] = ttest(slopes_c, 0, 'Tail', 'right');
-[~, p_si, ~, st_si] = ttest(slopes_i, 0, 'Tail', 'right');
-fprintf('Compared:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_c), std(slopes_c), st_sc.df, st_sc.tstat, p_sc, mean(slopes_c)/std(slopes_c));
-fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_i), std(slopes_i), st_si.df, st_si.tstat, p_si, mean(slopes_i)/std(slopes_i));
-[~, p_diff, ci_diff, st_diff] = ttest(slopes_c, slopes_i);
-d_diff = mean(slopes_c - slopes_i) / std(slopes_c - slopes_i);
-fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
-    mean(slopes_c-slopes_i), std(slopes_c-slopes_i), st_diff.df, st_diff.tstat, p_diff, d_diff, ci_diff(1), ci_diff(2));
-[p_wilcox, ~, wstats] = signrank(slopes_c, slopes_i);
-fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats.zval, p_wilcox);
+valid_cc = ~any(isnan(traj_comp_corr), 2);
+valid_ci = ~any(isnan(traj_comp_incr), 2);
+valid_ic = ~any(isnan(traj_iso_corr), 2);
+valid_ii = ~any(isnan(traj_iso_incr), 2);
 
-valid_cumu = ~any(isnan(subj_traj_comp), 2) & ~any(isnan(subj_traj_iso), 2);
-cumu_comp = subj_traj_comp(valid_cumu, :); cumu_iso = subj_traj_iso(valid_cumu, :);
-cumu_mean_comp = mean(cumu_comp, 1); cumu_sem_comp = std(cumu_comp, 0, 1) / sqrt(size(cumu_comp, 1));
-cumu_mean_iso = mean(cumu_iso, 1); cumu_sem_iso = std(cumu_iso, 0, 1) / sqrt(size(cumu_iso, 1));
+m_cc = mean(traj_comp_corr(valid_cc, :), 1);
+m_ci = mean(traj_comp_incr(valid_ci, :), 1);
+m_ic = mean(traj_iso_corr(valid_ic, :), 1);
+m_ii = mean(traj_iso_incr(valid_ii, :), 1);
 
 figure('color', 'w', 'position', [50 50 600 600]);
 subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
-fn = 1:n_fix_to_plot;
-fill([fn, fliplr(fn)], [cumu_mean_comp + cumu_sem_comp, fliplr(cumu_mean_comp - cumu_sem_comp)], c_comp, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
-fill([fn, fliplr(fn)], [cumu_mean_iso + cumu_sem_iso, fliplr(cumu_mean_iso - cumu_sem_iso)], c_iso, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
-plot(fn, cumu_mean_comp, 'o', 'Color', c_comp, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_comp);
-plot(fn, cumu_mean_iso, 's', 'Color', c_iso, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_iso);
-x_ln = linspace(1, n_fix_to_plot, 50); x_ln_c = x_ln - mean(x_fix);
-plot(x_ln, mean(slopes_c) * x_ln_c + mean(cumu_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
-plot(x_ln, mean(slopes_i) * x_ln_c + mean(cumu_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
+plot(x_ln, mean(sl_comp_corr) * x_ln_c + mean(m_cc), '-', 'Color', c_comp, 'LineWidth', 3);
+plot(x_ln, mean(sl_comp_incr) * x_ln_c + mean(m_ci), '--', 'Color', c_comp*0.5+0.5, 'LineWidth', 3);
 yline(0, 'k--', 'LineWidth', 1.5);
-xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
-ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
-legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
-xlim([0, n_fix_to_plot + 0.5]);
-set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight', 'normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight', 'normal');
+title('Compared', 'FontSize', 22, 'FontWeight', 'normal');
+legend({'B correct', 'B incorrect'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+xlim([0, aa_n_fix + 0.5]);
+set(gca, 'XTick', 0:aa_n_fix, 'FontSize', 20, 'LineWidth', 1.5);
+box off; grid off;
+print(gcf, fullfile(fig_dir, 'gaze_cumu_aa_comp_by_acc.pdf'), '-dpdf', '-vector');
+
+%% ============================================================
+%% FIGURE 2b: Cumulative slopes by B accuracy — ISOLATED
+%% ============================================================
+figure('color', 'w', 'position', [50 50 600 600]);
+subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+plot(x_ln, mean(sl_iso_corr) * x_ln_c + mean(m_ic), '-', 'Color', c_iso, 'LineWidth', 3);
+plot(x_ln, mean(sl_iso_incr) * x_ln_c + mean(m_ii), '--', 'Color', c_iso*0.5+0.5, 'LineWidth', 3);
+yline(0, 'k--', 'LineWidth', 1.5);
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight', 'normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight', 'normal');
+title('Isolated', 'FontSize', 22, 'FontWeight', 'normal');
+legend({'B correct', 'B incorrect'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+xlim([0, aa_n_fix + 0.5]);
+set(gca, 'XTick', 0:aa_n_fix, 'FontSize', 20, 'LineWidth', 1.5);
+box off; grid off;
+print(gcf, fullfile(fig_dir, 'gaze_cumu_aa_iso_by_acc.pdf'), '-dpdf', '-vector');
+
+%% Collapsed across condition: correct vs incorrect slopes
+sl_all_corr = (sl_comp_corr + sl_iso_corr) / 2;
+sl_all_incr = (sl_comp_incr + sl_iso_incr) / 2;
+
+[~, p_coll, ci_coll, s_coll] = ttest(sl_all_corr, sl_all_incr);
+d_coll = mean(sl_all_corr - sl_all_incr) / std(sl_all_corr - sl_all_incr);
+fprintf('\n--- Collapsed A2A1 Slopes: Correct vs Incorrect (N=%d) ---\n', length(common_acc));
+fprintf('Correct:   M=%.4f (SD=%.4f)\n', mean(sl_all_corr), std(sl_all_corr));
+fprintf('Incorrect: M=%.4f (SD=%.4f)\n', mean(sl_all_incr), std(sl_all_incr));
+fprintf('Paired:    t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
+    s_coll.df, s_coll.tstat, p_coll, d_coll, ci_coll(1), ci_coll(2));
+
+[p_wilcox_coll, ~, w_coll] = signrank(sl_all_corr, sl_all_incr);
+fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', w_coll.zval, p_wilcox_coll);
+
+%% One-sided: correct > incorrect
+[~, p_coll_one, ~, s_coll_one] = ttest(sl_all_corr, sl_all_incr, 'Tail', 'right');
+fprintf('One-sided: t(%d)=%.3f, p=%.4f\n', s_coll_one.df, s_coll_one.tstat, p_coll_one);
+
+%% Also test each against zero
+[~, p_corr0, ~, s_corr0] = ttest(sl_all_corr, 0, 'Tail', 'right');
+[~, p_incr0, ~, s_incr0] = ttest(sl_all_incr, 0);
+fprintf('Correct > 0:   t(%d)=%.3f, p=%.4f, d=%.3f\n', s_corr0.df, s_corr0.tstat, p_corr0, mean(sl_all_corr)/std(sl_all_corr));
+fprintf('Incorrect ≠ 0: t(%d)=%.3f, p=%.4f, d=%.3f\n', s_incr0.df, s_incr0.tstat, p_incr0, mean(sl_all_incr)/std(sl_all_incr));
+
+%% Figure: collapsed slopes
+figure('color', 'w', 'position', [50 50 600 600]);
+subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+
+% Collapsed trajectories
+traj_all_corr = (traj_comp_corr + traj_iso_corr) / 2;
+traj_all_incr = (traj_comp_incr + traj_iso_incr) / 2;
+valid_c = ~any(isnan(traj_all_corr), 2);
+valid_i = ~any(isnan(traj_all_incr), 2);
+m_c = mean(traj_all_corr(valid_c, :), 1);
+m_i = mean(traj_all_incr(valid_i, :), 1);
+
+%% Collapsed cumulative slopes by B accuracy
+c_correct   = [0.00 0.51 0.51];  % deep teal
+c_incorrect = [0.91 0.45 0.36];  % muted coral
+
+figure('color', 'w', 'position', [50 50 600 600]);
+subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+
+plot(x_ln, mean(sl_all_corr) * x_ln_c + mean(m_c), '-', 'Color', c_correct, 'LineWidth', 3);
+plot(x_ln, mean(sl_all_incr) * x_ln_c + mean(m_i), '-', 'Color', c_incorrect, 'LineWidth', 3);
+yline(0, 'k--', 'LineWidth', 1.5);
+
+xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight', 'normal');
+ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight', 'normal');
+legend({'correct', 'incorrect'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+xlim([0, aa_n_fix + 0.5]);
+set(gca, 'XTick', 0:aa_n_fix, 'FontSize', 20, 'LineWidth', 1.5);
 set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
 box off; grid off;
-print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
 
+print(gcf, fullfile(fig_dir, 'gaze_cumu_aa_cor.pdf'), '-dpdf', '-vector');
+% aa_subj_traj_comp = subj_traj_comp; aa_subj_traj_iso = subj_traj_iso;
+% aa_n_fix = n_fix_to_plot; aa_common = common_subjs;
+% 
+% fix_cols_comp = cumulative_results_comp{:, 4:3+aa_n_fix};
+% fix_cols_iso = cumulative_results_iso{:, 4:3+aa_n_fix};
+% x_fix = (1:aa_n_fix)'; x_fix_c = x_fix - mean(x_fix);
+% 
+% slope_aa_comp = nan(height(cumulative_results_comp), 1);
+% for i = 1:height(cumulative_results_comp)
+%     y = fix_cols_comp(i, :)'; v = ~isnan(y);
+%     if sum(v) >= 2, slope_aa_comp(i) = x_fix_c(v) \ y(v); end
+% end
+% slope_aa_iso = nan(height(cumulative_results_iso), 1);
+% for i = 1:height(cumulative_results_iso)
+%     y = fix_cols_iso(i, :)'; v = ~isnan(y);
+%     if sum(v) >= 2, slope_aa_iso(i) = x_fix_c(v) \ y(v); end
+% end
+% 
+% T_sc = table(cumulative_results_comp.subj_id, slope_aa_comp, 'VariableNames', {'subj_id','slope'});
+% T_si = table(cumulative_results_iso.subj_id, slope_aa_iso, 'VariableNames', {'subj_id','slope'});
+% T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
+% ss_c = grpstats(T_sc, 'subj_id', 'mean', 'DataVars', 'slope'); ss_c.Properties.VariableNames{'mean_slope'} = 'slope';
+% ss_i = grpstats(T_si, 'subj_id', 'mean', 'DataVars', 'slope'); ss_i.Properties.VariableNames{'mean_slope'} = 'slope';
+% common_slope = intersect(ss_c.subj_id, ss_i.subj_id);
+% common_slope(common_slope == 609) = [];
+% 
+% [~, ic] = ismember(common_slope, ss_c.subj_id);
+% [~, ii] = ismember(common_slope, ss_i.subj_id);
+% aa_slopes_c = ss_c.slope(ic); 
+% aa_slopes_i = ss_i.slope(ii);
 
-[anova_res, anova_posthoc] = run_rm_anova_2x2('Gaze Reinstatement Slope ANOVA', aa_slopes_c, aa_slopes_i, slopes_c, slopes_i);
+% fprintf('\nCumulative A2A1 Consistency (per-trial slope)\n');
+% [~, p_sc, ~, st_sc] = ttest(aa_slopes_c, 0, 'Tail', 'right');
+% [~, p_si, ~, st_si] = ttest(aa_slopes_i, 0, 'Tail', 'right');
+% fprintf('Compared:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(aa_slopes_c), std(aa_slopes_c), st_sc.df, st_sc.tstat, p_sc, mean(aa_slopes_c)/std(aa_slopes_c));
+% fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(aa_slopes_i), std(aa_slopes_i), st_si.df, st_si.tstat, p_si, mean(aa_slopes_i)/std(aa_slopes_i));
+% [~, p_aa_diff, ci_aa_diff, st_aa_diff] = ttest(aa_slopes_c, aa_slopes_i);
+% d_aa_diff = mean(aa_slopes_c - aa_slopes_i) / std(aa_slopes_c - aa_slopes_i);
+% fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
+%     mean(aa_slopes_c-aa_slopes_i), std(aa_slopes_c-aa_slopes_i), st_aa_diff.df, st_aa_diff.tstat, p_aa_diff, d_aa_diff, ci_aa_diff(1), ci_aa_diff(2));
+% 
+% [p_wilcox_aa, ~, wstats_aa] = signrank(aa_slopes_c, aa_slopes_i);
+% fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats_aa.zval, p_wilcox_aa);
+% 
+% valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
+% aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
+% aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+% aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
+% aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+% valid_aa = ~any(isnan(aa_subj_traj_comp), 2) & ~any(isnan(aa_subj_traj_iso), 2);
+% valid_aa(aa_common == 609) = false;
+% 
+% aa_mean_comp = mean(aa_subj_traj_comp(valid_aa, :), 1);
+% aa_sem_comp = std(aa_subj_traj_comp(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+% aa_mean_iso = mean(aa_subj_traj_iso(valid_aa, :), 1);
+% aa_sem_iso = std(aa_subj_traj_iso(valid_aa, :), 0, 1) / sqrt(sum(valid_aa));
+
+% figure('color', 'w', 'position', [50 50 600 600]);
+% subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+% fn = 1:aa_n_fix;
+% fill([fn, fliplr(fn)], [aa_mean_comp + aa_sem_comp, fliplr(aa_mean_comp - aa_sem_comp)], c_comp, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% fill([fn, fliplr(fn)], [aa_mean_iso + aa_sem_iso, fliplr(aa_mean_iso - aa_sem_iso)], c_iso, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% plot(fn, aa_mean_comp, 'o', 'Color', c_comp, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_comp);
+% plot(fn, aa_mean_iso, 's', 'Color', c_iso, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_iso);
+% x_ln = linspace(1, aa_n_fix, 50); x_ln_c = x_ln - mean((1:aa_n_fix)');
+% plot(x_ln, mean(aa_slopes_c) * x_ln_c + mean(aa_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
+% plot(x_ln, mean(aa_slopes_i) * x_ln_c + mean(aa_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
+% yline(0, 'k--', 'LineWidth', 1.5);
+% xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
+% ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
+% legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+% xlim([0, n_fix_to_plot + 0.5]);
+% set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+% set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
+% box off; grid off;
+% print(gcf, fullfile(fig_dir, 'gaze_cumu_aa.pdf'), '-dpdf', '-vector');
+% 
+% %% cumulative cross-item reinstatement (B1→A2): per-trial slope
+% load(fullfile(res_dir, 'cumu_reinstat_ba.mat'));
+% fix_cols_comp = cumulative_results_comp{:, 4:3+n_fix_to_plot};
+% fix_cols_iso = cumulative_results_iso{:, 4:3+n_fix_to_plot};
+% x_fix = (1:n_fix_to_plot)'; x_fix_c = x_fix - mean(x_fix);
+% 
+% slope_comp_trials = nan(height(cumulative_results_comp), 1);
+% for i = 1:height(cumulative_results_comp)
+%     y = fix_cols_comp(i, :)'; v = ~isnan(y);
+%     if sum(v) >= 2, slope_comp_trials(i) = x_fix_c(v) \ y(v); end
+% end
+% slope_iso_trials = nan(height(cumulative_results_iso), 1);
+% for i = 1:height(cumulative_results_iso)
+%     y = fix_cols_iso(i, :)'; v = ~isnan(y);
+%     if sum(v) >= 2, slope_iso_trials(i) = x_fix_c(v) \ y(v); end
+% end
+% 
+% T_sc = table(cumulative_results_comp.subj_id, slope_comp_trials, 'VariableNames', {'subj_id','slope'});
+% T_si = table(cumulative_results_iso.subj_id, slope_iso_trials, 'VariableNames', {'subj_id','slope'});
+% T_sc = T_sc(~isnan(T_sc.slope), :); T_si = T_si(~isnan(T_si.slope), :);
+% subj_slope_comp = grpstats(T_sc, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_comp.Properties.VariableNames{'mean_slope'} = 'slope';
+% subj_slope_iso = grpstats(T_si, 'subj_id', 'mean', 'DataVars', 'slope'); subj_slope_iso.Properties.VariableNames{'mean_slope'} = 'slope';
+% common_subjs_slope = intersect(subj_slope_comp.subj_id, subj_slope_iso.subj_id);
+% [~, ic] = ismember(common_subjs_slope, subj_slope_comp.subj_id);
+% [~, ii] = ismember(common_subjs_slope, subj_slope_iso.subj_id);
+% slopes_c = subj_slope_comp.slope(ic); slopes_i = subj_slope_iso.slope(ii);
+% 
+% fprintf('\nCumulative B1A2 Cross-Item Reinstatement (per-trial slope)\n');
+% [~, p_sc, ~, st_sc] = ttest(slopes_c, 0, 'Tail', 'right');
+% [~, p_si, ~, st_si] = ttest(slopes_i, 0, 'Tail', 'right');
+% fprintf('Compared:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_c), std(slopes_c), st_sc.df, st_sc.tstat, p_sc, mean(slopes_c)/std(slopes_c));
+% fprintf('Isolated:  slope=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', mean(slopes_i), std(slopes_i), st_si.df, st_si.tstat, p_si, mean(slopes_i)/std(slopes_i));
+% [~, p_diff, ci_diff, st_diff] = ttest(slopes_c, slopes_i);
+% d_diff = mean(slopes_c - slopes_i) / std(slopes_c - slopes_i);
+% fprintf('Paired:    diff=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f, 95%%CI=[%.4f,%.4f]\n', ...
+%     mean(slopes_c-slopes_i), std(slopes_c-slopes_i), st_diff.df, st_diff.tstat, p_diff, d_diff, ci_diff(1), ci_diff(2));
+% [p_wilcox, ~, wstats] = signrank(slopes_c, slopes_i);
+% fprintf('Wilcoxon:  z=%.3f, p=%.4f\n', wstats.zval, p_wilcox);
+% 
+% valid_cumu = ~any(isnan(subj_traj_comp), 2) & ~any(isnan(subj_traj_iso), 2);
+% cumu_comp = subj_traj_comp(valid_cumu, :); cumu_iso = subj_traj_iso(valid_cumu, :);
+% cumu_mean_comp = mean(cumu_comp, 1); cumu_sem_comp = std(cumu_comp, 0, 1) / sqrt(size(cumu_comp, 1));
+% cumu_mean_iso = mean(cumu_iso, 1); cumu_sem_iso = std(cumu_iso, 0, 1) / sqrt(size(cumu_iso, 1));
+% 
+% figure('color', 'w', 'position', [50 50 600 600]);
+% subplot('Position', [0.12, 0.15, 0.8, 0.75]); hold on;
+% fn = 1:n_fix_to_plot;
+% fill([fn, fliplr(fn)], [cumu_mean_comp + cumu_sem_comp, fliplr(cumu_mean_comp - cumu_sem_comp)], c_comp, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% fill([fn, fliplr(fn)], [cumu_mean_iso + cumu_sem_iso, fliplr(cumu_mean_iso - cumu_sem_iso)], c_iso, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% plot(fn, cumu_mean_comp, 'o', 'Color', c_comp, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_comp);
+% plot(fn, cumu_mean_iso, 's', 'Color', c_iso, 'LineWidth', 3, 'MarkerSize', 10, 'MarkerFaceColor', c_iso);
+% x_ln = linspace(1, n_fix_to_plot, 50); x_ln_c = x_ln - mean(x_fix);
+% plot(x_ln, mean(slopes_c) * x_ln_c + mean(cumu_mean_comp), '-', 'Color', c_comp, 'LineWidth', 2.5);
+% plot(x_ln, mean(slopes_i) * x_ln_c + mean(cumu_mean_iso), '-', 'Color', c_iso, 'LineWidth', 2.5);
+% yline(0, 'k--', 'LineWidth', 1.5);
+% xlabel('Cumulative Fixation Number', 'FontSize', 20, 'FontWeight','normal');
+% ylabel('Gaze Similarity (r)', 'FontSize', 20, 'FontWeight','normal');
+% legend({'', '', 'compared', 'isolated'}, 'Location', 'best', 'FontSize', 20, 'Box', 'off');
+% xlim([0, n_fix_to_plot + 0.5]);
+% set(gca, 'XTick', 0:n_fix_to_plot, 'FontSize', 20, 'LineWidth', 1.5);
+% set(gca, 'YTick', [-0.01 0 0.02 0.04 0.06 0.08]);
+% box off; grid off;
+% print(gcf, fullfile(fig_dir, 'gaze_cumu_ba.pdf'), '-dpdf', '-vector');
+% 
+% 
+% [anova_res, anova_posthoc] = run_rm_anova_2x2('Gaze Reinstatement Slope ANOVA', aa_slopes_c, aa_slopes_i, slopes_c, slopes_i);
 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

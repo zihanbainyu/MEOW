@@ -3,7 +3,7 @@ clear; clc; close all;
 base_dir = '..';
 res_dir = fullfile(base_dir, 'results');
 
-load(fullfile(base_dir, 'data', 'eye_movement_data', 'group_eye_movement_combined.mat'), 'Mw');
+load(fullfile(res_dir, 'group_eye_movement_combined.mat'), 'Mw');
 
 spatial_params = struct('xres',1920,'yres',1080,'roi_x',[760,1160],'roi_y',[340,740],'grid_x',20,'grid_y',20,'sigma',2);
 
@@ -32,6 +32,46 @@ pairs_aa_iso.Properties.VariableNames = {'subj_id','tr_1b_a','stim_id','tr_2b_a'
 
 fprintf('Matched A-A pairs: compared=%d, isolated=%d\n', height(pairs_aa_comp), height(pairs_aa_iso));
 
+%% Add B-trial correctness to A-A pairs
+% Find 2-back B trials to match via base_id
+tr_two_b_b_comp = unique(Mw(task_2b_idx & ab_idx & b_idx & comp_idx, {'subj_id','trial_id','stim_id'}));
+tr_two_b_b_iso  = unique(Mw(task_2b_idx & ab_idx & b_idx & iso_idx,  {'subj_id','trial_id','stim_id'}));
+
+% Compared: match A pairs to their corresponding B trial
+pairs_aa_comp.base_id = regexprep(pairs_aa_comp.stim_id, '_A_', '_BASE_');
+tmp_b_comp = tr_two_b_b_comp;
+tmp_b_comp.base_id = regexprep(tmp_b_comp.stim_id, '_B_', '_BASE_');
+
+pairs_aa_comp.correct = nan(height(pairs_aa_comp), 1);
+for i = 1:height(pairs_aa_comp)
+    match = tmp_b_comp.subj_id == pairs_aa_comp.subj_id(i) & strcmp(tmp_b_comp.base_id, pairs_aa_comp.base_id{i});
+    if any(match)
+        tr_b = tmp_b_comp.trial_id(find(match, 1));
+        row = find(Mw.subj_id == pairs_aa_comp.subj_id(i) & Mw.trial_id == tr_b & task_2b_idx, 1);
+        if ~isempty(row), pairs_aa_comp.correct(i) = Mw.correct(row); end
+    end
+end
+
+% Isolated: same logic
+pairs_aa_iso.base_id = regexprep(pairs_aa_iso.stim_id, '_A_', '_BASE_');
+tmp_b_iso = tr_two_b_b_iso;
+tmp_b_iso.base_id = regexprep(tmp_b_iso.stim_id, '_B_', '_BASE_');
+
+pairs_aa_iso.correct = nan(height(pairs_aa_iso), 1);
+for i = 1:height(pairs_aa_iso)
+    match = tmp_b_iso.subj_id == pairs_aa_iso.subj_id(i) & strcmp(tmp_b_iso.base_id, pairs_aa_iso.base_id{i});
+    if any(match)
+        tr_b = tmp_b_iso.trial_id(find(match, 1));
+        row = find(Mw.subj_id == pairs_aa_iso.subj_id(i) & Mw.trial_id == tr_b & task_2b_idx, 1);
+        if ~isempty(row), pairs_aa_iso.correct(i) = Mw.correct(row); end
+    end
+end
+
+fprintf('B-trial correctness matched: comp=%d/%d, iso=%d/%d\n', ...
+    sum(~isnan(pairs_aa_comp.correct)), height(pairs_aa_comp), ...
+    sum(~isnan(pairs_aa_iso.correct)), height(pairs_aa_iso));
+
+%% Build baseline pools
 unique_subjs = unique([pairs_aa_comp.subj_id; pairs_aa_iso.subj_id]);
 subj_baseline_b_comp = struct();
 subj_baseline_b_iso = struct();
@@ -50,8 +90,9 @@ end
 
 max_fixations = 10;
 
+%% Compute cumulative A-A compared
 fprintf('\nComputing cumulative A-A compared (%d pairs)...\n', height(pairs_aa_comp));
-cumulative_results_comp = nan(height(pairs_aa_comp), max_fixations + 3);
+cumulative_results_comp = nan(height(pairs_aa_comp), max_fixations + 4);
 n_comp = 0;
 for i = 1:height(pairs_aa_comp)
     pair = pairs_aa_comp(i, :);
@@ -74,12 +115,13 @@ for i = 1:height(pairs_aa_comp)
     if all(isnan(cumulative_reinst)), continue; end
 
     n_comp = n_comp + 1;
-    cumulative_results_comp(n_comp, :) = [pair.subj_id, pair.tr_1b_a, pair.tr_2b_a, cumulative_reinst];
+    cumulative_results_comp(n_comp, :) = [pair.subj_id, pair.tr_1b_a, pair.tr_2b_a, pair.correct, cumulative_reinst];
 end
 cumulative_results_comp = cumulative_results_comp(1:n_comp, :);
 
+%% Compute cumulative A-A isolated
 fprintf('Computing cumulative A-A isolated (%d pairs)...\n', height(pairs_aa_iso));
-cumulative_results_iso = nan(height(pairs_aa_iso), max_fixations + 3);
+cumulative_results_iso = nan(height(pairs_aa_iso), max_fixations + 4);
 n_iso = 0;
 for i = 1:height(pairs_aa_iso)
     pair = pairs_aa_iso(i, :);
@@ -102,20 +144,21 @@ for i = 1:height(pairs_aa_iso)
     if all(isnan(cumulative_reinst)), continue; end
 
     n_iso = n_iso + 1;
-    cumulative_results_iso(n_iso, :) = [pair.subj_id, pair.tr_1b_a, pair.tr_2b_a, cumulative_reinst];
+    cumulative_results_iso(n_iso, :) = [pair.subj_id, pair.tr_1b_a, pair.tr_2b_a, pair.correct, cumulative_reinst];
 end
 cumulative_results_iso = cumulative_results_iso(1:n_iso, :);
 
 fprintf('Cumulative A-A: compared=%d trials, isolated=%d trials\n', n_comp, n_iso);
 
-%% Aggregate
+%% Convert to tables
 fixation_names = arrayfun(@(x) sprintf('fix_%d', x), 1:max_fixations, 'UniformOutput', false);
-var_names = [{'subj_id', 'tr_1b_a', 'tr_2b_a'}, fixation_names];
+var_names = [{'subj_id', 'tr_1b_a', 'tr_2b_a', 'correct'}, fixation_names];
 cumulative_results_comp = array2table(cumulative_results_comp, 'VariableNames', var_names);
 cumulative_results_iso = array2table(cumulative_results_iso, 'VariableNames', var_names);
 
-fix_cols_comp = cumulative_results_comp{:, 4:end};
-fix_cols_iso = cumulative_results_iso{:, 4:end};
+%% Aggregate
+fix_cols_comp = cumulative_results_comp{:, 5:end};
+fix_cols_iso = cumulative_results_iso{:, 5:end};
 n_trials_per_fix = sum(~isnan(fix_cols_comp), 1);
 min_trials = 0.2 * max(n_trials_per_fix);
 n_fix_to_plot = find(n_trials_per_fix < min_trials, 1, 'first') - 1;
@@ -133,11 +176,12 @@ for i = 1:length(common_subjs)
     if sum(idx_i) > 0, subj_traj_iso(i, :) = mean(fix_cols_iso(idx_i, 1:n_fix_to_plot), 1, 'omitnan'); else, subj_traj_iso(i, :) = NaN; end
 end
 
-save(fullfile(res_dir, 'cumu_reinstat_aa.mat'), ...
+save(fullfile(res_dir, 'cumu_reinstat_aa_cor.mat'), ...
     'cumulative_results_comp', 'cumulative_results_iso', 'subj_traj_comp', 'subj_traj_iso', ...
     'common_subjs', 'n_fix_to_plot', 'spatial_params');
 
 
+%% --- Helper functions ---
 
 function cumulative_reinst = compute_cumulative_reinstatement_baseline(fix_2b, map_1b_match, baseline_pool, Mw, task_1b_idx, subj_id, spatial_params, max_fixations)
     n_fixations = min(height(fix_2b), max_fixations);
