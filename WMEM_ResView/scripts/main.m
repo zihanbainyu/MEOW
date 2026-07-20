@@ -66,11 +66,11 @@ function main()
         p.centerY = p.screenY/2;
         [p.xCenter, p.yCenter] = RectCenter(p.windowRect);
         p.ifi = Screen('GetFlipInterval', p.window);
-        p.fix_cross_size = 30;
-        p.fix_cross_width = 4;
+        p.fix_cross_size = 45;
+        p.fix_cross_width = 6;
         % Thaler et al. (2013) combined fixation target (restricted viewing)
-        p.fix_dot_d1    = 24;              % outer disc diameter (px)
-        p.fix_dot_d2    = 8;               % central dot diameter / crosshair width (px)
+        p.fix_dot_d1    = 36;              % outer disc diameter (px)
+        p.fix_dot_d2    = 12;              % central dot diameter / crosshair width (px)
         p.fix_dot_color = p.colors.black;  % disc + central dot colour
         % Gaze enforcement (~61.6 px/deg at 110 cm; monocular right eye)
         p.fix_tol_px       = 150;   % break window radius during viewing (~2.4 deg)
@@ -191,7 +191,7 @@ function main()
             %%%%%%%%%%%%%%%%%%%%%%%
             % rest
             %%%%%%%%%%%%%%%%%%%%%%%
-            message = sprintf('Well done!\n\nPlease use the next 45 seconds to relax.\n\nThe screen will go blank shortly');
+            message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             task_end_flip = Screen('Flip', p.window);
 
@@ -218,11 +218,11 @@ function main()
                 warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
             end
 
-            WaitSecs('UntilTime', task_end_flip);
+            WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
 
-            fprintf('Rest started... (45 seconds)\n');
+            fprintf('Rest started... (30 seconds)\n');
             Screen('Flip', p.window);
-            WaitSecs(45);
+            WaitSecs(30);
 
             %%%%%%%%%%%%%%%%%%%%%%%
             % optional recalibration
@@ -267,7 +267,7 @@ function main()
             % rest
             %%%%%%%%%%%%%%%%%%%%%%%
             if b < p.nBlocks
-                message = sprintf('Fantastic job!\n\nPlease use the next 1 minute to relax.\n\nThe screen will go blank shortly');
+                message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
                 DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
                 task_end_flip = Screen('Flip', p.window);
     
@@ -294,10 +294,10 @@ function main()
                     warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
                 end
     
-                WaitSecs('UntilTime', task_end_flip);
-                fprintf('Rest started... (60 seconds)\n');
+                WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
+                fprintf('Rest started... (30 seconds)\n');
                 Screen('Flip', p.window); % Blank screen
-                WaitSecs(60);
+                WaitSecs(30);
     
                 %%%%%%%%%%%%%%%%%%%%%%%
                 % optional recalibration
