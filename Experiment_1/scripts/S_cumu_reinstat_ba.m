@@ -1,8 +1,8 @@
 clear; clc; close all;
 
 base_dir = '..';
-res_dir = fullfile(base_dir, 'results', 'cumulative_reinstatement_ba');
-load(fullfile(res_dir, 'cumulative_reinstatement_ba_results.mat'));
+res_dir = fullfile(base_dir, 'results');
+load(fullfile(res_dir, 'cumu_reinstat_ba.mat'));
 
 fix_cols_comp = cumulative_results_comp{:, 4:3+n_fix_to_plot};
 fix_cols_iso = cumulative_results_iso{:, 4:3+n_fix_to_plot};
@@ -59,8 +59,8 @@ fprintf('Compared:  M=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
 fprintf('Isolated:  M=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
     mean(slopes_i), std(slopes_i), st_i.df, st_i.tstat, p_i, d_i);
 
-fprintf('\n--- Paired t-test (compared vs isolated slopes) ---\n');
-[~, p_diff, ci_diff, st_diff] = ttest(slopes_c, slopes_i);
+fprintf('\n--- Paired t-test (compared > isolated slopes) ---\n');
+[~, p_diff, ci_diff, st_diff] = ttest(slopes_c, slopes_i, 'Tail', 'right');
 d_diff = mean(slopes_c - slopes_i) / std(slopes_c - slopes_i);
 fprintf('Difference: M=%.4f (SD=%.4f), t(%d)=%.3f, p=%.4f, d=%.3f\n', ...
     mean(slopes_c - slopes_i), std(slopes_c - slopes_i), st_diff.df, st_diff.tstat, p_diff, d_diff);
@@ -82,48 +82,48 @@ fix_numbers = 1:n_fix_to_plot;
 x_fit = linspace(1, n_fix_to_plot, 50);
 x_fit_c = x_fit - mean(x);
 
-figure('Position', [100, 100, 900, 450]);
+comp_color = [0.58, 0.58, 0.78];
+iso_color = [0.62, 0.86, 0.96];
+comp_fit = mean(slopes_c) * x_fit_c + mean(mean_comp);
+iso_fit = mean(slopes_i) * x_fit_c + mean(mean_iso);
 
-subplot(1, 2, 1); hold on;
+p_c_str = regexprep(sprintf('%.2f', p_c), '^0', '');
+p_i_str = regexprep(sprintf('%.2f', p_i), '^0', '');
+
+figure('Position', [100, 100, 250, 320], 'Color', 'w');
+hold on;
 fill([fix_numbers, fliplr(fix_numbers)], [mean_comp + sem_comp, fliplr(mean_comp - sem_comp)], ...
-    [0.2, 0.6, 0.8], 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+    comp_color, 'FaceAlpha', 0.12, 'EdgeColor', 'none', 'HandleVisibility', 'off');
 fill([fix_numbers, fliplr(fix_numbers)], [mean_iso + sem_iso, fliplr(mean_iso - sem_iso)], ...
-    [0.8, 0.4, 0.4], 'FaceAlpha', 0.2, 'EdgeColor', 'none');
-plot(fix_numbers, mean_comp, 'o', 'Color', [0.2, 0.6, 0.8], 'MarkerSize', 9, 'MarkerFaceColor', [0.2, 0.6, 0.8], 'LineWidth', 1.5);
-plot(fix_numbers, mean_iso, 's', 'Color', [0.8, 0.4, 0.4], 'MarkerSize', 9, 'MarkerFaceColor', [0.8, 0.4, 0.4], 'LineWidth', 1.5);
-plot(x_fit, mean(slopes_c) * x_fit_c + mean(mean_comp), '-', 'Color', [0.2, 0.6, 0.8], 'LineWidth', 2.5);
-plot(x_fit, mean(slopes_i) * x_fit_c + mean(mean_iso), '-', 'Color', [0.8, 0.4, 0.4], 'LineWidth', 2.5);
-plot([0.5, n_fix_to_plot + 0.5], [0, 0], 'k--', 'LineWidth', 1);
-xlabel('Cumulative Fixation Number', 'FontSize', 11);
-ylabel('Cross-Item Reinstatement', 'FontSize', 11);
-title('B\rightarrowA Reinstatement Buildup', 'FontSize', 13);
-legend({'', '', 'Compared', 'Isolated'}, 'Location', 'best', 'FontSize', 10);
-xlim([0.5, n_fix_to_plot + 0.5]); box off; grid on;
+    iso_color, 'FaceAlpha', 0.18, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+h_comp = plot(x_fit, comp_fit, '-', 'Color', comp_color, 'LineWidth', 2.5);
+h_iso = plot(x_fit, iso_fit, '-', 'Color', iso_color, 'LineWidth', 2.5);
+plot([0.9, n_fix_to_plot + 0.35], [0, 0], '--', 'Color', [0.45, 0.45, 0.45], ...
+    'LineWidth', 1, 'HandleVisibility', 'off');
 
-subplot(1, 2, 2); hold on;
-bar_data = [mean(slopes_c), mean(slopes_i)];
-bar_err = [std(slopes_c)/sqrt(n_subj), std(slopes_i)/sqrt(n_subj)];
-b = bar(bar_data, 'FaceColor', 'flat', 'EdgeColor', 'none', 'BarWidth', 0.6);
-b.CData(1,:) = [0.2, 0.6, 0.8]; b.CData(2,:) = [0.8, 0.4, 0.4];
-errorbar(1:2, bar_data, bar_err, 'k.', 'LineWidth', 1.5, 'CapSize', 10);
-scatter(ones(n_subj, 1) * 0.85 + rand(n_subj, 1) * 0.3, slopes_c, 20, [0.2, 0.6, 0.8], 'filled', 'MarkerFaceAlpha', 0.4);
-scatter(ones(n_subj, 1) * 1.85 + rand(n_subj, 1) * 0.3, slopes_i, 20, [0.8, 0.4, 0.4], 'filled', 'MarkerFaceAlpha', 0.4);
-for s = 1:n_subj
-    plot([1, 2], [slopes_c(s), slopes_i(s)], '-', 'Color', [0.5 0.5 0.5 0.15], 'LineWidth', 0.5);
-end
-set(gca, 'XTick', 1:2, 'XTickLabel', {'Compared', 'Isolated'});
-ylabel('Reinstatement Buildup Rate (slope)', 'FontSize', 11);
-title('Per-Subject Slopes', 'FontSize', 13);
-if p_diff < 0.05
-    y_sig = max(bar_data) + max(bar_err) + 0.01;
-    plot([1, 2], [y_sig, y_sig], 'k-', 'LineWidth', 1.5);
-    if p_diff < 0.001, p_str = '***';
-    elseif p_diff < 0.01, p_str = '**';
-    else, p_str = '*';
-    end
-    text(1.5, y_sig + 0.003, p_str, 'HorizontalAlignment', 'center', 'FontSize', 14);
-end
-box off;
+xlim([0.95, n_fix_to_plot + 0.55]);
+ylim([-0.018, max([0.08, mean_comp + sem_comp, mean_iso + sem_iso]) + 0.005]);
+set(gca, 'XTick', 1:n_fix_to_plot, 'YTick', 0:0.02:0.06, 'FontSize', 10, ...
+    'LineWidth', 1.5, 'TickDir', 'out', 'Box', 'off', 'Layer', 'top');
+xlabel('Cumulative fixation number', 'FontSize', 10);
+ylabel('');
+
+legend([h_comp, h_iso], {['compared: p = ' p_c_str], ['isolated:    p = ' p_i_str]}, ...
+    'Location', 'southwest', 'Box', 'off', 'FontSize', 9);
+
+x_bracket = n_fix_to_plot + 0.22;
+y_bracket_low = min(comp_fit(end), iso_fit(end));
+y_bracket_high = max(comp_fit(end), iso_fit(end));
+plot([x_bracket, x_bracket], [y_bracket_low, y_bracket_high], 'k-', 'LineWidth', 1.5, ...
+    'HandleVisibility', 'off');
+plot([x_bracket - 0.06, x_bracket], [y_bracket_low, y_bracket_low], 'k-', 'LineWidth', 1.5, ...
+    'HandleVisibility', 'off');
+plot([x_bracket - 0.06, x_bracket], [y_bracket_high, y_bracket_high], 'k-', 'LineWidth', 1.5, ...
+    'HandleVisibility', 'off');
+text(x_bracket + 0.08, mean([y_bracket_low, y_bracket_high]), '*', ...
+    'FontSize', 12, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
+
+set(gcf, 'PaperPositionMode', 'auto');
 
 print(gcf, fullfile(res_dir, 'cumulative_reinstatement_ba_slopes.pdf'), '-dpdf', '-vector');
 

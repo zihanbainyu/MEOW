@@ -22,17 +22,13 @@ for s_idx = 1:length(unique_subjs)
 
     subj_trials = all_trials_table(all_trials_table.subj_id == subj_id, :);
     
-    % baseline + trial for ALL trials into continuous timeseries
     concat_pupil = [];
-    trial_boundaries = zeros(height(subj_trials), 2);  % [start, end] for trial period
-    baseline_boundaries = zeros(height(subj_trials), 2);  % [start, end] for baseline period
+    trial_boundaries = zeros(height(subj_trials), 2);
+    baseline_boundaries = zeros(height(subj_trials), 2); 
     
     current_sample = 1;
     for tr = 1:height(subj_trials)
-        % add baseline period (200 samples BEFORE stim_onset)
         baseline_pupil = subj_trials.baseline_pupil{tr};
-        
-        % use last 200 samples of baseline period
         if length(baseline_pupil) >= 200
             baseline_to_use = baseline_pupil(end-199:end);
         else
@@ -107,34 +103,34 @@ for s_idx = 1:length(unique_subjs)
             
             % SUBTRACT 200 FROM A-B NOVEL TRIALS AFTER PREPROCESSING
             % GRADUALLY SUBTRACT FROM A-B NOVEL TRIALS STARTING AT 0.5s
-            is_ab_novel = strcmp(subj_trials.condition(tr), 'novel') && strcmp(subj_trials.goal(tr), 'A-B');
-            if is_ab_novel
-                trial_data = all_preprocessed.pupil_preprocessed{global_idx};
-                trial_len = length(trial_data);
-
-                % Start subtracting after 500ms (500 samples at 1000Hz)
-                onset_sample = 700;
-
-                if trial_len > onset_sample
-                    % Linear ramp: gradually increase subtraction from 0 to 200
-                    ramp_len = 800;  % Ramp over 200ms
-
-                    for i = onset_sample+1:min(onset_sample+ramp_len, trial_len)
-                        % Gradually increase from 0 to 200
-                        subtraction_amount = 90 * ((i - onset_sample) / ramp_len);
-                        trial_data(i) = trial_data(i) - subtraction_amount;
-                    end
-
-                    % Full 200 subtraction after ramp
-                    if trial_len > onset_sample + ramp_len
-                        trial_data(onset_sample+ramp_len+1:end) = trial_data(onset_sample+ramp_len+1:end) - 90;
-                    end
-
-                    all_preprocessed.pupil_preprocessed{global_idx} = trial_data;
-                end
-            end
-            
-            all_preprocessed.preprocess_success(global_idx) = true;
+            % is_ab_novel = strcmp(subj_trials.condition(tr), 'novel') && strcmp(subj_trials.goal(tr), 'A-B');
+            % if is_ab_novel
+            %     trial_data = all_preprocessed.pupil_preprocessed{global_idx};
+            %     trial_len = length(trial_data);
+            % 
+            %     % Start subtracting after 500ms (500 samples at 1000Hz)
+            %     onset_sample = 700;
+            % 
+            %     if trial_len > onset_sample
+            %         % Linear ramp: gradually increase subtraction from 0 to 200
+            %         ramp_len = 800;  % Ramp over 200ms
+            % 
+            %         for i = onset_sample+1:min(onset_sample+ramp_len, trial_len)
+            %             % Gradually increase from 0 to 200
+            %             subtraction_amount = 90 * ((i - onset_sample) / ramp_len);
+            %             trial_data(i) = trial_data(i) - subtraction_amount;
+            %         end
+            % 
+            %         % Full 200 subtraction after ramp
+            %         if trial_len > onset_sample + ramp_len
+            %             trial_data(onset_sample+ramp_len+1:end) = trial_data(onset_sample+ramp_len+1:end) - 90;
+            %         end
+            % 
+            %         all_preprocessed.pupil_preprocessed{global_idx} = trial_data;
+            %     end
+            % end
+            % 
+            % all_preprocessed.preprocess_success(global_idx) = true;
         end
         
         fprintf('  Success: %d trials preprocessed\n', height(subj_trials));
