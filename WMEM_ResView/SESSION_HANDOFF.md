@@ -116,8 +116,43 @@ The **counts** are already met. The live discussion is optimizing sequence
 
 ---
 
+## Part D — Sequence optimization: RESOLVED (2026-07-20)
+
+Verified by faithfully reimplementing both builders in Python and simulating
+2,000 blocks each (no MATLAB on that device; label-only logic, so exact).
+Stimulus pool confirmed: 180 L1 + 180 L2 pairs, ~765 foil pairs.
+
+**Already clean — no change made:**
+- 2-back lag A→probe = exactly 2 on 180,000/180,000 goals.
+- Condition clustering: P(next=current) = 0.329 (chance 0.333) — fully dispersed.
+- Compared/repeat pairs stay adjacent in 1-back (miniblock integrity 100%).
+- Foil pool: ~272 consumed of 765 → underflow impossible.
+- Counts: 40/40/40 per condition; 30 `j` + 30 `k` presses/block.
+- Response `none`-dominance (62–67%) + occasional long runs: intrinsic to
+  n-back, left as-is (no validity cost).
+
+**Fixed — the one real issue:**
+- Isolated A→B could land adjacent (~1.6%) or within 6 trials (~6.8%), which
+  makes an "isolated" pair behave like a "compared" pair. `A_subject_setup.m`
+  P5A (~L233): wrapped the existing shuffle + A-before-B swap in a retry guard
+  enforcing **min isolated separation = 5 trials** (`min_iso_sep`, cap 500).
+  Converges in ~4 tries (max 43 seen); working logic untouched.
+
+**Recognition (from earlier this session):** old-item filter changed to
+`goal_type == "A-B"` (120 old, all three conditions) + `n_rec_foils = 120`.
+
+Sim scripts (scratchpad, LOCAL / will not transfer): `sim_2back.py`,
+`sim_1back.py`, `conv.py`.
+
+Still untouched / optional if revisited: response run-length capping (minor),
+cross-subject counterbalancing (currently `rng('shuffle')`; L1/L2 is a
+deterministic 15/15 split per block, so already balanced).
+
+---
+
 ## How to resume
 1. On the other device, pull the repo and open `WMEM_ResView/SESSION_HANDOFF.md`.
-2. Tell Claude: "Read SESSION_HANDOFF.md and continue the sequence-optimization
-   discussion (Part C)."
+2. Part C is resolved (see Part D). Remaining optional items listed at the end
+   of Part D. Do a dry run of `A_subject_setup.m` on the rig to confirm the
+   retry guard runs clean for a real subject.
 3. Safe to delete this file once the work is done.
