@@ -214,7 +214,7 @@ for i = 1:height(results_table)
         Eyelink('Message', '!V TRIAL_VAR corr_resp %s', char(trial_info.corr_resp));
         Eyelink('Message', '!V TRIAL_VAR response %s', char(key_pressed));
         Eyelink('Message', '!V TRIAL_VAR block %d', trial_info.block);
-        Eyelink('Message', '!V TRIAL_VAR fix_broken %d', fix_broken);
+        Eyelink('Message', '!V TRIAL_VAR fix_broken %d', double(fix_broken)); % logicals are rejected by Eyelink('Message')
         Eyelink('Message', 'TRIAL_RESULT 0');
     end
     %------------------------------------------------------------------
