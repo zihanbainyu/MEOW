@@ -140,59 +140,59 @@ b2_rt_l_c = get_v('two','rt_AB_comp')'; b2_rt_l_i = get_v('two','rt_AB_iso')'; b
 b2_rt_t_c = get_v('two','rt_AA_comp')'; b2_rt_t_i = get_v('two','rt_AA_iso')'; b2_rt_t_n = get_v('two','rt_AA_nov')';
 rec_d_c = get_v('rec','d_comp'); rec_d_i = get_v('rec','d_iso');
 
-figure('color','w','position',[50 50 1400 400]);
-
-% Panel A: LDI × d' interaction
-subplot(1,3,1); hold on;
-ldi_m = [mean(b2_ldi_c), mean(b2_ldi_i), mean(b2_ldi_n)];
-ldi_se = [std(b2_ldi_c), std(b2_ldi_i), std(b2_ldi_n)] / sqrt(length(subj_ids));
-dp_m = [mean(b2_dp_c), mean(b2_dp_i), mean(b2_dp_n)];
-dp_se = [std(b2_dp_c), std(b2_dp_i), std(b2_dp_n)] / sqrt(length(subj_ids));
-
-yyaxis left;
-errorbar(1:3, ldi_m, ldi_se, '-o', 'Color', c_comp, 'MarkerFaceColor', c_comp, 'LineWidth', 2, 'MarkerSize', 8, 'CapSize', 10);
-ylabel('LDI'); set(gca, 'YColor', c_comp);
-ylim([0.3 0.65]);
-
-yyaxis right;
-errorbar(1:3, dp_m, dp_se, '-s', 'Color', [0.4 0.4 0.4], 'MarkerFaceColor', [0.4 0.4 0.4], 'LineWidth', 2, 'MarkerSize', 8, 'CapSize', 10);
-ylabel('d'''); set(gca, 'YColor', [0.4 0.4 0.4]);
-ylim([2 4.5]);
-
-set(gca, 'XTick', 1:3, 'XTickLabel', {'compared','isolated','novel'}, 'FontSize', 20, 'LineWidth', 1.5);
-xlim([0.5 3.5]); 
-box off; hold off;
-
-% Panel B: WM predicts EM benefit
-subplot(1,3,2); hold on;
-wm = (b2_dp_c + b2_dp_i + b2_dp_n) / 3;
-em_avg = (b2_ldi_c + b2_ldi_i) / 2 - b2_ldi_n;
-valid_b = ~isnan(wm) & ~isnan(em_avg);
-[r_b, p_b] = corr(wm(valid_b), em_avg(valid_b), 'Tail', 'right');
-scatter(wm(valid_b), em_avg(valid_b), 80, 'filled', 'MarkerFaceAlpha', 0.6, 'MarkerFaceColor', c_comp);
-mdl_b = fitlm(wm(valid_b), em_avg(valid_b));
-x_b = linspace(min(wm(valid_b)), max(wm(valid_b)), 100)';
-[y_b, ci_b] = predict(mdl_b, x_b);
-fill([x_b; flipud(x_b)], [ci_b(:,1); flipud(ci_b(:,2))], c_comp, 'EdgeColor', 'none', 'FaceAlpha', 0.2);
-plot(x_b, y_b, '-', 'Color', c_comp, 'LineWidth', 2);
-title(sprintf('r = %.3f, p = %.3f', r_b, p_b), 'FontSize', 20);
-set(gca, 'FontSize', 20, 'LineWidth', 1.5); axis square; box off; hold off;
-
-% Panel C: EM benefit predicts recognition
-subplot(1,3,3); hold on;
-rec_avg = (rec_d_c + rec_d_i) / 2;
-valid_c = ~isnan(em_avg) & ~isnan(rec_avg');
-[r_c, p_c] = corr(em_avg(valid_c), rec_avg(valid_c)', 'Tail', 'right');
-scatter(rec_avg(valid_c), em_avg(valid_c), 80, 'filled', 'MarkerFaceAlpha', 0.6, 'MarkerFaceColor', c_comp);
-mdl_c = fitlm(rec_avg(valid_c)', em_avg(valid_c));
-x_c = linspace(min(rec_avg(valid_c)), max(rec_avg(valid_c)), 100)';
-[y_c, ci_c] = predict(mdl_c, x_c);
-fill([x_c; flipud(x_c)], [ci_c(:,1); flipud(ci_c(:,2))], c_comp, 'EdgeColor', 'none', 'FaceAlpha', 0.2);
-plot(x_c, y_c, '-', 'Color', c_comp, 'LineWidth', 2);
-title(sprintf('r = %.3f, p = %.3f', r_c, p_c), 'FontSize', 20);
-set(gca, 'FontSize', 20, 'LineWidth', 1.5); axis square; box off; hold off;
-print(gcf, fullfile(fig_dir, 'grant_figure.pdf'), '-dpdf', '-vector');
-
+% figure('color','w','position',[50 50 1400 400]);
+% 
+% % Panel A: LDI × d' interaction
+% subplot(1,3,1); hold on;
+% ldi_m = [mean(b2_ldi_c), mean(b2_ldi_i), mean(b2_ldi_n)];
+% ldi_se = [std(b2_ldi_c), std(b2_ldi_i), std(b2_ldi_n)] / sqrt(length(subj_ids));
+% dp_m = [mean(b2_dp_c), mean(b2_dp_i), mean(b2_dp_n)];
+% dp_se = [std(b2_dp_c), std(b2_dp_i), std(b2_dp_n)] / sqrt(length(subj_ids));
+% 
+% yyaxis left;
+% errorbar(1:3, ldi_m, ldi_se, '-o', 'Color', c_comp, 'MarkerFaceColor', c_comp, 'LineWidth', 2, 'MarkerSize', 8, 'CapSize', 10);
+% ylabel('LDI'); set(gca, 'YColor', c_comp);
+% ylim([0.3 0.65]);
+% 
+% yyaxis right;
+% errorbar(1:3, dp_m, dp_se, '-s', 'Color', [0.4 0.4 0.4], 'MarkerFaceColor', [0.4 0.4 0.4], 'LineWidth', 2, 'MarkerSize', 8, 'CapSize', 10);
+% ylabel('d'''); set(gca, 'YColor', [0.4 0.4 0.4]);
+% ylim([2 4.5]);
+% 
+% set(gca, 'XTick', 1:3, 'XTickLabel', {'compared','isolated','novel'}, 'FontSize', 20, 'LineWidth', 1.5);
+% xlim([0.5 3.5]); 
+% box off; hold off;
+% 
+% % Panel B: WM predicts EM benefit
+% subplot(1,3,2); hold on;
+% wm = (b2_dp_c + b2_dp_i + b2_dp_n) / 3;
+% em_avg = (b2_ldi_c + b2_ldi_i) / 2 - b2_ldi_n;
+% valid_b = ~isnan(wm) & ~isnan(em_avg);
+% [r_b, p_b] = corr(wm(valid_b), em_avg(valid_b), 'Tail', 'right');
+% scatter(wm(valid_b), em_avg(valid_b), 80, 'filled', 'MarkerFaceAlpha', 0.6, 'MarkerFaceColor', c_comp);
+% mdl_b = fitlm(wm(valid_b), em_avg(valid_b));
+% x_b = linspace(min(wm(valid_b)), max(wm(valid_b)), 100)';
+% [y_b, ci_b] = predict(mdl_b, x_b);
+% fill([x_b; flipud(x_b)], [ci_b(:,1); flipud(ci_b(:,2))], c_comp, 'EdgeColor', 'none', 'FaceAlpha', 0.2);
+% plot(x_b, y_b, '-', 'Color', c_comp, 'LineWidth', 2);
+% title(sprintf('r = %.3f, p = %.3f', r_b, p_b), 'FontSize', 20);
+% set(gca, 'FontSize', 20, 'LineWidth', 1.5); axis square; box off; hold off;
+% 
+% % Panel C: EM benefit predicts recognition
+% subplot(1,3,3); hold on;
+% rec_avg = (rec_d_c + rec_d_i) / 2;
+% valid_c = ~isnan(em_avg) & ~isnan(rec_avg');
+% [r_c, p_c] = corr(em_avg(valid_c), rec_avg(valid_c)', 'Tail', 'right');
+% scatter(rec_avg(valid_c), em_avg(valid_c), 80, 'filled', 'MarkerFaceAlpha', 0.6, 'MarkerFaceColor', c_comp);
+% mdl_c = fitlm(rec_avg(valid_c)', em_avg(valid_c));
+% x_c = linspace(min(rec_avg(valid_c)), max(rec_avg(valid_c)), 100)';
+% [y_c, ci_c] = predict(mdl_c, x_c);
+% fill([x_c; flipud(x_c)], [ci_c(:,1); flipud(ci_c(:,2))], c_comp, 'EdgeColor', 'none', 'FaceAlpha', 0.2);
+% plot(x_c, y_c, '-', 'Color', c_comp, 'LineWidth', 2);
+% title(sprintf('r = %.3f, p = %.3f', r_c, p_c), 'FontSize', 20);
+% set(gca, 'FontSize', 20, 'LineWidth', 1.5); axis square; box off; hold off;
+% print(gcf, fullfile(fig_dir, 'grant_figure.pdf'), '-dpdf', '-vector');
+% 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % % B2B1 gaze consistency
@@ -271,30 +271,30 @@ fprintf('compared > 0: t(%d)=%.2f, d=%.2f, p=%.4f\n', s.df, s.tstat, stat_result
 fprintf('isolated > 0: t(%d)=%.2f, d=%.2f, p=%.4f\n', s.df, s.tstat, stat_results.rec_iso_v0.d, p);
 [~,p,~,s] = ttest(rec_d_c, rec_d_i); stat_results.rec_comp_v_iso = struct('t',s.tstat,'df',s.df,'d',cohend(rec_d_c',rec_d_i'),'p',p);
 fprintf('compared v isolated: t(%d)=%.2f, d=%.2f, p=%.4f\n', s.df, s.tstat, stat_results.rec_comp_v_iso.d, p);
-
-%% WM-EM relationship
-fprintf('\n--- WM-EM relationship ---\n');
-wm_full = (b2_dp_c + b2_dp_i + b2_dp_n)/3;
-em_full = (rec_d_c' + rec_d_i')/2;
-em_benefit_full = (b2_ldi_c + b2_ldi_i)/2 - b2_ldi_n;
-
-% WM-d' x EM-benefit (one-tailed)
-v1 = ~isnan(wm_full) & ~isnan(em_benefit_full);
-[r,p] = corr(wm_full(v1), em_benefit_full(v1), 'Tail','right');
-fprintf('WM-d'' x EM-benefit: r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v1), sum(v1)-2);
-stat_results.wm_em.r_avg=r; stat_results.wm_em.p_avg=p; stat_results.wm_em.n_avg=sum(v1);
-
-% EM-benefit x EM-d' (recognition, one-tailed)
-v2 = ~isnan(em_benefit_full) & ~isnan(em_full);
-[r,p] = corr(em_benefit_full(v2), em_full(v2), 'Tail','right');
-fprintf('EM-benefit x EM-d'':  r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v2), sum(v2)-2);
-stat_results.wm_em.r_em=r; stat_results.wm_em.p_em=p; stat_results.wm_em.n_em=sum(v2);
-
-% WM-d' x EM-d' (direct, for common-factor argument, one-tailed)
-v3 = ~isnan(wm_full) & ~isnan(em_full);
-[r,p] = corr(wm_full(v3), em_full(v3), 'Tail','right');
-fprintf('WM-d'' x EM-d'':      r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v3), sum(v3)-2);
-stat_results.wm_em.r_direct=r; stat_results.wm_em.p_direct=p; stat_results.wm_em.n_direct=sum(v3);
+% 
+% %% WM-EM relationship
+% fprintf('\n--- WM-EM relationship ---\n');
+% wm_full = (b2_dp_c + b2_dp_i + b2_dp_n)/3;
+% em_full = (rec_d_c' + rec_d_i')/2;
+% em_benefit_full = (b2_ldi_c + b2_ldi_i)/2 - b2_ldi_n;
+% 
+% % WM-d' x EM-benefit (one-tailed)
+% v1 = ~isnan(wm_full) & ~isnan(em_benefit_full);
+% [r,p] = corr(wm_full(v1), em_benefit_full(v1), 'Tail','right');
+% fprintf('WM-d'' x EM-benefit: r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v1), sum(v1)-2);
+% stat_results.wm_em.r_avg=r; stat_results.wm_em.p_avg=p; stat_results.wm_em.n_avg=sum(v1);
+% 
+% % EM-benefit x EM-d' (recognition, one-tailed)
+% v2 = ~isnan(em_benefit_full) & ~isnan(em_full);
+% [r,p] = corr(em_benefit_full(v2), em_full(v2), 'Tail','right');
+% fprintf('EM-benefit x EM-d'':  r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v2), sum(v2)-2);
+% stat_results.wm_em.r_em=r; stat_results.wm_em.p_em=p; stat_results.wm_em.n_em=sum(v2);
+% 
+% % WM-d' x EM-d' (direct, for common-factor argument, one-tailed)
+% v3 = ~isnan(wm_full) & ~isnan(em_full);
+% [r,p] = corr(wm_full(v3), em_full(v3), 'Tail','right');
+% fprintf('WM-d'' x EM-d'':      r=%.3f, p=%.4f (1-tailed), n=%d, df=%d\n', r, p, sum(v3), sum(v3)-2);
+% stat_results.wm_em.r_direct=r; stat_results.wm_em.p_direct=p; stat_results.wm_em.n_direct=sum(v3);
 
 % % gaze
 % [stat_results.gaze_bb_2x2, stat_results.gaze_bb_2x2_ph] = run_2x2_anova_correctness('B2-B1', gaze_bb_corr(:,1), gaze_bb_incorr(:,1), gaze_bb_corr(:,2), gaze_bb_incorr(:,2), gaze_bb_overall(:,1), gaze_bb_overall(:,2));
