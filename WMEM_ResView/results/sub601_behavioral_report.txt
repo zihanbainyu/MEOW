@@ -1,0 +1,153 @@
+================================================================
+ SINGLE-SUBJECT BEHAVIORAL REPORT  --  sub601   (2026-07-21 22:02)
+================================================================
+
+
+=== 0. DATA QUALITY ==============================================
+
+1-back: 720 trials, blocks [1  2  3  4]
+  block          n    no-resp   fix broken   gate t/o     RT<min
+  1            180       2.2%         0.0%       0.6%       0.0%
+  2            180       2.2%         0.0%       5.6%       0.0%
+  3            180       2.2%         0.0%      30.6%       0.0%
+  4            180       0.0%         0.0%       7.2%       0.0%
+  ALL          720       1.7%         0.0%      11.0%       0.0%
+
+2-back: 634 trials, blocks [1  2  3  4]
+  block          n    no-resp   fix broken   gate t/o     RT<min
+  1            159       2.5%         0.0%       0.0%       0.0%
+  2            158       3.2%         0.0%      15.8%       0.0%
+  3            158      10.8%         0.0%      68.4%       0.0%
+  4            159       5.7%         0.0%       0.6%       0.0%
+  ALL          634       5.5%         0.0%      21.1%       0.0%
+
+RT (>150 ms): 1-back median 0.867 s [IQR 0.780-1.084] | 2-back median 1.042 s [IQR 0.961-1.168]
+
+
+=== 1. ENCODING (1-back) =========================================
+
+-- accuracy (wilson 95% CI) --
+  same    (repeat 2nd)   0.775  [0.692, 0.841]   93/120
+  similar (compared B)   0.833  [0.757, 0.889]   100/120
+  new     (all others)   0.996  [0.985, 0.999]   478/480
+
+-- accuracy contrasts (two-proportion z; disjoint trial sets) --
+  same vs similar: 0.775 vs 0.833, diff = -0.058, z = -1.14, h = -0.15, p = 0.2549 
+  similar vs new : 0.833 vs 0.996, diff = -0.162, z = -8.47, h = -0.71, p = 0.0000 ***
+  same vs new    : 0.775 vs 0.996, diff = -0.221, z = -10.09, h = -0.86, p = 0.0000 ***
+
+-- RT on correct trials --
+  same     median 0.887 s [IQR 0.790-1.090], mean 0.936, SD 0.210, n = 93
+  similar  median 0.820 s [IQR 0.766-0.913], mean 0.870, SD 0.179, n = 100
+  same vs similar: rank-sum z = 2.47, r = 0.18, p = 0.0133 *
+
+-- confusions (row = presented, col = response; proportion [n]) --
+                        ->same       ->similar           ->new       n
+  same             0.775 [ 93]     0.200 [ 24]     0.025 [  3]     120
+  similar          0.092 [ 11]     0.833 [100]     0.075 [  9]     120
+  new              0.002 [  1]     0.002 [  1]     0.996 [478]     480
+
+-- accuracy by block --
+  block                  1           2           3           4
+  same               0.933       0.700       0.633       0.833
+  similar            0.767       0.833       0.833       0.900
+  new                1.000       0.992       0.992       1.000
+
+
+=== 2. RETRIEVAL (2-back) ========================================
+
+-- accuracy by goal x condition (wilson 95% CI) --
+
+  AA (same / target)
+      compared           0.700  [0.546, 0.819]   28/40
+      isolated           0.750  [0.598, 0.858]   30/40
+      novel              0.575  [0.422, 0.715]   23/40
+    -> across conditions: chi2(2) = 2.96, V = 0.16, p = 0.2273 
+
+  AB (similar / lure)
+      compared           0.450  [0.307, 0.602]   18/40
+      isolated           0.425  [0.285, 0.578]   17/40
+      novel              0.525  [0.375, 0.671]   21/40
+    -> across conditions: chi2(2) = 0.87, V = 0.09, p = 0.6471 
+
+  AN (new / foil)
+      compared           1.000  [0.901, 1.000]   35/35
+      isolated           0.977  [0.882, 0.996]   43/44
+      novel              1.000  [0.908, 1.000]   38/38
+    -> across conditions: chi2(2) = 1.67, V = 0.12, p = 0.4331  (expected count < 5, treat with care)
+
+-- LDI  ( p(k|AB) - p(k|AN), bootstrap 95% CI ) --
+  compared  LDI = +0.450  [+0.300, +0.600]   (lure-k 0.450 of 40, foil-k 0.000 of 35)
+  isolated  LDI = +0.402  [+0.250, +0.575]   (lure-k 0.425 of 40, foil-k 0.023 of 44)
+  novel     LDI = +0.525  [+0.375, +0.675]   (lure-k 0.525 of 40, foil-k 0.000 of 38)
+  pairwise differences (bootstrap):
+    compared  - isolated  = +0.048  [-0.175, +0.270], p_boot = 0.7352 
+    isolated  - novel     = -0.123  [-0.345, +0.081], p_boot = 0.3004 
+    compared  - novel     = -0.075  [-0.300, +0.125], p_boot = 0.5588 
+
+-- d'  ( z(p(j|AA)) - z(p(j|AN)), bootstrap 95% CI ) --
+  compared  d' = 2.714  [2.315, 3.124]   (hit 0.700 of 40, FA 0.000 of 35)
+  isolated  d' = 2.952  [2.531, 3.428]   (hit 0.750 of 40, FA 0.000 of 44)
+  novel     d' = 2.411  [2.032, 2.819]   (hit 0.575 of 40, FA 0.000 of 38)
+  pairwise differences (bootstrap):
+    compared  - isolated  = -0.239  [-0.854, +0.350], p_boot = 0.3784 
+    isolated  - novel     = +0.542  [-0.014, +1.156], p_boot = 0.0652 
+    compared  - novel     = +0.303  [-0.245, +0.902], p_boot = 0.2712 
+
+-- RT on correct trials --
+  lure (AB):
+    compared   median 1.033 s [IQR 0.887-1.188], mean 1.053, SD 0.240, n = 18
+    isolated   median 1.120 s [IQR 0.969-1.261], mean 1.096, SD 0.181, n = 17
+    novel      median 1.011 s [IQR 0.924-1.207], mean 1.060, SD 0.188, n = 21
+    -> kruskal-wallis H(2) = 0.72, p = 0.6976 
+  target (AA):
+    compared   median 1.032 s [IQR 0.994-1.130], mean 1.072, SD 0.149, n = 28
+    isolated   median 1.043 s [IQR 0.931-1.118], mean 1.036, SD 0.136, n = 30
+    novel      median 1.030 s [IQR 0.911-1.166], mean 1.027, SD 0.152, n = 23
+    -> kruskal-wallis H(2) = 0.69, p = 0.7089 
+
+-- confusions per condition (row = presented, col = response) --
+
+  compared:
+                        ->same       ->similar           ->new       n
+  same             0.700 [ 28]     0.200 [  8]     0.100 [  4]      40
+  similar          0.350 [ 14]     0.450 [ 18]     0.200 [  8]      40
+  new              0.000 [  0]     0.000 [  0]     1.000 [ 35]      35
+
+  isolated:
+                        ->same       ->similar           ->new       n
+  same             0.750 [ 30]     0.175 [  7]     0.075 [  3]      40
+  similar          0.350 [ 14]     0.425 [ 17]     0.225 [  9]      40
+  new              0.000 [  0]     0.023 [  1]     0.977 [ 43]      44
+
+  novel:
+                        ->same       ->similar           ->new       n
+  same             0.575 [ 23]     0.275 [ 11]     0.150 [  6]      40
+  similar          0.350 [ 14]     0.525 [ 21]     0.125 [  5]      40
+  new              0.000 [  0]     0.000 [  0]     1.000 [ 38]      38
+
+-- accuracy by block --
+  block                  1           2           3           4
+  AA same            0.800       0.667       0.633       0.600
+  AB similar         0.633       0.467       0.300       0.467
+  AN new             1.000       1.000       1.000       0.966
+
+
+=== 3. POST-TASK RECOGNITION =====================================
+
+  foils: 120 trials, false-alarm rate 0.058 (7 "old" responses)
+  no response: 6.2% of 240 recognition trials
+
+  condition       n      hit rate [95% CI]      d' [bootstrap 95% CI]
+  compared       40      0.775 [0.625, 0.877]        2.324 [1.825, 3.013]
+  isolated       40      0.450 [0.307, 0.602]        1.443 [0.945, 2.065]
+  novel          40      0.400 [0.263, 0.554]        1.316 [0.806, 1.960]
+
+  hit-rate contrasts:
+    compared  vs isolated : 0.775 vs 0.450, diff = +0.325, z = 2.98, h = 0.68, p = 0.0029 **
+    compared  vs novel    : 0.775 vs 0.400, diff = +0.375, z = 3.41, h = 0.78, p = 0.0007 ***
+    isolated  vs novel    : 0.450 vs 0.400, diff = +0.050, z = 0.45, h = 0.10, p = 0.6510 
+
+
+saved: ..\results\sub601_indiv_stats.mat
+saved: ..\results\sub601_behavioral_report.txt

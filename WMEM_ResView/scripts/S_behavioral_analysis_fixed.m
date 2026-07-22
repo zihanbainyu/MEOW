@@ -3,12 +3,12 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 %% setup (mirrors S_behavioral_analysis.m, BH-FDR replaces Holm-Bonferroni)
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_ids = [501, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631];
+subj_ids = [601];
 addpath(genpath('/Users/bai/Documents/GitHub/MEOW/toolbox/bayesFactor-master'));
 base_dir = '..';
 res_dir = fullfile(base_dir, 'results');
 cohend = @(x,y) mean(x-y,'omitnan') / std(x-y,'omitnan');
-load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
+% load(fullfile(res_dir, 'all_subjs_stats.mat'), 'all_subjs');
 
 get_v = @(f1, f2) arrayfun(@(x) x.stats.(f1).(f2), all_subjs);
 b1_acc_sam = get_v('one','acc_same')'; b1_acc_sim = get_v('one','acc_sim')'; b1_acc_new = get_v('one','acc_new')';
