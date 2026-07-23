@@ -2,27 +2,6 @@
 %   WMEM_ResView -- restricted-viewing manipulation check (eye data)
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
-%
-% Adapted from S_gaze_reinstat_prep.m: the ASCII parsing and the merge with
-% behaviour are kept as-is; the reinstatement pairing/computation is
-% replaced by the manipulation check.
-%
-% Deliverables
-%   1. Fixation overlay -- every fixation from BOTH the 1-back and 2-back on
-%      one set of axes, coloured by condition, with the two enforced radii
-%      drawn for reference (fix_gate_tol_px = 100, fix_tol_px = 150).
-%   2. Gaze deviation by condition -- distributions plus statistics.
-%   3. Per-block drift check -- fixation centroid and spread per block. This
-%      is what distinguishes tracker drift from subject behaviour for the
-%      known block-3 gate_timeout problem.
-%
-% n = 1, so all inference is over trials/fixations, never over subjects
-% (Wilson CIs on proportions; Kruskal-Wallis / rank-sum on deviations).
-%
-% NOTE on the analysis window: the parser starts collecting eye events at
-% STIM_ONSET and stops at the next TRIALID, so every fixation here ended
-% during stimulus presentation. That is the correct window for asking
-% whether gaze was actually restricted while the image was on screen.
 %==========================================================================
 
 clear; clc; close all;
