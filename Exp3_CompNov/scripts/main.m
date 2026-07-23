@@ -87,119 +87,119 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % % which blocks to run
         % %%%%%%%%%%%%%%%%%%%%%%%
-        % b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
-        % if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
-        % 
-        % for b = b_seq
-        %     fprintf('Block...%d\n\n', b);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % Phase 1: 1-back
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     fprintf('   Run 1-back\n');
-        %     sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % instruction and practice for block 1 only
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if b == 1
-        %         instructions(p, '1_back');
-        %         fprintf('   Run practice\n');
-        %         C_run_1_back_practice(p);
-        %     end
-        % 
-        %     results_1_back = C_run_1_back(p, sequence_1_back_block, b);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % rest
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
-        %     DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-        %     task_end_flip = Screen('Flip', p.window);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % save 1-back data
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     try
-        %         block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
-        %         block_filepath = fullfile(p.results_dir, block_filename);
-        %         save(block_filepath, 'results_1_back');
-        %         fprintf('1-back block %d data saved.\n', b);
-        %     catch ME
-        %         warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
-        %     end
-        % 
-        %     WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
-        % 
-        %     fprintf('Rest started... (30 seconds)\n');
-        %     Screen('Flip', p.window);
-        %     WaitSecs(30);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % Phase 1: 2-back
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     fprintf('   Running 2-back\n\n');
-        %     sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % instruction and practice for only block 1
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if b == 1
-        %         instructions(p, '2_back');
-        %         fprintf('   Run practice\n');
-        %         D_run_2_back_practice(p);
-        %     end
-        % 
-        %     results_2_back = D_run_2_back(p, sequence_2_back_block, b);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % rest
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if b < p.nBlocks
-        %         message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
-        %         DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-        %         task_end_flip = Screen('Flip', p.window);
-        % 
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         % save 2-back data
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         try
-        %             block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
-        %             block_filepath = fullfile(p.results_dir, block_filename);
-        %             save(block_filepath, 'results_2_back');
-        %             fprintf('2-back block %d data saved.\n', b);
-        %         catch ME
-        %             warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-        %         end
-        % 
-        %         WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
-        %         fprintf('Rest started... (30 seconds)\n');
-        %         Screen('Flip', p.window); % Blank screen
-        %         WaitSecs(30);
-        %     else
-        %         % LAST block, so just save the data without a rest
-        %         try
-        %             block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
-        %             block_filepath = fullfile(p.results_dir, block_filename);
-        %             save(block_filepath, 'results_2_back');
-        %             fprintf('2-back block %d data saved.\n', b);
-        %         catch ME
-        %             warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-        %         end
-        %     end
-        % end % block loop ends
-        % 
-        %  %%%%%%%%%%%%%%%%%%%%%%%
-        %  % save 1-back and 2-back data
-        %  %%%%%%%%%%%%%%%%%%%%%%%
-        % results_1_back_all = consolidate_data(p, '1_back');
-        % results_2_back_all = consolidate_data(p, '2_back');
-        % final_data_output.subj_id = p.subj_id;
-        % final_data_output.parameters = p;
-        % final_data_output.results_1_back_all = results_1_back_all;
-        % final_data_output.results_2_back_all = results_2_back_all;
-        % save(final_data_filename, 'final_data_output');
-        % fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
+        b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
+        if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
+
+        for b = b_seq
+            fprintf('Block...%d\n\n', b);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % Phase 1: 1-back
+            %%%%%%%%%%%%%%%%%%%%%%%
+            fprintf('   Run 1-back\n');
+            sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % instruction and practice for block 1 only
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if b == 1
+                instructions(p, '1_back');
+                fprintf('   Run practice\n');
+                C_run_1_back_practice(p);
+            end
+
+            results_1_back = C_run_1_back(p, sequence_1_back_block, b);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % rest
+            %%%%%%%%%%%%%%%%%%%%%%%
+            message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
+            DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+            task_end_flip = Screen('Flip', p.window);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % save 1-back data
+            %%%%%%%%%%%%%%%%%%%%%%%
+            try
+                block_filename = sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b);
+                block_filepath = fullfile(p.results_dir, block_filename);
+                save(block_filepath, 'results_1_back');
+                fprintf('1-back block %d data saved.\n', b);
+            catch ME
+                warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
+            end
+
+            WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
+
+            fprintf('Rest started... (30 seconds)\n');
+            Screen('Flip', p.window);
+            WaitSecs(30);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % Phase 1: 2-back
+            %%%%%%%%%%%%%%%%%%%%%%%
+            fprintf('   Running 2-back\n\n');
+            sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % instruction and practice for only block 1
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if b == 1
+                instructions(p, '2_back');
+                fprintf('   Run practice\n');
+                D_run_2_back_practice(p);
+            end
+
+            results_2_back = D_run_2_back(p, sequence_2_back_block, b);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % rest
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if b < p.nBlocks
+                message = sprintf('Well done. Please take the next 30 seconds to rest.\n\nThe screen will go blank shortly.');
+                DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+                task_end_flip = Screen('Flip', p.window);
+
+                %%%%%%%%%%%%%%%%%%%%%%%
+                % save 2-back data
+                %%%%%%%%%%%%%%%%%%%%%%%
+                try
+                    block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
+                    block_filepath = fullfile(p.results_dir, block_filename);
+                    save(block_filepath, 'results_2_back');
+                    fprintf('2-back block %d data saved.\n', b);
+                catch ME
+                    warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+                end
+
+                WaitSecs('UntilTime', task_end_flip + 2);  % keep rest message up for >= 2 s
+                fprintf('Rest started... (30 seconds)\n');
+                Screen('Flip', p.window); % Blank screen
+                WaitSecs(30);
+            else
+                % LAST block, so just save the data without a rest
+                try
+                    block_filename = sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b);
+                    block_filepath = fullfile(p.results_dir, block_filename);
+                    save(block_filepath, 'results_2_back');
+                    fprintf('2-back block %d data saved.\n', b);
+                catch ME
+                    warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+                end
+            end
+        end % block loop ends
+
+         %%%%%%%%%%%%%%%%%%%%%%%
+         % save 1-back and 2-back data
+         %%%%%%%%%%%%%%%%%%%%%%%
+        results_1_back_all = consolidate_data(p, '1_back');
+        results_2_back_all = consolidate_data(p, '2_back');
+        final_data_output.subj_id = p.subj_id;
+        final_data_output.parameters = p;
+        final_data_output.results_1_back_all = results_1_back_all;
+        final_data_output.results_2_back_all = results_2_back_all;
+        save(final_data_filename, 'final_data_output');
+        fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % Phase 2: Recognition
