@@ -37,9 +37,10 @@ p.nNovel = 120;
 p.nTotalPairs = p.nComparison + p.nNovel; % 240 total pairs
 
 % # of blocks in experiment
-% 3 blocks -> 40 compared + 40 novel pairs per block
-% (~6.0 min of 1-back and ~5.3 min of 2-back per block)
-p.nBlocks = 3;
+% 4 blocks -> 30 compared + 30 novel pairs per block, which divides exactly
+% into 10/10/10 goal types per condition (no remainder to spread around).
+% Runs come out ~6.2 min of 1-back and ~5.2 min of 2-back.
+p.nBlocks = 4;
 
 % keyboard mappings
 p.keys.same = 'j';
@@ -49,6 +50,23 @@ p.keys.quit = 'escape';
 p.timing.image_dur = 1.5;           % stimulus presentation
 p.timing.fix_dur = 1.5;             % base fixation (mean ITI)
 p.timing.fix_jitter = 0.75;         % uniform ±0.75s -> ITI 0.75 to 2.25s
+
+% Sequence aperiodicity control (see P5B). For each block we build
+% n_candidates complete 2-back sequences and keep the one whose
+% compared-trial train is least rhythmic, rather than stopping at the first
+% acceptable one (which tends to land just under threshold). period_thresh
+% is the 95th percentile of a 500-permutation null for blocks of this
+% length, and is used only to warn if even the best candidate is rhythmic.
+p.seq.n_candidates = 30;
+p.seq.period_thresh = 11;
+p.seq.n_perm = 500;      % permutations for the built-in validation
+p.seq.alpha = 0.05;      % a block fails if p < alpha
+
+% Fixation-only lead-in at the start of every phase (1-back, 2-back and
+% recognition), replacing the junk trials that used to open each block.
+% Honoured by C_run_1_back.m, D_run_2_back.m and E_run_recognition.m,
+% which mark its onset with an Eyelink 'LEAD_IN_ONSET' message.
+p.timing.block_lead_in = 10;        % seconds before the first trial of a run
 
 %% P2: Load stimuli
 output_filename = fullfile(p.setup_dir, sprintf('sub%03d_setup.mat', subj_id));
@@ -291,23 +309,50 @@ for b = 1:p.nBlocks
         end
     end
 
-    % shuffle goal order
-    goal_list = goal_list(randperm(height(goal_list)), :);
+    % ---- Search for an aperiodic compared-trial sequence ---------------
+    % Condition is assigned independently of serial position, so *on
+    % average* compared trials land aperiodically -- but any single shuffle
+    % can still come out rhythmic, and a periodic trial-of-interest
+    % sequence risks aliasing with drift and physiological noise. So build
+    % n_candidates complete sequences and keep the one whose compared-trial
+    % train has the flattest spectrum.
+    goal_list_pool = goal_list;         % pre-shuffle copy, reused per attempt
+    foils_snapshot = all_foils_remain;  % rewind point for discarded attempts
+    best_stat = Inf; best = struct();
 
-    goal_list_b = goal_list; % Make a copy for the full list
-    goal_list_b.block = repmat(b, height(goal_list_b), 1);
-    goal_list_full = [goal_list_full; goal_list_b];
+    for attempt = 1:p.seq.n_candidates
+    all_foils_remain = foils_snapshot;
+
+    % shuffle goal order
+    goal_list = goal_list_pool(randperm(height(goal_list_pool)), :);
+
+    % Keep A-N goals out of the last few slots. An A-N goal completes by
+    % pulling in the *next unstarted* goal as its "new" item, so an A-N
+    % sitting at the very end of the list has nothing left to chain to and
+    % has to burn a filler foil; it also leaves a single straggler goal in
+    % the buffer, which forces a padding trial. Swapping those A-N goals
+    % back into the body of the list removes both sources of junk.
+    n_tail = 3;
+    tail_slots = height(goal_list) - n_tail + 1 : height(goal_list);
+    is_AN_tail = find(goal_list.goal_type(tail_slots) == "A-N");
+    if ~isempty(is_AN_tail)
+        body_non_AN = find(goal_list.goal_type(1:end-n_tail) ~= "A-N");
+        picks = body_non_AN(randperm(numel(body_non_AN), numel(is_AN_tail)));
+        rows_tail = tail_slots(is_AN_tail);
+        tmp = goal_list(rows_tail, :);
+        goal_list(rows_tail, :) = goal_list(picks, :);
+        goal_list(picks, :) = tmp;
+    end
 
     %%% Build sequence
+    % No lead-in junk trials: the block opens with p.timing.block_lead_in
+    % seconds of blank screen instead, which serves the same purpose (let
+    % the BOLD/pupil signal settle before the first real trial) without
+    % spending stimuli. The first two trials are goal-starting 'A' items
+    % with corr_resp "none", which is the correct response anyway since
+    % nothing has appeared 2 back yet.
     sequence = cell(300, 5); % Oversized to prevent crash
     row_idx = 1;
-    % init with 2 junk
-    junk1 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
-    junk2 = all_foils_remain(1,:); all_foils_remain(1,:) = [];
-    sequence(row_idx,:) = {junk1.A_foil, "init_junk", "J", "JUNK", "none"};
-    row_idx = row_idx + 1;
-    sequence(row_idx,:) = {junk2.A_foil, "init_junk", "J", "JUNK", "none"};
-    row_idx = row_idx + 1;
     active_goals = [];
     goals_started = false(height(goal_list), 1);
     goal_pointer = 1;
@@ -425,14 +470,57 @@ for b = 1:p.nBlocks
         end
     end
 
-    % end junk
-    if height(all_foils_remain) >= 5
-        for jj = 1:5
-            sequence(row_idx,:) = {all_foils_remain.A_foil(jj), "end_junk", "J", "JUNK", "none"};
-            row_idx = row_idx + 1;
-        end
-        all_foils_remain(1:5,:) = [];
+    % ---- Score this attempt: how periodic is the compared-trial train? --
+    % Binary indicator of compared trials over the block; peak / median
+    % power across all non-DC frequencies of its DFT. A random order scores
+    % ~6-7; a rhythmic one scores well above.
+    cond_col = string(sequence(1:row_idx-1, 2));
+    stat = seq_peak_ratio(cond_col == "compared");
+
+    if stat < best_stat
+        best_stat = stat;
+        best.sequence = sequence;
+        best.row_idx = row_idx;
+        best.goal_list = goal_list;
+        best.foils = all_foils_remain;
+        best.indicator = (cond_col == "compared");
     end
+    end % attempt
+
+    % Take the flattest candidate
+    sequence = best.sequence;
+    row_idx = best.row_idx;
+    goal_list = best.goal_list;
+    all_foils_remain = best.foils;
+
+    % ---- Validate the retained sequence against a permutation null -----
+    % Same trials, random order, p.seq.n_perm times. If the real sequence
+    % scores no higher than the shuffles, it carries no dominant rhythm.
+    null_stats = zeros(p.seq.n_perm, 1);
+    for it = 1:p.seq.n_perm
+        null_stats(it) = seq_peak_ratio(best.indicator(randperm(numel(best.indicator))));
+    end
+    p.seq.block_stat(b)   = best_stat;
+    p.seq.block_p(b)      = mean(null_stats >= best_stat);
+    p.seq.block_null95(b) = prctile(null_stats, 95);
+    p.seq.block_nullmean(b) = mean(null_stats);
+    p.seq.block_pass(b)   = p.seq.block_p(b) >= p.seq.alpha;
+
+    if p.seq.block_pass(b), verdict = 'PASS'; else, verdict = 'FAIL'; end
+    fprintf('  Aperiodicity: %.2f (null M=%.2f, 95th=%.2f, p=%.3f) -> %s\n', ...
+        best_stat, mean(null_stats), prctile(null_stats, 95), p.seq.block_p(b), verdict);
+    if ~p.seq.block_pass(b)
+        warning(['Block %d compared-trial sequence is periodic ' ...
+                 '(stat %.2f, p=%.3f) despite %d candidates.'], ...
+                 b, best_stat, p.seq.block_p(b), p.seq.n_candidates);
+    end
+
+    goal_list_b = goal_list; % Make a copy for the full list
+    goal_list_b.block = repmat(b, height(goal_list_b), 1);
+    goal_list_full = [goal_list_full; goal_list_b];
+
+    % No trailing junk trials: the loop above already runs until every goal
+    % has both started AND completed, so the block ends on a real trial.
 
     % Convert to table
     sequence_2_back_block = cell2table(sequence(1:row_idx-1, :), ...
@@ -565,6 +653,43 @@ subject_data.sequence_1_back = sequence_1_back;
 subject_data.sequence_2_back = sequence_2_back;
 subject_data.sequence_recognition = sequence_recognition;
 
+%% ========================================================================
+%  P8: SEQUENCE VALIDATION SUMMARY
+%  ========================================================================
+% The schedule is only written if every block's compared-trial sequence
+% passed the permutation test, so a saved file is always ready to run.
+fprintf('\n===== Aperiodicity check (compared trials, %d permutations) =====\n', p.seq.n_perm);
+fprintf('  %-7s %-10s %-11s %-11s %-8s %s\n', 'block', 'observed', 'null mean', 'null 95th', 'p', 'verdict');
+for b = 1:p.nBlocks
+    if p.seq.block_pass(b), verdict = 'PASS'; else, verdict = 'FAIL'; end
+    fprintf('  %-7d %-10.2f %-11.2f %-11.2f %-8.3f %s\n', b, p.seq.block_stat(b), ...
+        p.seq.block_nullmean(b), p.seq.block_null95(b), p.seq.block_p(b), verdict);
+end
+
+if ~all(p.seq.block_pass)
+    error(['Aperiodicity check FAILED for block(s) %s -- schedule NOT saved. ' ...
+           'Re-run to draw a new sequence, or raise p.seq.n_candidates.'], ...
+           mat2str(find(~p.seq.block_pass)));
+end
+fprintf('  All %d blocks passed (observed %.2f-%.2f, all p >= %.3f).\n', ...
+    p.nBlocks, min(p.seq.block_stat), max(p.seq.block_stat), min(p.seq.block_p));
+
+subject_data.parameters = p;   % refresh: p gained the validation results
+
 % --- Save the file ---
 save(output_filename, 'subject_data');
 fprintf('\nSetup saved to: %s\n', output_filename);
+
+%% ------------------------------------------------------------------------
+%  Local functions
+%  ------------------------------------------------------------------------
+function pk = seq_peak_ratio(ind)
+% Peak-to-median power ratio of a binary trial indicator. Higher = more
+% rhythmic. DC term dropped; only frequencies up to Nyquist are considered.
+ind = double(ind(:));
+ind = ind - mean(ind);
+N = numel(ind);
+P = abs(fft(ind)).^2 / N;
+halfband = 2:floor(N/2);
+pk = max(P(halfband)) / median(P(halfband));
+end

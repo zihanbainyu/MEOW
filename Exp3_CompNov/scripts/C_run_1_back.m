@@ -2,13 +2,17 @@
 % Phase 1: 1-Back Encoding Task
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
+%
+% Exp3_CompNov: no eye tracking. All Eyelink calls, the fixation onset
+% gate, live gaze monitoring and the restricted-viewing fixation overlay
+% have been removed. The fixation target itself is kept as the inter-trial
+% fixation point.
 %==========================================================================
-function [results_table] = C_run_1_back(p, el, sequence_1_back_block, b)
+function [results_table] = C_run_1_back(p, sequence_1_back_block, b)
 %% ========================================================================
 % SECTION 1: SET UP
 % ========================================================================
 % define parameters
-is_eyetracking = p.eyetracking == 1;
 results_table = sequence_1_back_block;
 num_trials_in_block = height(results_table);
 results_table.resp_key = strings(num_trials_in_block, 1);
@@ -19,7 +23,6 @@ escape_key = KbName(p.keys.quit);
 same_key = KbName(p.keys.same);
 similar_key = KbName(p.keys.diff);
 start_key = KbName('f');
-current_block = results_table.block(1);
 total_blocks = p.nBlocks;
 %% ------------------------------------------------------------------------
 % Apply Text and Keyboard Settings
@@ -37,22 +40,18 @@ KbCheck(p.keys.device);
 % SECTION 2: BLOCK & TRIAL EXECUTION
 % ========================================================================
 %------------------------------------------------------------------
-% 2A: Start of Block Screen (Fixed DrawFormattedText syntax)
+% 2A: Start of Block Screen
 %------------------------------------------------------------------
 DrawFormattedText(p.window, ...
-    [sprintf('Block %01d of 4\n\n\n\n', b) ...
-    '1-Back Task', ...
-    '\n\n\n', ...
-    'Reminder: Compare each image against the one from ONE TRIAL AGO.', ...
-    '\n\n\n', ...
-    'Press ' p.keys.same ' = SAME.\n\n' ...
-    'Press ' p.keys.diff ' = SIMILAR.\n\n' ...
-    'No press = NEW.' ...
+    [sprintf('Block %01d of %01d:  1-Back\n\n\n\n', b, total_blocks) ...
+    'Please compare each image to the one shown ONE TRIAL AGO.', ...
     '\n\n\n\n' ...
-    'Please place your index and middle fingers on j and k, and press f to begin'], 'center', 'center', p.colors.black);
+    'Press ' p.keys.same ' = SAME.     Press ' p.keys.diff ' = SIMILAR.     No press = NEW.' ...
+    '\n\n\n\n' ...
+    'Please rest your fingers on j and k, then press f to begin.'], 'center', 'center', p.colors.black);
 Screen('Flip', p.window);
 KbReleaseWait(p.keys.device);
-% Wait for 'g' key press on the specified device to start
+% Wait for 'f' key press on the specified device to start
 while true
     [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
     if keyIsDown
@@ -61,27 +60,12 @@ while true
     end
     WaitSecs(0.001); % Yield CPU for a millisecond
 end
-% Eyelink: start recording eye movements
-if is_eyetracking
-    if Eyelink('IsConnected') ~= 1
-        error('EYELINK_FATAL: Connection lost before block recording started.');
-    end
-    Eyelink('Command', 'set_offline_mode');
-    WaitSecs(0.05);
-    status = Eyelink('StartRecording');
-    if status ~= 0
-        error('EYELINK_FATAL: StartRecording failed with status %d.', status);
-    end
-    WaitSecs(0.1);
-    Eyelink('Message', 'TRIAL_RESULT 0');
-end
-% Initial fixation before the first trial of the block
-xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
-yCoords = [0, 0, -p.fix_cross_size, p.fix_cross_size];
-allCoords = [xCoords; yCoords];
-Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
-Screen('Flip', p.window);
-WaitSecs(2);
+% Lead-in fixation before the first trial of the block. This replaces the
+% junk trials that used to open each block (see A_subject_setup.m), giving
+% the signal time to settle before the first real trial.
+draw_fixation_target(p);
+lead_in_onset = Screen('Flip', p.window);
+WaitSecs('UntilTime', lead_in_onset + p.timing.block_lead_in);
 
 KbQueueStart(p.keys.device);
 
@@ -91,18 +75,9 @@ for i = 1:height(results_table)
     % 2B: Trial loop for the current block
     %------------------------------------------------------------------
 
-    % Eyelink: mark trial start and perform drift check
-    if is_eyetracking
-        Eyelink('Message', 'TRIALID %d', i);
-        Eyelink('command', 'record_status_message "Block %d, Trial %d"', current_block, i);
-        % EyelinkDoDriftCorrection(el);
-    end
     % --------- fixation ------------
-    Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
+    draw_fixation_target(p);
     fix_onset_time = Screen('Flip', p.window);
-    if is_eyetracking
-        Eyelink('Message', 'FIXATION_ONSET');
-    end
     % --------- stimulus preparation ------------
     img_path = fullfile(p.stim_dir, results_table.stim_id(i));
     if ~exist(img_path, 'file'), error('cannot find image file: %s', img_path); end
@@ -113,12 +88,6 @@ for i = 1:height(results_table)
     KbQueueFlush(p.keys.device);
     % --- present image and collect response ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
-    % Eyelink: send messages exactly at stimulus onset
-    if is_eyetracking
-        Eyelink('Message', 'SYNCTIME');
-        Eyelink('Message', 'STIM_ONSET %s', char(trial_info.stim_id));
-        Eyelink('Message', '!V IMGLOAD CENTER %s %d %d', char(img_path), p.xCenter, p.yCenter);
-    end
 
     key_pressed = "NA";
     response_time = NaN;
@@ -141,35 +110,9 @@ for i = 1:height(results_table)
             else
                 key_pressed = "invalid";
             end
-            
-            if is_eyetracking
-                % Calculate RT in milliseconds
-                rt_ms = response_time * 1000;
-                
-                % Check if RT is a valid finite number. If not, set a safe placeholder (e.g., -1).
-                if ~isfinite(rt_ms) || rt_ms < 0 
-                    rt_log_value = -999; % Log a clearly invalid number
-                else
-                    rt_log_value = round(rt_ms); % Use the rounded value
-                end
-            
-                % Log the message using the safe integer value
-                Eyelink('Message', 'RESPONSE KEY %s RT %d', char(key_pressed), rt_log_value); 
-            end
         end
     end
     Screen('Close', img_texture);
-    % Eyelink: log trial variables
-    if is_eyetracking
-        % send variables to Data Viewer for analysis
-        Eyelink('Message', '!V TRIAL_VAR stimulus %s', char(trial_info.stim_id));
-        Eyelink('Message', '!V TRIAL_VAR condition %s', char(trial_info.condition));
-        Eyelink('Message', '!V TRIAL_VAR identity %s', char(trial_info.identity));
-        Eyelink('Message', '!V TRIAL_VAR corr_resp %s', char(trial_info.corr_resp));
-        Eyelink('Message', '!V TRIAL_VAR response %s', char(key_pressed));
-        Eyelink('Message', '!V TRIAL_VAR block %d', trial_info.block);
-        Eyelink('Message', 'TRIAL_RESULT 0');
-    end
     %------------------------------------------------------------------
     % 2C: Record trial data
     %------------------------------------------------------------------
@@ -177,16 +120,32 @@ for i = 1:height(results_table)
     results_table.rt(i) = response_time;
 end % end of the trial loop
 
-% --- Clear screen before stopping recording ---
+% --- Clear screen at end of block ---
 Screen('FillRect', p.window, p.colors.bgcolor);
 Screen('Flip', p.window);
 WaitSecs(0.05);
 
-if is_eyetracking
-    WaitSecs(0.1);
-    Eyelink('StopRecording');
-end
 % Release the KbQueue resources after the trial loop
 KbQueueRelease(p.keys.device);
 
+end
+
+%% ========================================================================
+% LOCAL FUNCTIONS
+% =========================================================================
+function draw_fixation_target(p)
+% Thaler, Schutz, Goodale & Gegenfurtner (2013, Vision Research):
+% combined bullseye-and-crosshair target ("ABC"), the most stable for
+% steady fixation. Outer disc (d1) split into quadrants by a background-
+% coloured crosshair (width d2), with a central dot (d2) on top.
+d1 = p.fix_dot_d1;   % outer disc diameter (px)
+d2 = p.fix_dot_d2;   % central dot diameter / crosshair width (px)
+cx = p.xCenter; cy = p.yCenter;
+% outer disc
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d1/2, cy-d1/2, cx+d1/2, cy+d1/2]);
+% crosshair in background colour, cutting the disc into four quadrants
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d1/2, cy-d2/2, cx+d1/2, cy+d2/2]); % horizontal bar
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d2/2, cy-d1/2, cx+d2/2, cy+d1/2]); % vertical bar
+% central dot
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d2/2, cy-d2/2, cx+d2/2, cy+d2/2]);
 end

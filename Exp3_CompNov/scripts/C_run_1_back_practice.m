@@ -17,7 +17,14 @@ function C_run_1_back_practice(p)
     respKeys([same_key, similar_key, escape_key]) = 1;
     KbQueueCreate(p.keys.device, respKeys);
     
-    %% Instructions
+    %% Practice intro
+    DrawFormattedText(p.window, ['Practice: 1-Back\n\n\n' ...
+        'You will first complete a few practice trials.\n\n' ...
+        'After each image, you will see whether your answer was correct.\n\n' ...
+        'This feedback is provided only during practice.\n\n\n' ...
+        'When you are ready, please press f to begin.'], ...
+        'center', 'center', p.colors.black, [], [], [], 1);
+    Screen('Flip', p.window);
     KbReleaseWait(p.keys.device);
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
@@ -29,10 +36,7 @@ function C_run_1_back_practice(p)
     end
     
     %% Initial fixation
-    xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
-    yCoords = [0, 0, -p.fix_cross_size, p.fix_cross_size];
-    allCoords = [xCoords; yCoords];
-    Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
+    draw_fixation_target(p);
     Screen('Flip', p.window);
     WaitSecs(2);
     
@@ -53,9 +57,9 @@ function C_run_1_back_practice(p)
         img_tex = Screen('MakeTexture', p.window, img_data);
         
         % Fixation
-        Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
+        draw_fixation_target(p);
         fix_onset = Screen('Flip', p.window);
-        
+
         % Stimulus
         Screen('DrawTexture', p.window, img_tex, [], [], 0);
         stim_onset = Screen('Flip', p.window, fix_onset + sequence_1_back_practice.fix_duration(i) - 0.5*p.ifi);
@@ -95,33 +99,25 @@ function C_run_1_back_practice(p)
             n_correct = n_correct + 1;
         end
         
-        % FEEDBACK SCREEN (1.5s)
+        % FEEDBACK SCREEN
         Screen('FillRect', p.window, p.colors.bgcolor);
-        
+
         if is_correct
-            % Green checkmark
             feedback_text = 'Correct';
             feedback_color = [0 150 0];
         else
-            % Red X + correct answer
-            if strcmp(correct_resp, 'j')
-                correct_text = 'j (SAME)';
-            elseif strcmp(correct_resp, 'k')
-                correct_text = 'k (SIMILAR)';
-            else
-                correct_text = 'No response';
-            end
-            
-            feedback_text = sprintf('Incorrect!\n\nCorrect response is: %s', correct_text);
+            feedback_text = sprintf(['Incorrect\n\n' ...
+                'You pressed: %s\n\n' ...
+                'Correct answer: %s'], resp_label(response_key), resp_label(correct_resp));
             feedback_color = [140 0 0];
         end
-        
+
         DrawFormattedText(p.window, feedback_text, 'center', 'center', feedback_color);
         Screen('Flip', p.window);
         if is_correct
-            WaitSecs(0.75);  % Quick confirmation
+            WaitSecs(0.75);  % quick confirmation
         else
-            WaitSecs(2);    % Time to read correct answer
+            WaitSecs(2);      % time to read the correct answer
         end
         
         Screen('Close', img_tex);
@@ -131,34 +127,32 @@ function C_run_1_back_practice(p)
     
     %% Performance summary
     accuracy = (n_correct / nTrials) * 100;
-    
-    if accuracy == 100
+    pass_thresh = 80;   % percent correct required to move on to the real task
+
+    if accuracy >= pass_thresh
         summary_text = sprintf(...
-            ['Great! Practice complete.\n\n' ...
-            'Accuracy: %.0f%%\n\n\n\n' ...
-            'During the actual task, you will not receive feedback.\n\n' ...
-            'When you are ready, press f to begin the actual task.'], accuracy);
+            ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
+            'The real task provides no feedback.\n\n' ...
+            'When you are ready, please press f to begin.'], accuracy);
         summary_color = p.colors.black;
     else
         summary_text = sprintf(...
-            ['Practice complete.\n\n' ...
-            'Accuracy: %.0f%%\n\n\n' ...
-            'Please find the experimenter for any questions.\n\n' ...
-            'Press f to try practice again.'], accuracy);
+            ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
+            'The practice will be repeated once more.\n\n' ...
+            'Please press f to continue. If anything is unclear, please ask the experimenter.'], accuracy);
         summary_color = [140 0 0];
     end
-    
+
     DrawFormattedText(p.window, summary_text, 'center', 'center', summary_color);
     Screen('Flip', p.window);
-    
+
     KbReleaseWait(p.keys.device);
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
             if keyCode(start_key)
-                if accuracy < 80
-                    % Repeat practice
-                    C_run_1_back_practice(p);
+                if accuracy < pass_thresh
+                    C_run_1_back_practice(p);   % repeat practice
                 end
                 break;
             elseif keyCode(escape_key)
@@ -209,4 +203,30 @@ function [sequence_1_back_practice] = gen_1_back_practice(p)
             'VariableNames', col_names);
         sequence_1_back_practice = [sequence_1_back_practice; new_row];
     end
+end
+
+function label = resp_label(key)
+% Human-readable label for a response code, for feedback text.
+switch key
+    case 'j',  label = 'j (SAME)';
+    case 'k',  label = 'k (SIMILAR)';
+    otherwise, label = 'nothing (NEW)';
+end
+end
+
+function draw_fixation_target(p)
+% Thaler, Schutz, Goodale & Gegenfurtner (2013, Vision Research):
+% combined bullseye-and-crosshair target ("ABC"), the most stable for
+% steady fixation. Outer disc (d1) split into quadrants by a background-
+% coloured crosshair (width d2), with a central dot (d2) on top.
+d1 = p.fix_dot_d1;   % outer disc diameter (px)
+d2 = p.fix_dot_d2;   % central dot diameter / crosshair width (px)
+cx = p.xCenter; cy = p.yCenter;
+% outer disc
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d1/2, cy-d1/2, cx+d1/2, cy+d1/2]);
+% crosshair in background colour, cutting the disc into four quadrants
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d1/2, cy-d2/2, cx+d1/2, cy+d2/2]); % horizontal bar
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d2/2, cy-d1/2, cx+d2/2, cy+d1/2]); % vertical bar
+% central dot
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d2/2, cy-d2/2, cx+d2/2, cy+d2/2]);
 end
