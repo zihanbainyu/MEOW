@@ -77,7 +77,7 @@ function main()
         p.fix_gate_tol_px  = 100;   % onset-gate window radius (~1.6 deg)
         p.fix_break_ms     = 100;   % min time outside window to count as a break
         p.fix_gate_ms      = 200;   % required stable fixation before stimulus onset
-        p.fix_gate_timeout = 2.0;   % max wait (s) for onset gate, then proceed & log
+        p.fix_gate_timeout = 1.0;   % max wait (s) for onset gate, then proceed & log
         KbName('UnifyKeyNames');
         p.keys.device = -3; % listen to all keyboard (experimenter room + test room)
         fprintf('Listening to all keyboards\n');
@@ -347,37 +347,13 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         fprintf('Running Recognition Task\n\n');
         sequence_recognition = subject_data.sequence_recognition;
-    
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % Phase 1: 2-back
-        %%%%%%%%%%%%%%%%%%%%%%%
-    
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % eyetracking version
-        %%%%%%%%%%%%%%%%%%%%%%%
-        if p.eyetracking == 1
-            edf_filename = sprintf('%d_rec.edf', p.subj_id);
-            Eyelink('OpenFile', edf_filename);
-            fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-            Eyelink('command', 'add_file_preamble_text ''Recog''');
-            results_recognition = E_run_recognition(p, el, sequence_recognition);
-            instructions(p, 'goodbye');
-            fprintf('EYELINK: receiving edf file: %s\n', edf_filename);
-            Eyelink('CloseFile');
-            WaitSecs(0.1);
-            try
-                Eyelink('ReceiveFile', edf_filename, p.results_dir, 1);
-            catch ME
-                fprintf('Problem receiving data file ''%s'': %s\n', edf_filename, ME.message);
-            end
-        else
+        
         %%%%%%%%%%%%%%%%%%%%%%%
         % behavior-only version
         %%%%%%%%%%%%%%%%%%%%%%%
-            results_recognition = E_run_recognition(p, el, sequence_recognition);
-            instructions(p, 'goodbye');
-        end
-    
+        results_recognition = E_run_recognition(p, el, sequence_recognition);
+        instructions(p, 'goodbye');
+
         %%%%%%%%%%%%%%%%%%%%%%%
         % save recognitoin data
         %%%%%%%%%%%%%%%%%%%%%%%
