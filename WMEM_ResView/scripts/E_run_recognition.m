@@ -70,10 +70,7 @@ if is_eyetracking
     Eyelink('Message', 'TRIAL_RESULT 0');
 end
 % Initial fixation before the first trial
-xCoords = [-p.fix_cross_size, p.fix_cross_size, 0, 0];
-yCoords = [0, 0, -p.fix_cross_size, p.fix_cross_size];
-allCoords = [xCoords; yCoords];
-Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
+draw_fixation_target(p);   % same target as the 1-back / 2-back tasks
 Screen('Flip', p.window);
 WaitSecs(2);
 KbQueueStart(p.keys.device);
@@ -89,7 +86,7 @@ for i = 1:num_trials
     end
     
     % --------- fixation ------------
-    Screen('DrawLines', p.window, allCoords, p.fix_cross_width, p.colors.black, [p.xCenter p.yCenter]);
+    draw_fixation_target(p);   % same target as the 1-back / 2-back tasks
     fix_onset_time = Screen('Flip', p.window);
     if is_eyetracking
         Eyelink('Message', 'FIXATION_ONSET');
@@ -185,4 +182,21 @@ if is_eyetracking
     Eyelink('StopRecording');
 end
 KbQueueRelease(p.keys.device);
+end
+
+function draw_fixation_target(p)
+% Thaler, Schutz, Goodale & Gegenfurtner (2013, Vision Research):
+% combined bullseye-and-crosshair target ("ABC"), the most stable for
+% steady fixation. Outer disc (d1) split into quadrants by a background-
+% coloured crosshair (width d2), with a central dot (d2) on top.
+d1 = p.fix_dot_d1;   % outer disc diameter (px)
+d2 = p.fix_dot_d2;   % central dot diameter / crosshair width (px)
+cx = p.xCenter; cy = p.yCenter;
+% outer disc
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d1/2, cy-d1/2, cx+d1/2, cy+d1/2]);
+% crosshair in background colour, cutting the disc into four quadrants
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d1/2, cy-d2/2, cx+d1/2, cy+d2/2]); % horizontal bar
+Screen('FillRect', p.window, p.colors.bgcolor, [cx-d2/2, cy-d1/2, cx+d2/2, cy+d1/2]); % vertical bar
+% central dot
+Screen('FillOval', p.window, p.fix_dot_color, [cx-d2/2, cy-d2/2, cx+d2/2, cy+d2/2]);
 end
