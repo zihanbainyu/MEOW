@@ -1,0 +1,60 @@
+
+========================================================
+ sub602 -- restricted-viewing manipulation check
+========================================================
+Screen centre (959.5, 539.5); radii: gate 100 px, break 150 px
+
+--- Overall containment (all fixations, both tasks) ---
+  within 100 px :  85.19% [83.76, 86.51]  (2174/2552)
+  within 150 px :  96.43% [95.64, 97.09]  (2461/2552)
+  median deviation 52.6 px (IQR 32.8-80.1)
+
+--- Deviation by condition ---
+condition   nTrial     nFix   medTrial        IQR    within100    within150
+compared       351     1090       59.1      42-77        84.1%        96.2%
+isolated       340     1002       55.0      40-75        85.6%        97.2%
+novel          146      460       58.8      40-76        86.7%        95.2%
+
+  Kruskal-Wallis across conditions (trial level): chi2(2) = 1.82, p = 0.4023
+  pairwise rank-sum (Holm-adjusted):
+    compared  vs isolated  : p = 0.1815  (adj 0.5444)
+    compared  vs novel     : p = 0.7022  (adj 1.0000)
+    isolated  vs novel     : p = 0.5044  (adj 1.0000)
+
+--- Deviation by task ---
+  1_back  n=  1200  median 53.2 px  within100 83.8%  within150 96.5%
+  2_back  n=  1352  median 51.9 px  within100 86.5%  within150 96.4%
+  rank-sum 1-back vs 2-back (trial level): p = 0.2713
+
+--- Per block: offset vs spread ---
+  OFFSET = distance of the block's median fixation from screen centre
+           (a constant shift => calibration drift, not the subject).
+  SPREAD = median distance of fixations from the block's OWN median
+           (inflated => the subject really was moving their eyes).
+
+  block     nFix        dX        dY    OFFSET    SPREAD    medDev   within100   within150
+      1      321       8.2      17.1      19.0      31.8      37.3       89.7%       98.8%
+      2      621      12.4     -47.0      48.6      35.1      60.4       81.2%       96.9%
+      3      567      42.1      40.1      58.1      34.1      69.3       81.0%       95.2%
+      4     1043       2.3     -27.2      27.3      34.6      44.5       88.5%       96.1%
+
+  block 3 offset 58.1 px vs 31.6 px in other blocks (1.8x)
+  block 3 spread 34.1 px vs 33.8 px in other blocks (1.0x)
+  rank-sum on spread (block 3 vs rest, fixation level): p = 0.2651
+
+--- Data loss per run (missing gaze samples) ---
+  block      task    n_samples    n_missing   pct_missing
+      1    1_back       476883         7673         1.61%
+      1    2_back       515803       391114        75.83%
+      2    1_back       468953         2944         0.63%
+      2    2_back       404581         3637         0.90%
+      3    1_back       468534         6583         1.41%
+      3    2_back       436542        17267         3.96%
+      4    1_back       479346        19368         4.04%
+      4    2_back       419076        10945         2.61%
+
+  A run with heavy data loss cannot pass the onset gate (no stable
+  valid fixation to confirm) yet also cannot trigger fix_broken,
+  because invalid samples are explicitly excluded from break
+  detection. High gate_timeout + 0% fix_broken is therefore the
+  signature of a tracker problem, not of the subject looking away.

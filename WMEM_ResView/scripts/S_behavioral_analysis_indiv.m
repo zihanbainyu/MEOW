@@ -16,7 +16,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 %% setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_id  = 601;
+subj_id  = 602;
 base_dir = '..';
 res_dir  = fullfile(base_dir, 'results');
 fig_dir  = fullfile(base_dir, 'figures');
@@ -594,6 +594,5 @@ function save_fig(f, fig_dir, name)
     set(f, 'Renderer', 'painters', 'PaperPositionMode', 'auto');
     pos = get(f, 'Position');                       % match page to figure, else pdf clips
     set(f, 'PaperUnits', 'points', 'PaperSize', pos(3:4));
-    print(f, fullfile(fig_dir, [name '.pdf']), '-dpdf', '-vector');
     print(f, fullfile(fig_dir, [name '.png']), '-dpng', '-r150');
 end
