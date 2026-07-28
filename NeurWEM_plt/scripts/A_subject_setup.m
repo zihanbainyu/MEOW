@@ -25,10 +25,10 @@ p.counts.twoback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
 
 % directory
 base_dir = '..';
-% Locked stimulus pool (see A0_build_stim_pool.py): a fixed 120 L1 + 120 L2
-% pairs, identical across subjects. Only condition assignment is shuffled per
-% subject -- no pairs are randomly dropped. stim_final still holds the full
-% master set and is used by any subject whose setup predates this change.
+% Locked stimulus pool (built by A0_build_stim_pool.m): all 180 L1 + 180 L2
+% pairs plus a fixed foil subset, identical across subjects. Only the
+% condition assignment (compared / novel / repeat) is shuffled per subject.
+% stim_final still holds the full master set.
 p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
@@ -38,7 +38,8 @@ if ~exist(p.subj_dir, 'dir'), mkdir(p.subj_dir); end
 %% P1: Setup
 p.nComparison = 120;
 p.nNovel = 120;
-p.nTotalPairs = p.nComparison + p.nNovel; % 240 total pairs
+p.nRepeat = 120;   % 1-back A-A repeats, drawn from the third of the L-pool
+p.nTotalPairs = p.nComparison + p.nNovel + p.nRepeat; % 360 L-pairs, all used
 
 % # of blocks in experiment
 % 4 blocks -> 30 compared + 30 novel pairs per block, which divides exactly
@@ -119,86 +120,84 @@ B_names_l2 = string({all_B_files_l2.name}');
 master_pair_list_l2 = table(sort(A_names_l2), sort(B_names_l2), ...
     'VariableNames', {'A', 'B'});
 
-% Load foil pairs
+% Load foils (A images only). Foils are only ever shown as single new/filler
+% items, never as lures, so no B_foil is needed -- the MST lures come from the
+% repeat L-pairs' B (P3/P6B), not from foils.
 all_foil_A_files = dir(fullfile(p.stim_dir, 'mst_*_A_foil.png'));
-all_foil_B_files = dir(fullfile(p.stim_dir, 'mst_*_B_foil.png'));
-
-all_foil_pairs = table('Size', [numel(all_foil_A_files), 2], ...
-    'VariableTypes', {'string', 'string'}, ...
-    'VariableNames', {'A_foil', 'B_foil'});
-
-all_foil_pairs.A_foil = string({all_foil_A_files.name}');
-all_foil_pairs.B_foil = string({all_foil_B_files.name}');
+all_foil_pairs = table(string({all_foil_A_files.name}'), 'VariableNames', {'A_foil'});
 
 % Shuffle them
 all_foil_pairs = all_foil_pairs(randperm(height(all_foil_pairs)), :);
 
-fprintf('Found %d L1 pairs, %d L2 pairs, and %d foil pairs.\n', ...
+fprintf('Found %d L1 pairs, %d L2 pairs, and %d foils.\n', ...
     height(master_pair_list_l1), height(master_pair_list_l2), height(all_foil_pairs));
 
 %% P3: Stimuli assignment
-% The pool is now locked to exactly the pairs the task uses (120 per level;
-% see A0_build_stim_pool.py), so each level splits cleanly in half into
-% compared / novel. Nothing is dropped, and every subject draws from the same
-% fixed set -- only which pairs are compared vs novel is shuffled per subject.
-n_cond_l1 = height(master_pair_list_l1) / 2; % 120 / 2 = 60
-n_cond_l2 = height(master_pair_list_l2) / 2; % 120 / 2 = 60
+% The pool holds all 180 pairs per level, so each level splits cleanly into
+% THIRDS -- compared / novel / repeat (60 each per level). Nothing is dropped.
+% Which pairs are compared vs. novel vs. repeat is shuffled per subject. The
+% repeat pairs are shown A-A in the 1-back; their B is never shown until it
+% serves as the MST lure (P6B).
+n_cond_l1 = height(master_pair_list_l1) / 3; % 180 / 3 = 60
+n_cond_l2 = height(master_pair_list_l2) / 3; % 180 / 3 = 60
 
-% --- Split L1 Pool (120 pairs -> 60 comp / 60 nov) ---
+% --- Split L1 Pool (180 pairs -> 60 comp / 60 nov / 60 repeat) ---
 final_list_l1 = master_pair_list_l1(randperm(height(master_pair_list_l1)), :);
+comp_l1   = final_list_l1(1:n_cond_l1, :);
+nov_l1    = final_list_l1(n_cond_l1+1   : 2*n_cond_l1, :);
+repeat_l1 = final_list_l1(2*n_cond_l1+1 : 3*n_cond_l1, :);
 
-comp_l1 = final_list_l1(1:n_cond_l1, :);
-nov_l1  = final_list_l1(n_cond_l1+1 : 2*n_cond_l1, :);
-
-% --- Split L2 Pool (120 pairs -> 60 comp / 60 nov) ---
+% --- Split L2 Pool (180 pairs -> 60 comp / 60 nov / 60 repeat) ---
 final_list_l2 = master_pair_list_l2(randperm(height(master_pair_list_l2)), :);
+comp_l2   = final_list_l2(1:n_cond_l2, :);
+nov_l2    = final_list_l2(n_cond_l2+1   : 2*n_cond_l2, :);
+repeat_l2 = final_list_l2(2*n_cond_l2+1 : 3*n_cond_l2, :);
 
-comp_l2 = final_list_l2(1:n_cond_l2, :);
-nov_l2  = final_list_l2(n_cond_l2+1 : 2*n_cond_l2, :);
+% --- Combine across levels and shuffle so L1/L2 pairs are mixed ---
+comp_pairs   = [comp_l1;   comp_l2];    comp_pairs   = comp_pairs(randperm(height(comp_pairs)), :);
+novel_pairs  = [nov_l1;    nov_l2];     novel_pairs  = novel_pairs(randperm(height(novel_pairs)), :);
+repeat_pairs = [repeat_l1; repeat_l2];  repeat_pairs = repeat_pairs(randperm(height(repeat_pairs)), :);
 
-% --- Combine pools to create final 120-pair condition lists ---
-comp_pairs = [comp_l1; comp_l2];
-novel_pairs = [nov_l1; nov_l2];
-
-% Shuffle the final lists so L1/L2 pairs are mixed
-comp_pairs = comp_pairs(randperm(height(comp_pairs)), :);
-novel_pairs = novel_pairs(randperm(height(novel_pairs)), :);
+assert(height(comp_pairs) == p.nComparison && height(novel_pairs) == p.nNovel, ...
+    ['Pool size wrong: got %d compared / %d novel (need %d each). ' ...
+     'Rebuild stim_pool to 180 pairs/level.'], ...
+    height(comp_pairs), height(novel_pairs), p.nComparison);
 
 % store condition assignments
-p.stim.comp_l1 = comp_l1;
-p.stim.comp_l2 = comp_l2;
-p.stim.novel_l1 = nov_l1;
-p.stim.novel_l2 = nov_l2;
+p.stim.comp_l1   = comp_l1;   p.stim.comp_l2   = comp_l2;
+p.stim.novel_l1  = nov_l1;    p.stim.novel_l2  = nov_l2;
+p.stim.repeat_l1 = repeat_l1; p.stim.repeat_l2 = repeat_l2;
 
 % Store the final combined lists
 p.stim.compared = comp_pairs;
-p.stim.novel = novel_pairs;
+p.stim.novel    = novel_pairs;
+p.stim.repeat   = repeat_pairs;
 
-fprintf(' compared: %d L1, %d L2 (Total %d)\n', height(comp_l1), height(comp_l2), height(comp_pairs));
-fprintf(' novel:    %d L1, %d L2 (Total %d)\n', height(nov_l1), height(nov_l2), height(novel_pairs));
+fprintf(' compared: %d L1, %d L2 (Total %d)\n', height(comp_l1),   height(comp_l2),   height(comp_pairs));
+fprintf(' novel:    %d L1, %d L2 (Total %d)\n', height(nov_l1),    height(nov_l2),    height(novel_pairs));
+fprintf(' repeat:   %d L1, %d L2 (Total %d)\n', height(repeat_l1), height(repeat_l2), height(repeat_pairs));
 
 %% P4: Split stimuli into blocks
 partition_idx = @(N, nblocks) arrayfun(@(k) ...
     ((floor((k-1)*N/nblocks)+1):floor(k*N/nblocks)), ...
     1:nblocks, 'UniformOutput', false);
 
-n_comp_l1 = height(p.stim.comp_l1); % 60
-n_nov_l1 = height(p.stim.novel_l1); % 60
+n_comp_l1 = height(p.stim.comp_l1);   n_comp_l2 = height(p.stim.comp_l2);
+n_nov_l1  = height(p.stim.novel_l1);  n_nov_l2  = height(p.stim.novel_l2);
+n_rep_l1  = height(p.stim.repeat_l1); n_rep_l2  = height(p.stim.repeat_l2);
 
-n_comp_l2 = height(p.stim.comp_l2); % 60
-n_nov_l2 = height(p.stim.novel_l2); % 60
-
-% --- Partition L1 pools into blocks ---
+% --- Partition each pool (compared / novel / repeat) into blocks ---
 p.block_indices.comp_l1 = partition_idx(n_comp_l1, p.nBlocks);
 p.block_indices.nov_l1  = partition_idx(n_nov_l1, p.nBlocks);
-
-% --- Partition L2 pools into blocks ---
+p.block_indices.rep_l1  = partition_idx(n_rep_l1, p.nBlocks);
 p.block_indices.comp_l2 = partition_idx(n_comp_l2, p.nBlocks);
 p.block_indices.nov_l2  = partition_idx(n_nov_l2, p.nBlocks);
+p.block_indices.rep_l2  = partition_idx(n_rep_l2, p.nBlocks);
 
-fprintf('  -> Each block gets: %d L1-Comp, %d L2-Comp, %d L1-Nov, %d L2-Nov\n', ...
-    numel(p.block_indices.comp_l1{1}), numel(p.block_indices.comp_l2{1}), ...
-    numel(p.block_indices.nov_l1{1}),  numel(p.block_indices.nov_l2{1}));
+fprintf('  -> Each block gets %d compared, %d novel, %d repeat pairs (L1+L2).\n', ...
+    numel(p.block_indices.comp_l1{1}) + numel(p.block_indices.comp_l2{1}), ...
+    numel(p.block_indices.nov_l1{1})  + numel(p.block_indices.nov_l2{1}), ...
+    numel(p.block_indices.rep_l1{1})  + numel(p.block_indices.rep_l2{1}));
 
 % --- Goal-type templates ---
 % Per-block pair counts need not be divisible by 3 (e.g. 40 pairs/block at
@@ -219,6 +218,8 @@ p.block_indices.goal_comp = partition_idx(p.nComparison, p.nBlocks);
 p.block_indices.goal_nov  = partition_idx(p.nNovel, p.nBlocks);
 
 %% P5: Build sequence
+% A-only foil pool, consumed by 1-back fillers, recognition-new and MST-new
+% (2-back padding is kept at 0 by the candidate search below).
 all_foils_remain = all_foil_pairs;
 
 for b = 1:p.nBlocks
@@ -235,8 +236,14 @@ for b = 1:p.nBlocks
     novel_pairs_b = [nov_l1_b; nov_l2_b];
     novel_pairs_b = novel_pairs_b(randperm(height(novel_pairs_b)), :);
 
+    rep_l1_b = p.stim.repeat_l1(p.block_indices.rep_l1{b}, :);
+    rep_l2_b = p.stim.repeat_l2(p.block_indices.rep_l2{b}, :);
+    repeat_pairs_b = [rep_l1_b; rep_l2_b];
+    repeat_pairs_b = repeat_pairs_b(randperm(height(repeat_pairs_b)), :);
+
     nComp_b = height(comp_pairs_b);
     nNov_b = height(novel_pairs_b);
+    nRep_b = height(repeat_pairs_b);
 
     %% P5A: Build sequence 1-back
     comp_miniblocks = {};
@@ -249,20 +256,13 @@ for b = 1:p.nBlocks
             comp_pairs_b.B(i), "compared", "B", "k"};
     end
 
-    %%%% foil repeats (R-R)
-    n_foil_repeats = nComp_b;
-
-    if height(all_foils_remain) < n_foil_repeats
-        error('Not enough foils for 1-back repeats in Block %d', b);
-    end
-    repeat_foil_pairs = all_foils_remain(1:n_foil_repeats, :);
-    all_foils_remain(1:n_foil_repeats, :) = [];
-
-    for i = 1:n_foil_repeats
-        foil_item = repeat_foil_pairs.A_foil(i);
+    %%%% repeats (A-A), drawn from the repeat L-pairs. The pair's A is shown
+    %%%% twice here; its B is never shown now and becomes the MST lure (P6B).
+    for i = 1:nRep_b
+        rep_item = repeat_pairs_b.A(i);
         repeat_miniblocks{end+1} = { ...
-            foil_item, "repeat", "A", "none"; ...
-            foil_item, "repeat", "A", "j"};
+            rep_item, "repeat", "A", "none"; ...
+            rep_item, "repeat", "A", "j"};
     end
 
     %%%% single-presentation fillers (spacing)
@@ -392,7 +392,7 @@ for b = 1:p.nBlocks
     % train has the flattest spectrum.
     goal_list_pool = goal_list;         % pre-shuffle copy, reused per attempt
     foils_snapshot = all_foils_remain;  % rewind point for discarded attempts
-    best_stat = Inf; best = struct();
+    best_stat = Inf; best = struct(); best.foils_used = Inf;
 
     for attempt = 1:p.seq.n_candidates
     all_foils_remain = foils_snapshot;
@@ -551,8 +551,18 @@ for b = 1:p.nBlocks
     cond_col = string(sequence(1:row_idx-1, 2));
     stat = seq_peak_ratio(cond_col == "compared");
 
-    if stat < best_stat
+    % Foils this attempt spent on 2-back padding (an A-N goal with no goal
+    % left to borrow, or a time-filling padding trial). We prefer candidates
+    % that spend none, so the 2-back never touches the foil pool and the
+    % image budget stays fixed.
+    foils_used = height(foils_snapshot) - height(all_foils_remain);
+
+    % Rank lexicographically: fewest padding foils first, then flattest
+    % spectrum. Keeps the flattest among the zero-foil candidates when any
+    % exist (they almost always do), and degrades gracefully otherwise.
+    if foils_used < best.foils_used || (foils_used == best.foils_used && stat < best_stat)
         best_stat = stat;
+        best.foils_used = foils_used;
         best.sequence = sequence;
         best.row_idx = row_idx;
         best.goal_list = goal_list;
@@ -561,11 +571,18 @@ for b = 1:p.nBlocks
     end
     end % attempt
 
-    % Take the flattest candidate
+    % Take the best candidate: zero padding foils if any candidate achieved
+    % it, otherwise the fewest, and the flattest spectrum within that.
     sequence = best.sequence;
     row_idx = best.row_idx;
     goal_list = best.goal_list;
     all_foils_remain = best.foils;
+    p.seq.block_foils_used(b) = best.foils_used;
+    if best.foils_used > 0
+        warning(['Block %d 2-back still spends %d padding foil(s) after %d ' ...
+                 'candidates; raise p.seq.n_candidates to reach a zero-foil budget.'], ...
+                 b, best.foils_used, p.seq.n_candidates);
+    end
 
     % ---- Validate the retained sequence against a permutation null -----
     % Same trials, random order, p.seq.n_perm times. If the real sequence
@@ -698,6 +715,52 @@ for c = 1:numel(conds)
 end
 
 %% ========================================================================
+%  P6B: BUILD POST-TASK MST (old / similar / new)
+%  ========================================================================
+% Standard MST on the 1-back repeat L-pairs. Each repeat pair had its A shown
+% twice (A-A) in the 1-back; its B (a same-similarity L1/L2 lure) was never
+% shown. Half the repeat pairs are probed with the seen item A (old), half
+% with the unseen pairmate B (lure/similar); a matched set of fresh foils is
+% added as new. One pair contributes EITHER its A (old) OR its B (lure), never
+% both. Responses: j = old, k = similar, l = new.
+fprintf('\nBuilding post-task MST...\n');
+
+p.mst.n_old  = 60;
+p.mst.n_lure = 60;
+p.mst.n_new  = 60;
+p.keys.mst_old     = 'j';
+p.keys.mst_similar = 'k';
+p.keys.mst_new     = 'l';
+
+assert(height(p.stim.repeat) >= p.mst.n_old + p.mst.n_lure, ...
+    'MST: need %d repeat pairs, have %d', p.mst.n_old + p.mst.n_lure, height(p.stim.repeat));
+
+rp = p.stim.repeat(randperm(height(p.stim.repeat)), :);
+old_pairs  = rp(1 : p.mst.n_old, :);
+lure_pairs = rp(p.mst.n_old + 1 : p.mst.n_old + p.mst.n_lure, :);
+
+assert(height(all_foils_remain) >= p.mst.n_new, ...
+    'MST: need %d new foils, have %d', p.mst.n_new, height(all_foils_remain));
+new_items = all_foils_remain.A_foil(1 : p.mst.n_new);
+all_foils_remain(1 : p.mst.n_new, :) = [];
+
+mst_old  = table(old_pairs.A,  repmat("old",  p.mst.n_old,  1), ...
+    repmat(string(p.keys.mst_old),     p.mst.n_old,  1), ...
+    'VariableNames', {'stim_id', 'trial_type', 'corr_resp'});
+mst_lure = table(lure_pairs.B, repmat("lure", p.mst.n_lure, 1), ...
+    repmat(string(p.keys.mst_similar), p.mst.n_lure, 1), ...
+    'VariableNames', {'stim_id', 'trial_type', 'corr_resp'});
+mst_new  = table(new_items,         repmat("new",  p.mst.n_new,  1), ...
+    repmat(string(p.keys.mst_new),     p.mst.n_new,  1), ...
+    'VariableNames', {'stim_id', 'trial_type', 'corr_resp'});
+
+sequence_mst = [mst_old; mst_lure; mst_new];
+sequence_mst = sequence_mst(randperm(height(sequence_mst)), :);
+
+fprintf('  -> MST: %d old, %d lure, %d new (%d trials total)\n', ...
+    p.mst.n_old, p.mst.n_lure, p.mst.n_new, height(sequence_mst));
+
+%% ========================================================================
 %  P7: ADD JITTER & SAVE OUTPUT
 %  ========================================================================
 fprintf('\nAdding jittered fixations and saving all schedules...\n');
@@ -706,6 +769,7 @@ fprintf('\nAdding jittered fixations and saving all schedules...\n');
 n_1_back_trials = height(sequence_1_back);
 n_2_back_trials = height(sequence_2_back);
 n_rec_trials = height(sequence_recognition);
+n_mst_trials = height(sequence_mst);
 
 sequence_1_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_1_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
@@ -715,10 +779,15 @@ sequence_2_back.fix_duration = ...
 
 sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
 
+% MST uses the same jittered ITI as the n-back (fix_dur +/- jitter)
+sequence_mst.fix_duration = ...
+    p.timing.fix_dur + (rand(n_mst_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);
 sequence_2_back.subj_id = repmat(subj_id, n_2_back_trials, 1);
 sequence_recognition.subj_id = repmat(subj_id, n_rec_trials, 1);
+sequence_mst.subj_id = repmat(subj_id, n_mst_trials, 1);
 
 
 subject_data.subj_id = subj_id;
@@ -726,6 +795,7 @@ subject_data.parameters = p;
 subject_data.sequence_1_back = sequence_1_back;
 subject_data.sequence_2_back = sequence_2_back;
 subject_data.sequence_recognition = sequence_recognition;
+subject_data.sequence_mst = sequence_mst;
 
 %% ========================================================================
 %  P8: SEQUENCE VALIDATION SUMMARY
@@ -747,6 +817,9 @@ if ~all(p.seq.block_pass)
 end
 fprintf('  All %d blocks passed (observed %.2f-%.2f, all p >= %.3f).\n', ...
     p.nBlocks, min(p.seq.block_stat), max(p.seq.block_stat), min(p.seq.block_p));
+
+fprintf('  2-back padding foils: %d total across blocks (0 = fixed image budget).\n', ...
+    sum(p.seq.block_foils_used));
 
 subject_data.parameters = p;   % refresh: p gained the validation results
 

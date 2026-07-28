@@ -23,6 +23,7 @@ function main()
         base_dir = '..';
         addpath(genpath(fullfile(base_dir, 'functions')));
         p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool/');
+        p.instr_dir = fullfile(base_dir, 'stimulus');   % full-screen ins_*.png instruction images
         p.setup_dir = fullfile(base_dir, 'subj_setup');
         p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
         final_data_filename = fullfile(p.results_dir, sprintf('sub%03d_concat.mat', p.subj_id));
@@ -80,9 +81,21 @@ function main()
         fprintf('***Experiment begins\n\n\n');
 
         %%%%%%%%%%%%%%%%%%%%%%%
-        % global instructions
+        % Part 1 instructions (slides interleaved with the two practices),
+        % all shown before the blocks begin
         %%%%%%%%%%%%%%%%%%%%%%%
-        instructions(p, 'welcome');
+        % overview + 1-back rules, then 1-back practice
+        run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+        fprintf('   Run 1-back practice\n');
+        C_run_1_back_practice(p);
+
+        % 2-back rules, then 2-back practice
+        run_instructions(p, {'ins_5_b','ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+        fprintf('   Run 2-back practice\n');
+        D_run_2_back_practice(p);
+
+        % final Part 1 slides before the blocks
+        run_instructions(p, {'ins_11'});
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % % which blocks to run
@@ -98,15 +111,6 @@ function main()
             %%%%%%%%%%%%%%%%%%%%%%%
             fprintf('   Run 1-back\n');
             sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % instruction and practice for block 1 only
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if b == 1
-                instructions(p, '1_back');
-                fprintf('   Run practice\n');
-                C_run_1_back_practice(p);
-            end
 
             results_1_back = C_run_1_back(p, sequence_1_back_block, b);
 
@@ -140,15 +144,6 @@ function main()
             %%%%%%%%%%%%%%%%%%%%%%%
             fprintf('   Running 2-back\n\n');
             sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % instruction and practice for only block 1
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if b == 1
-                instructions(p, '2_back');
-                fprintf('   Run practice\n');
-                D_run_2_back_practice(p);
-            end
 
             results_2_back = D_run_2_back(p, sequence_2_back_block, b);
 
@@ -202,32 +197,32 @@ function main()
         fprintf('All Phase 1 data saved to:\n%s\n', final_data_filename);
 
         %%%%%%%%%%%%%%%%%%%%%%%
-        % Phase 2: Recognition
+        % Part 2: post-task MST (old / similar / new)
         %%%%%%%%%%%%%%%%%%%%%%%
-        fprintf('Running Recognition Task\n\n');
-        sequence_recognition = subject_data.sequence_recognition;
+        fprintf('Running post-task MST\n\n');
+        sequence_mst = subject_data.sequence_mst;
+        results_mst = F_run_mst(p, sequence_mst);
 
-        results_recognition = E_run_recognition(p, sequence_recognition);
         instructions(p, 'goodbye');
 
         %%%%%%%%%%%%%%%%%%%%%%%
-        % save recognitoin data
+        % save MST data
         %%%%%%%%%%%%%%%%%%%%%%%
         try
-            rec_filename = sprintf('sub%03d_rec.mat', p.subj_id);
-            rec_filepath = fullfile(p.results_dir, rec_filename);
-            save(rec_filepath, 'results_recognition');
-            fprintf('Recognition data saved.\n');
+            mst_filename = sprintf('sub%03d_mst.mat', p.subj_id);
+            mst_filepath = fullfile(p.results_dir, mst_filename);
+            save(mst_filepath, 'results_mst');
+            fprintf('MST data saved.\n');
         catch ME
-            warning('SAVE_FAILED: Could not save recognition data. Reason: %s', ME.message);
+            warning('SAVE_FAILED: Could not save MST data. Reason: %s', ME.message);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % save full data
         %%%%%%%%%%%%%%%%%%%%%%%
-        final_data_output.results_recognition = results_recognition;
+        final_data_output.results_mst = results_mst;
         save(final_data_filename, 'final_data_output');
-        fprintf('All data (Phase 1 + Phase 2) saved to:\n%s\n', final_data_filename);
+        fprintf('All data (Part 1 + Part 2) saved to:\n%s\n', final_data_filename);
 
     catch ME
         fprintf(2, '\n! AN ERROR OCCURRED: %s !\n', ME.message);

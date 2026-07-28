@@ -18,24 +18,6 @@ function D_run_2_back_practice(p)
     responseKeys([same_key, similar_key, escape_key]) = 1;
     KbQueueCreate(p.keys.device, responseKeys);
 
-    %% Practice intro
-    DrawFormattedText(p.window, ['Practice: 2-Back\n\n\n' ...
-        'You will first complete a few practice trials.\n\n' ...
-        'After each image, you will see whether your answer was correct.\n\n' ...
-        'This feedback is provided only during practice.\n\n\n' ...
-        'When you are ready, please press f to begin.'], ...
-        'center', 'center', p.colors.black, [], [], [], 1);
-    Screen('Flip', p.window);
-    KbReleaseWait(p.keys.device);
-    while true
-        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
-        if keyIsDown
-            if keyCode(start_key), break;
-            elseif keyCode(escape_key), error('USER_ABORT'); end
-        end
-        WaitSecs(0.001);
-    end
-
     %% Initial fixation
     draw_fixation_target(p);
     Screen('Flip', p.window);
@@ -61,15 +43,16 @@ function D_run_2_back_practice(p)
         draw_fixation_target(p);
         fix_onset = Screen('Flip', p.window);
 
-        % Stimulus
+        % Stimulus (dontclear = 1 keeps the image in the buffer so the
+        % response highlight is drawn on top of it, without a redraw)
         Screen('DrawTexture', p.window, img_tex, [], [], 0);
-        stim_onset = Screen('Flip', p.window, fix_onset + sequence_2_back_practice.fix_duration(i) - 0.5*p.ifi);
+        stim_onset = Screen('Flip', p.window, fix_onset + sequence_2_back_practice.fix_duration(i) - 0.5*p.ifi, 1);
         
         % Collect response
         responded = false;
         response_key = '';
-        
-        while GetSecs < stim_onset + p.timing.image_dur
+
+        while GetSecs < stim_onset + p.timing.image_dur && ~responded
             [pressed, firstPress] = KbQueueCheck(p.keys.device);
             
             if pressed && ~responded
@@ -100,24 +83,22 @@ function D_run_2_back_practice(p)
             n_correct = n_correct + 1;
         end
         
-        % FEEDBACK SCREEN
-        Screen('FillRect', p.window, p.colors.bgcolor);
+        % Highlight the image already on screen (no redraw): frame it green
+        % if correct, red if incorrect. Incorrect also shows the response and
+        % the correct answer below the image.
+        [ih, iw, ~] = size(img_data);
+        frame_rect = CenterRectOnPointd([0 0 iw ih], p.centerX, p.centerY) + [-10 -10 10 10];
 
         if is_correct
-            feedback_text = 'Correct';
-            feedback_color = [0 150 0];
+            Screen('FrameRect', p.window, [0 1 0], frame_rect, 8);   % green
+            Screen('Flip', p.window);
+            WaitSecs(0.75);   % quick confirmation, minimal disturbance
         else
-            feedback_text = sprintf(['Incorrect\n\n' ...
-                'You pressed: %s\n\n' ...
-                'Correct answer: %s'], resp_label(response_key), resp_label(correct_resp));
-            feedback_color = [140 0 0];
-        end
-
-        DrawFormattedText(p.window, feedback_text, 'center', 'center', feedback_color);
-        Screen('Flip', p.window);
-        if is_correct
-            WaitSecs(0.75);  % quick confirmation
-        else
+            Screen('FrameRect', p.window, [1 0 0], frame_rect, 8);   % red
+            fb = sprintf('You pressed: %s\n\nCorrect answer: %s', ...
+                         resp_label(response_key), resp_label(correct_resp));
+            DrawFormattedText(p.window, fb, 'center', frame_rect(4) + 50, p.colors.black);
+            Screen('Flip', p.window);
             WaitSecs(2);      % time to read the correct answer
         end
         
@@ -134,14 +115,14 @@ function D_run_2_back_practice(p)
         summary_text = sprintf(...
             ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
             'The real task provides no feedback.\n\n' ...
-            'When you are ready, please press f to begin.'], accuracy);
+            'press f to continue.'], accuracy);
         summary_color = p.colors.black;
     else
         summary_text = sprintf(...
             ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
             'The practice will be repeated once more.\n\n' ...
-            'Please press f to continue. If anything is unclear, please ask the experimenter.'], accuracy);
-        summary_color = [140 0 0];
+            'Press f to continue. If anything is unclear, please ask the experimenter.'], accuracy);
+        summary_color = p.colors.black;
     end
 
     DrawFormattedText(p.window, summary_text, 'center', 'center', summary_color);

@@ -1,4 +1,4 @@
-%==========================================================================
+  %==========================================================================
 % Phase 2: Old/new recognition task
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
@@ -37,25 +37,8 @@ KbCheck(p.keys.device);
 %------------------------------------------------------------------
 % 2A: Start of Block Screen
 %------------------------------------------------------------------
-DrawFormattedText(p.window, ...
-    ['Part 2: Memory Test\n\n\n' ...
-    'You will see a series of images, one at a time.\n\n' ...
-    'For each, please decide whether you have seen that exact image today.\n\n\n' ...
-    'j = OLD (previously seen)     k = NEW (not seen)\n\n\n' ...
-    'Please respond as quickly and accurately as you can.\n\n\n' ...
-    'When you are ready, press f to begin.'], ...
-    'center', 'center', p.colors.black, [], [], [], 1.2);
-Screen('Flip', p.window);
-KbReleaseWait(p.keys.device);
-% Wait for 'f' key press to start
-while true
-    [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
-    if keyIsDown
-        if keyCode(start_key), break;
-        elseif keyCode(escape_key), error('USER_ABORT'); end
-    end
-    WaitSecs(0.001);
-end
+% Part 2 instruction is the full-screen ins_rec.png image; it waits for 'f'.
+run_instructions(p, {'ins_rec'});
 % Brief fixation before the first trial. No block_lead_in here: that exists
 % to let the signal settle at the start of a scanned run, and the
 % recognition test does not need it.
