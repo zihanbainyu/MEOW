@@ -9,8 +9,9 @@ clear; clc; close all;
 %% ------------------------------------------------------------------------
 %  Config
 %  ------------------------------------------------------------------------
-sub_list = [602];
+sub_list = [601, 602, 603];
 tasks = [1, 2]; task_lbls = {'1_back', '2_back'};
+FS = struct('tick',16,'lab',18,'ttl',18,'anno',13);   % shared type scale (matches NeurWEM_plt)
 base_dir = '..';
 behav_dir = fullfile(base_dir, 'data');
 out_dir   = fullfile(base_dir, 'data', 'eye_movement_data');
@@ -24,13 +25,18 @@ end
 FIX_GATE_TOL_PX = 100;   % onset-gate window radius (~1.6 deg)
 FIX_TOL_PX      = 150;   % break window radius during viewing (~2.4 deg)
 
+% Stimulus presentation window. The run scripts hold the image on screen for
+% p.timing.image_dur (A_subject_setup.m) after STIM_ONSET, with no offset
+% message, so the ITI is bounded by this duration rather than a marker.
+IMG_DUR_MS = 1500;       % stimulus presentation duration (image_dur = 1.5 s)
+
 % Stimulus extent. The run scripts call Screen('DrawTexture', ..., [], [], 0)
 % with an empty destination rect, so each image is drawn at its native size,
 % centred. Verified against a real stimulus further down.
 IMG_SIZE_PX = 400;
 
-% Condition colours, matching S_behavioral_analysis_indiv.m
-c_comp = [180 174 211]/255;
+% Condition colours (c_comp = NYU violet, consistent with NeurWEM_plt group figs)
+c_comp = [87 6 140]/255;
 c_iso  = [176 230 255]/255;
 c_nov  = [183 210 205]/255;
 cond_names  = {'compared', 'isolated', 'novel'};
@@ -168,6 +174,16 @@ M = outerjoin(M, sum_tab(:, {'subj_id','task','trial_id','block','onset_time'}),
     'Keys', {'subj_id','task','trial_id','block'}, 'MergeKeys', true, 'Type', 'left');
 M.t_rel = M.onset - M.onset_time;   % fixation start, ms relative to stimulus onset
 
+% Restrict to fixations that began while the image was on screen. The parser
+% keeps every fixation from STIM_ONSET to the next TRIALID, so without this
+% two kinds of non-viewing fixations leak in: a fixation-cross fixation that
+% ends just after onset (t_rel < 0) and any fixation in the post-image tail
+% (t_rel >= IMG_DUR_MS). Both belong to the ITI, not to stimulus viewing.
+n_before = height(M);
+M = M(M.t_rel >= 0 & M.t_rel < IMG_DUR_MS, :);   % NaN t_rel (no onset) also dropped
+fprintf('fixations during image presentation: %d of %d kept (%d dropped as pre-stim / ITI)\n', ...
+    height(M), n_before, n_before - height(M));
+
 eye_data = struct('fixations', fix, 'saccades', sac, 'blinks', blk, ...
                   'summary', sum_tab, 'merged', M);
 save(fullfile(out_dir, 'group_eye_movement.mat'), '-struct', 'eye_data');
@@ -202,12 +218,48 @@ fprintf('\n  by task:      1_back=%d  2_back=%d\n', ...
     sum(Mc.task=="1_back"), sum(Mc.task=="2_back"));
 
 %% ------------------------------------------------------------------------
+%  Per-subject metrics  (subject is the unit for the group check)
+%  ------------------------------------------------------------------------
+usub = unique(Mc.subj_id)';  nS = numel(usub);
+blocks = unique(Mc.block)';  nB = numel(blocks);
+tasks_plot = ["1_back", "2_back"];
+
+med_cond  = nan(nS, numel(cond_names));   % median deviation (px) by condition
+w100_cond = nan(nS, numel(cond_names));   % fraction within 100 px by condition
+w150_cond = nan(nS, numel(cond_names));   % fraction within 150 px by condition
+med_task  = nan(nS, numel(tasks_plot));   % median deviation by task
+med_block = nan(nS, nB);                  % median deviation by block (drift)
+w150_all  = nan(nS, 1);  w100_all = nan(nS, 1);  med_all = nan(nS, 1);
+for si = 1:nS
+    ms = Mc.subj_id == usub(si);
+    med_all(si)  = median(Mc.dev(ms));
+    w100_all(si) = mean(Mc.dev(ms) <= FIX_GATE_TOL_PX);
+    w150_all(si) = mean(Mc.dev(ms) <= FIX_TOL_PX);
+    for k = 1:numel(cond_names)
+        mk = ms & Mc.condition == cond_names{k};
+        if ~any(mk), continue; end
+        med_cond(si,k)  = median(Mc.dev(mk));
+        w100_cond(si,k) = mean(Mc.dev(mk) <= FIX_GATE_TOL_PX);
+        w150_cond(si,k) = mean(Mc.dev(mk) <= FIX_TOL_PX);
+    end
+    for t = 1:numel(tasks_plot)
+        mt = ms & Mc.task == tasks_plot(t);
+        if any(mt), med_task(si,t) = median(Mc.dev(mt)); end
+    end
+    for b = 1:nB
+        mb = ms & Mc.block == blocks(b);
+        if any(mb), med_block(si,b) = median(Mc.dev(mb)); end
+    end
+end
+min_n_stat = 3;   % minimum N of subjects before paired tests / brackets are drawn
+
+%% ------------------------------------------------------------------------
 %  FIGURE 1 -- fixation overlay, 1-back and 2-back side by side
 %  ------------------------------------------------------------------------
 % Note: 'novel' exists only in the 2-back, so the 1-back panel legitimately
-% shows two conditions and the 2-back three.
+% shows two conditions and the 2-back three. Fixations are pooled across the
+% N subjects here; per-subject summaries carry the group statistics below.
 th = linspace(0, 2*pi, 400);
-tasks_plot = ["1_back", "2_back"];
 
 % Axes span the full display (1920 x 1080), so the panels are true-shaped
 % screens and the size of the restricted cluster is shown in context.
@@ -248,21 +300,21 @@ for t = 1:numel(tasks_plot)
     for k = 1:numel(cond_names)
         m = mt & Mc.condition == cond_names{k};
         if ~any(m), continue; end
-        s = scatter(ax, Mc.x(m), Mc.y(m), 14, cond_colors{k}, 'filled', ...
-            'MarkerFaceAlpha', 0.45, 'MarkerEdgeColor','none');
+        s = scatter(ax, Mc.x(m), Mc.y(m), 12, cond_colors{k}, 'filled', ...
+            'MarkerFaceAlpha', 0.30, 'MarkerEdgeColor','none');
         if t == numel(tasks_plot) || ~isgraphics(hleg(k))
             hleg(k) = s; leg_lbl{k} = cond_names{k};
         end
     end
     plot(ax, cx, cy, 'k+', 'MarkerSize', 12, 'LineWidth', 1.5);
 
-    set(ax, 'YDir','reverse');   % screen coordinates: y grows downward
+    set(ax, 'YDir','reverse', 'FontSize', FS.tick);   % screen coordinates: y grows downward
     xlim(ax, [sx0, sx1]); ylim(ax, [sy0, sy1]);   % full display extent
-    ylabel(ax,'y (px)');
-    if t == numel(tasks_plot), xlabel(ax,'x (px)'); end
-    title(ax, sprintf('%s   (n=%d fixations, %.1f%% within %d px)', ...
+    ylabel(ax,'y (px)', 'FontSize', FS.lab);
+    if t == numel(tasks_plot), xlabel(ax,'x (px)', 'FontSize', FS.lab); end
+    title(ax, sprintf('%s   (%d fixations, %.1f%% within %d px)', ...
         strrep(tasks_plot(t),'_','-'), sum(mt), ...
-        100*mean(Mc.dev(mt) <= FIX_TOL_PX), FIX_TOL_PX));
+        100*mean(Mc.dev(mt) <= FIX_TOL_PX), FIX_TOL_PX), 'FontSize', FS.ttl);
     box(ax,'on');
 
     if t == numel(tasks_plot)
@@ -272,12 +324,12 @@ for t = 1:numel(tasks_plot)
              {sprintf('onset gate (%d px)', FIX_GATE_TOL_PX), ...
               sprintf('break window (%d px)', FIX_TOL_PX), ...
               sprintf('image frame (%dx%d px)', IMG_SIZE_PX, IMG_SIZE_PX)}], ...
-            'Location','northeastoutside');
+            'Location','northeastoutside', 'FontSize', FS.anno, 'Box','off');
     end
 end
-title(tl, sprintf('sub%03d: fixations during stimulus viewing (full %g x %g display)', ...
-    sub_list(1), sx1-sx0, sy1-sy0), 'FontWeight','bold');
-exportgraphics(f1, fullfile(fig_dir, sprintf('sub%03d_fixation_overlay.png', sub_list(1))), 'Resolution', 200);
+title(tl, sprintf('N = %d subjects: fixations during stimulus viewing (full %g x %g display)', ...
+    nS, sx1-sx0, sy1-sy0), 'FontWeight','bold', 'FontSize', FS.ttl);
+exportgraphics(f1, fullfile(fig_dir, 'group_fixation_overlay.png'), 'Resolution', 200);
 
 % per-task x condition counts, for the record
 fprintf('\n  fixations by task x condition:\n');
@@ -290,248 +342,239 @@ for t = 1:numel(tasks_plot)
 end
 
 %% ------------------------------------------------------------------------
-%  FIGURE 2 -- deviation by condition
+%  FIGURE 2 -- deviation by condition (group: one dot per subject)
 %  ------------------------------------------------------------------------
-% trial-level summary: fixations within a trial are not independent, so the
-% trial mean is the primary unit; fixation level is reported alongside.
-[gt, tkey] = findgroups(Mc(:, {'task','trial_id','block','condition'}));
-trial_dev = tkey;
-trial_dev.mean_dev = splitapply(@mean, Mc.dev, gt);
-trial_dev.max_dev  = splitapply(@max,  Mc.dev, gt);
-trial_dev.n_fix    = splitapply(@numel, Mc.dev, gt);
-
-f2 = figure('Visible','off','Position',[100 100 1050 420],'Color','w');
-
-% (a) trial-level distributions
-subplot(1,3,1); hold on;
-for k = 1:numel(cond_names)
-    v = trial_dev.mean_dev(trial_dev.condition == cond_names{k});
-    jit = (rand(numel(v),1)-0.5)*0.28;
-    scatter(k+jit, v, 16, cond_colors{k}, 'filled', 'MarkerFaceAlpha', 0.5);
-    plot(k+[-0.3 0.3], [median(v) median(v)], 'k-', 'LineWidth', 2);
-end
-yline(FIX_GATE_TOL_PX, 'k-'); yline(FIX_TOL_PX, 'k--');
-xticks(1:numel(cond_names)); xticklabels(cond_names); xlim([0.4 numel(cond_names)+0.6]);
-ylabel('mean deviation per trial (px)'); title('trial level'); box on;
-
-% (b) fixation-level ECDF
-subplot(1,3,2); hold on;
-for k = 1:numel(cond_names)
-    v = sort(Mc.dev(Mc.condition == cond_names{k}));
-    plot(v, (1:numel(v))/numel(v), 'Color', cond_colors{k}, 'LineWidth', 2);
-end
-xline(FIX_GATE_TOL_PX, 'k-'); xline(FIX_TOL_PX, 'k--');
-xlabel('deviation (px)'); ylabel('cumulative proportion');
-title('fixation level (ECDF)'); xlim([0 400]); box on;
-legend(cond_names, 'Location','southeast');
-
-% (c) proportion outside each radius, with Wilson CIs
-subplot(1,3,3); hold on;
-for k = 1:numel(cond_names)
-    v = Mc.dev(Mc.condition == cond_names{k});
-    for r = 1:2
-        rad = FIX_GATE_TOL_PX*(r==1) + FIX_TOL_PX*(r==2);
-        [pp, lo, hi] = wilson_ci(sum(v > rad), numel(v));
-        xpos = k + (r-1.5)*0.22;
-        bar(xpos, pp, 0.2, 'FaceColor', cond_colors{k}, ...
-            'FaceAlpha', 1 - 0.45*(r-1), 'EdgeColor','k');
-        plot([xpos xpos], [lo hi], 'k-', 'LineWidth', 1.2);
-    end
-end
-xticks(1:numel(cond_names)); xticklabels(cond_names); xlim([0.4 numel(cond_names)+0.6]);
-ylabel('proportion of fixations outside'); title('left bar: >100 px   right: >150 px'); box on;
-
-exportgraphics(f2, fullfile(fig_dir, sprintf('sub%03d_gaze_deviation.png', sub_list(1))), 'Resolution', 200);
+cpairs = {[1 2],[2 3],[1 3]};
+f2 = figure('Visible','off','Position',[80 80 1400 480],'Color','w');
+subplot(1,3,1);
+paired_plot(med_cond, cond_names, cond_colors, 'median deviation (px)', ...
+    'gaze deviation by condition', min_n_stat, cpairs, FS, true);
+yline(FIX_GATE_TOL_PX,'k-'); yline(FIX_TOL_PX,'k--'); nice_yticks(4);
+subplot(1,3,2);
+paired_plot(w100_cond, cond_names, cond_colors, sprintf('fraction within %d px', FIX_GATE_TOL_PX), ...
+    'containment (onset gate)', min_n_stat, cpairs, FS, true);
+ylim([0 1.05]); nice_yticks(4);
+subplot(1,3,3);
+paired_plot(w150_cond, cond_names, cond_colors, sprintf('fraction within %d px', FIX_TOL_PX), ...
+    'containment (break window)', min_n_stat, cpairs, FS, true);
+ylim([0 1.05]); nice_yticks(4);
+exportgraphics(f2, fullfile(fig_dir, 'group_gaze_deviation.png'), 'Resolution', 200);
 
 %% ------------------------------------------------------------------------
-%  FIGURE 3 -- per-block drift check
+%  FIGURE 3 -- deviation by task and by block (group: one dot per subject)
 %  ------------------------------------------------------------------------
-f3 = figure('Visible','off','Position',[100 100 1000 420],'Color','w');
-blocks = unique(Mc.block)';
+c_1b = [97 125 184]/255; c_2b = c_comp;             % task colours
+bc = lines(nB); block_cols = arrayfun(@(i) bc(i,:), 1:nB, 'UniformOutput', false);
+block_lbls = arrayfun(@(b) sprintf('block %d', b), blocks, 'UniformOutput', false);
 
-subplot(1,2,1); hold on; axis equal;
-plot(cx + FIX_TOL_PX*cos(th),      cy + FIX_TOL_PX*sin(th),      'k--');
-plot(cx + FIX_GATE_TOL_PX*cos(th), cy + FIX_GATE_TOL_PX*sin(th), 'k-');
-bcol = lines(numel(blocks));
-for i = 1:numel(blocks)
-    m = Mc.block == blocks(i);
-    plot(median(Mc.x(m)), median(Mc.y(m)), 'o', 'MarkerSize', 11, ...
-        'MarkerFaceColor', bcol(i,:), 'MarkerEdgeColor','k');
-end
-plot(cx, cy, 'k+', 'MarkerSize', 12, 'LineWidth', 1.5);
-set(gca,'YDir','reverse'); xlim([cx-250 cx+250]); ylim([cy-250 cy+250]);
-xlabel('x (px)'); ylabel('y (px)'); title('median fixation position per block'); box on;
-legend([{'break window','onset gate'}, arrayfun(@(b) sprintf('block %d', b), blocks, 'UniformOutput', false)], ...
-    'Location','eastoutside');
-
-subplot(1,2,2); hold on;
-for i = 1:numel(blocks)
-    v = Mc.dev(Mc.block == blocks(i));
-    jit = (rand(numel(v),1)-0.5)*0.28;
-    scatter(blocks(i)+jit, v, 8, bcol(i,:), 'filled', 'MarkerFaceAlpha', 0.25);
-    plot(blocks(i)+[-0.3 0.3], [median(v) median(v)], 'k-', 'LineWidth', 2);
-end
-yline(FIX_GATE_TOL_PX,'k-'); yline(FIX_TOL_PX,'k--');
-xticks(blocks); xlabel('block'); ylabel('fixation deviation (px)');
-title('deviation by block'); box on;
-
-exportgraphics(f3, fullfile(fig_dir, sprintf('sub%03d_block_drift.png', sub_list(1))), 'Resolution', 200);
+f3 = figure('Visible','off','Position',[80 80 1250 480],'Color','w');
+subplot(1,2,1);
+paired_plot(med_task, {'1-back','2-back'}, {c_1b, c_2b}, 'median deviation (px)', ...
+    'gaze deviation by task', min_n_stat, {[1 2]}, FS, true);
+yline(FIX_GATE_TOL_PX,'k-'); yline(FIX_TOL_PX,'k--'); nice_yticks(4);
+subplot(1,2,2);
+% blocks are ordinal, so the paired_plot trend line is a genuine drift check
+paired_plot(med_block, block_lbls, block_cols, 'median deviation (px)', ...
+    'gaze deviation by block (drift)', min_n_stat, {}, FS, false);
+yline(FIX_GATE_TOL_PX,'k-'); yline(FIX_TOL_PX,'k--'); nice_yticks(4);
+exportgraphics(f3, fullfile(fig_dir, 'group_block_drift.png'), 'Resolution', 200);
 
 %% ------------------------------------------------------------------------
-%  STATISTICS
+%  STATISTICS  (group: the subject is the unit of analysis)
 %  ------------------------------------------------------------------------
-diary(fullfile(res_dir, sprintf('sub%03d_gaze_check.txt', sub_list(1))));
+diary(fullfile(res_dir, 'group_gaze_check.txt'));
 fprintf('\n========================================================\n');
-fprintf(' sub%03d -- restricted-viewing manipulation check\n', sub_list(1));
+fprintf(' GROUP -- restricted-viewing manipulation check (N = %d)\n', nS);
+fprintf(' subjects: %s\n', num2str(usub));
 fprintf('========================================================\n');
 fprintf('Screen centre (%.1f, %.1f); radii: gate %d px, break %d px\n\n', ...
     cx, cy, FIX_GATE_TOL_PX, FIX_TOL_PX);
 
-% --- overall containment -------------------------------------------------
-fprintf('--- Overall containment (all fixations, both tasks) ---\n');
-[pp, lo, hi] = wilson_ci(sum(Mc.dev <= FIX_GATE_TOL_PX), height(Mc));
-fprintf('  within %d px : %6.2f%% [%.2f, %.2f]  (%d/%d)\n', FIX_GATE_TOL_PX, ...
-    100*pp, 100*lo, 100*hi, sum(Mc.dev <= FIX_GATE_TOL_PX), height(Mc));
-[pp, lo, hi] = wilson_ci(sum(Mc.dev <= FIX_TOL_PX), height(Mc));
-fprintf('  within %d px : %6.2f%% [%.2f, %.2f]  (%d/%d)\n', FIX_TOL_PX, ...
-    100*pp, 100*lo, 100*hi, sum(Mc.dev <= FIX_TOL_PX), height(Mc));
-fprintf('  median deviation %.1f px (IQR %.1f-%.1f)\n\n', median(Mc.dev), ...
-    prctile(Mc.dev,25), prctile(Mc.dev,75));
-
-% --- by condition --------------------------------------------------------
-fprintf('--- Deviation by condition ---\n');
-fprintf('%-10s %7s %8s %10s %10s %12s %12s\n', 'condition','nTrial','nFix', ...
-    'medTrial','IQR','within100','within150');
-for k = 1:numel(cond_names)
-    mF = Mc.condition == cond_names{k};
-    mT = trial_dev.condition == cond_names{k};
-    v  = trial_dev.mean_dev(mT);
-    fprintf('%-10s %7d %8d %10.1f %10s %11.1f%% %11.1f%%\n', cond_names{k}, ...
-        sum(mT), sum(mF), median(v), ...
-        sprintf('%.0f-%.0f', prctile(v,25), prctile(v,75)), ...
-        100*mean(Mc.dev(mF) <= FIX_GATE_TOL_PX), ...
-        100*mean(Mc.dev(mF) <= FIX_TOL_PX));
+% --- overall containment (per subject, summarised across subjects) -------
+fprintf('--- Overall containment (per subject, both tasks) ---\n');
+fprintf('  within %3d px : %5.1f%% +/- %.1f  [range %.1f-%.1f]\n', FIX_GATE_TOL_PX, ...
+    100*mean(w100_all), 100*std(w100_all), 100*min(w100_all), 100*max(w100_all));
+fprintf('  within %3d px : %5.1f%% +/- %.1f  [range %.1f-%.1f]\n', FIX_TOL_PX, ...
+    100*mean(w150_all), 100*std(w150_all), 100*min(w150_all), 100*max(w150_all));
+fprintf('  median deviation : %.1f px +/- %.1f  [range %.1f-%.1f]\n', ...
+    mean(med_all), std(med_all), min(med_all), max(med_all));
+fprintf('  per subject:\n');
+for si = 1:nS
+    fprintf('    sub%03d  medDev %5.1f px  within100 %5.1f%%  within150 %5.1f%%\n', ...
+        usub(si), med_all(si), 100*w100_all(si), 100*w150_all(si));
 end
 
-% Kruskal-Wallis on trial-level means, then pairwise rank-sum (Holm)
-grp = trial_dev.condition;
-p_kw = kruskalwallis(trial_dev.mean_dev, grp, 'off');
-df_kw = numel(unique(grp)) - 1;
-fprintf('\n  Kruskal-Wallis across conditions (trial level): chi2(%d) = %.2f, p = %.4f\n', ...
-    df_kw, kw_chi2(trial_dev.mean_dev, grp), p_kw);
-
+% --- by condition (per-subject means; Friedman + pairwise signed-rank) ---
+fprintf('\n--- Deviation by condition (per subject) ---\n');
+fprintf('%-10s %16s %12s %12s\n', 'condition','medDev(px)','within100','within150');
+for k = 1:numel(cond_names)
+    fprintf('%-10s %8.1f +/-%-5.1f %8.1f%% %11.1f%%\n', cond_names{k}, ...
+        mean(med_cond(:,k),'omitnan'), std(med_cond(:,k),'omitnan'), ...
+        100*mean(w100_cond(:,k),'omitnan'), 100*mean(w150_cond(:,k),'omitnan'));
+end
+[chi2_c, df_c, p_c] = friedman_safe(med_cond);
+fprintf('\n  Friedman across conditions (subject level): chi2(%d) = %.2f, p = %.4f\n', ...
+    df_c, chi2_c, p_c);
 pairs = nchoosek(1:numel(cond_names), 2);
 praw = nan(size(pairs,1),1);
 for i = 1:size(pairs,1)
-    a = trial_dev.mean_dev(trial_dev.condition == cond_names{pairs(i,1)});
-    b = trial_dev.mean_dev(trial_dev.condition == cond_names{pairs(i,2)});
-    praw(i) = ranksum(a, b);
+    a = med_cond(:,pairs(i,1)); b = med_cond(:,pairs(i,2));
+    ok = ~isnan(a) & ~isnan(b);
+    if sum(ok) >= min_n_stat, praw(i) = signrank(a(ok), b(ok)); end
 end
 padj = holm(praw);
-fprintf('  pairwise rank-sum (Holm-adjusted):\n');
+fprintf('  pairwise signed-rank (Holm-adjusted):\n');
 for i = 1:size(pairs,1)
     fprintf('    %-9s vs %-9s : p = %.4f  (adj %.4f)\n', ...
         cond_names{pairs(i,1)}, cond_names{pairs(i,2)}, praw(i), padj(i));
 end
 
-% --- by task -------------------------------------------------------------
-fprintf('\n--- Deviation by task ---\n');
-for t = ["1_back","2_back"]
-    m = Mc.task == t;
-    fprintf('  %-7s n=%6d  median %.1f px  within100 %.1f%%  within150 %.1f%%\n', ...
-        t, sum(m), median(Mc.dev(m)), ...
-        100*mean(Mc.dev(m) <= FIX_GATE_TOL_PX), 100*mean(Mc.dev(m) <= FIX_TOL_PX));
+% --- by task (paired across subjects) ------------------------------------
+fprintf('\n--- Deviation by task (per subject) ---\n');
+for t = 1:numel(tasks_plot)
+    fprintf('  %-7s median %.1f px +/- %.1f\n', strrep(tasks_plot(t),'_','-'), ...
+        mean(med_task(:,t),'omitnan'), std(med_task(:,t),'omitnan'));
 end
-mt = trial_dev.mean_dev(ismember(trial_dev.task, "1_back"));
-mt2 = trial_dev.mean_dev(ismember(trial_dev.task, "2_back"));
-fprintf('  rank-sum 1-back vs 2-back (trial level): p = %.4f\n', ranksum(mt, mt2));
-
-% --- per block: drift vs behaviour ---------------------------------------
-fprintf('\n--- Per block: offset vs spread ---\n');
-fprintf(['  OFFSET = distance of the block''s median fixation from screen centre\n' ...
-         '           (a constant shift => calibration drift, not the subject).\n' ...
-         '  SPREAD = median distance of fixations from the block''s OWN median\n' ...
-         '           (inflated => the subject really was moving their eyes).\n\n']);
-fprintf('%7s %8s %9s %9s %9s %9s %9s %11s %11s\n', 'block','nFix','dX','dY', ...
-    'OFFSET','SPREAD','medDev','within100','within150');
-blk_stats = table();
-for i = 1:numel(blocks)
-    m = Mc.block == blocks(i);
-    mx = median(Mc.x(m)); my = median(Mc.y(m));
-    offset = hypot(mx-cx, my-cy);
-    spread = median(hypot(Mc.x(m)-mx, Mc.y(m)-my));
-    fprintf('%7d %8d %9.1f %9.1f %9.1f %9.1f %9.1f %10.1f%% %10.1f%%\n', ...
-        blocks(i), sum(m), mx-cx, my-cy, offset, spread, median(Mc.dev(m)), ...
-        100*mean(Mc.dev(m) <= FIX_GATE_TOL_PX), 100*mean(Mc.dev(m) <= FIX_TOL_PX));
-    blk_stats = [blk_stats; table(blocks(i), sum(m), mx-cx, my-cy, offset, spread, ...
-        median(Mc.dev(m)), 'VariableNames', {'block','n_fix','dx','dy','offset','spread','med_dev'})];
+ok = ~isnan(med_task(:,1)) & ~isnan(med_task(:,2));
+if sum(ok) >= min_n_stat
+    fprintf('  signed-rank 1-back vs 2-back: p = %.4f\n', signrank(med_task(ok,1), med_task(ok,2)));
+else
+    fprintf('  signed-rank 1-back vs 2-back: n=%d too few\n', sum(ok));
 end
 
-% Contrast the suspect block against the rest on each component separately.
-oth = ~ismember(blk_stats.block, 3);
-if any(blk_stats.block == 3) && any(oth)
-    b3 = blk_stats(blk_stats.block == 3, :);
-    fprintf('\n  block 3 offset %.1f px vs %.1f px in other blocks (%.1fx)\n', ...
-        b3.offset, mean(blk_stats.offset(oth)), b3.offset / mean(blk_stats.offset(oth)));
-    fprintf('  block 3 spread %.1f px vs %.1f px in other blocks (%.1fx)\n', ...
-        b3.spread, mean(blk_stats.spread(oth)), b3.spread / mean(blk_stats.spread(oth)));
-    % is block 3's spread actually different, fixation-level?
-    d3  = hypot(Mc.x(Mc.block==3)-median(Mc.x(Mc.block==3)), ...
-                Mc.y(Mc.block==3)-median(Mc.y(Mc.block==3)));
-    dOt = [];
-    for i = 1:numel(blocks)
-        if blocks(i) == 3, continue; end
-        m = Mc.block == blocks(i);
-        dOt = [dOt; hypot(Mc.x(m)-median(Mc.x(m)), Mc.y(m)-median(Mc.y(m)))];
-    end
-    fprintf('  rank-sum on spread (block 3 vs rest, fixation level): p = %.4g\n', ranksum(d3, dOt));
+% --- by block: drift across the group ------------------------------------
+fprintf('\n--- Deviation by block (per subject; drift check) ---\n');
+fprintf('%7s %16s %12s %12s\n', 'block','medDev(px)','within100','within150');
+for b = 1:nB
+    mb = Mc.block == blocks(b);
+    fprintf('%7d %8.1f +/-%-5.1f %8.1f%% %11.1f%%\n', blocks(b), ...
+        mean(med_block(:,b),'omitnan'), std(med_block(:,b),'omitnan'), ...
+        100*mean(Mc.dev(mb) <= FIX_GATE_TOL_PX), 100*mean(Mc.dev(mb) <= FIX_TOL_PX));
 end
+[chi2_b, df_b, p_b] = friedman_safe(med_block);
+fprintf('\n  Friedman across blocks (subject level): chi2(%d) = %.2f, p = %.4f\n', ...
+    df_b, chi2_b, p_b);
 
-% --- sample validity: the mechanism behind the above --------------------
-fprintf('\n--- Data loss per run (missing gaze samples) ---\n');
-fprintf('%7s %9s %12s %12s %13s\n', 'block','task','n_samples','n_missing','pct_missing');
-for i = 1:height(qual)
-    fprintf('%7d %9s %12d %12d %12.2f%%\n', qual.block(i), qual.task(i), ...
-        qual.n_samples(i), qual.n_missing(i), qual.pct_missing(i));
+% --- data loss: the mechanism behind gate timeouts -----------------------
+fprintf('\n--- Data loss (missing gaze samples) ---\n');
+fprintf('%8s %13s %12s\n', 'subject','mean pct','max pct');
+for si = 1:nS
+    q = qual(qual.subj_id == usub(si), :);
+    fprintf('  sub%03d %11.2f%% %11.2f%%\n', usub(si), mean(q.pct_missing), max(q.pct_missing));
 end
-fprintf(['\n  A run with heavy data loss cannot pass the onset gate (no stable\n' ...
-         '  valid fixation to confirm) yet also cannot trigger fix_broken,\n' ...
-         '  because invalid samples are explicitly excluded from break\n' ...
-         '  detection. High gate_timeout + 0%% fix_broken is therefore the\n' ...
-         '  signature of a tracker problem, not of the subject looking away.\n']);
+fprintf('  overall: %.2f%% of samples missing\n', 100*sum(qual.n_missing)/max(sum(qual.n_samples),1));
+fprintf(['\n  A run with heavy data loss cannot pass the onset gate yet also\n' ...
+         '  cannot trigger fix_broken (invalid samples are excluded from break\n' ...
+         '  detection). High gate_timeout + 0%% fix_broken is the signature of a\n' ...
+         '  tracker problem, not of the subject looking away.\n']);
 
 diary off;
 
-res = struct('merged', Mc, 'trial_dev', trial_dev, 'blk_stats', blk_stats, ...
+res = struct('merged', Mc, 'usub', usub, ...
+             'med_cond', med_cond, 'w100_cond', w100_cond, 'w150_cond', w150_cond, ...
+             'med_task', med_task, 'med_block', med_block, ...
+             'med_all', med_all, 'w100_all', w100_all, 'w150_all', w150_all, ...
              'quality', qual, 'screen_rect', screen_rect, ...
              'centre', [cx cy], 'radii', [FIX_GATE_TOL_PX FIX_TOL_PX]);
-save(fullfile(res_dir, sprintf('sub%03d_gaze_check.mat', sub_list(1))), 'res');
+save(fullfile(res_dir, 'group_gaze_check.mat'), 'res');
 fprintf('\nSaved figures to %s and results to %s\n', fig_dir, res_dir);
 
 %% ------------------------------------------------------------------------
 %  Local functions
 %  ------------------------------------------------------------------------
-function [p, lo, hi] = wilson_ci(k, n)
-% Wilson score interval for a binomial proportion (95%).
-z = 1.959963984540054;
-if n == 0, p = NaN; lo = NaN; hi = NaN; return; end
-p = k / n;
-den = 1 + z^2/n;
-ctr = (p + z^2/(2*n)) / den;
-hw  = z * sqrt(p*(1-p)/n + z^2/(4*n^2)) / den;
-lo = max(0, ctr - hw); hi = min(1, ctr + hw);
+function [chi2, df, p] = friedman_safe(X)
+% Friedman test across the columns of X (rows = subjects), on complete cases.
+% Returns the chi-square statistic, its df, and p so all three can be printed.
+    X = X(all(~isnan(X),2), :);
+    if size(X,1) < 2 || size(X,2) < 2, chi2 = NaN; df = size(X,2)-1; p = NaN; return; end
+    [p, tbl] = friedman(X, 1, 'off');
+    chi2 = tbl{2,5}; df = tbl{2,3};
 end
 
-function chi2 = kw_chi2(x, g)
-% Kruskal-Wallis H statistic, recomputed so it can be printed alongside p.
-[~, ~, gi] = unique(g);
-n = numel(x); r = tiedrank(x);
-k = max(gi); s = 0;
-for j = 1:k
-    rj = r(gi == j);
-    s = s + numel(rj) * (mean(rj) - (n+1)/2)^2;
+function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS, no_trend)
+% Per-subject paired plot (matches NeurWEM_plt/S_group_mstback.m): jittered
+% coloured dots per subject, grey lines linking each subject across levels, a
+% thin box/whisker per level, signed-rank brackets, and (unless suppressed) a
+% dashed trend across ordered levels. M is [nS x nL].
+    if nargin < 8 || isempty(FS), FS = struct('tick',16,'lab',18,'ttl',18,'anno',13); end
+    if nargin < 9 || isempty(no_trend), no_trend = false; end
+    [nS, nL] = size(M);
+    if nargin < 7 || isempty(pairs)
+        pairs = arrayfun(@(k) [k k+1], 1:nL-1, 'UniformOutput', false);
+    end
+    hold on; jw = 0.07; bw = 0.34;
+    X = (1:nL) + (rand(nS,nL)-0.5)*2*jw;
+
+    for s = 1:nS
+        plot(X(s,:), M(s,:), '-', 'Color', [0.55 0.55 0.55 0.45], 'LineWidth', 0.6);
+    end
+    for L = 1:nL
+        d = M(:,L); d = d(~isnan(d));
+        if numel(d) >= 2
+            q = quantile(d,[.25 .5 .75]); iqrv = q(3)-q(1);
+            lo_w = max(min(d), q(1)-1.5*iqrv); hi_w = min(max(d), q(3)+1.5*iqrv);
+            plot([L L],[lo_w q(1)],'k-','LineWidth',0.9);
+            plot([L L],[q(3) hi_w],'k-','LineWidth',0.9);
+            plot(L+[-.06 .06],[lo_w lo_w],'k-','LineWidth',0.9);
+            plot(L+[-.06 .06],[hi_w hi_w],'k-','LineWidth',0.9);
+            rectangle('Position',[L-bw/2, q(1), bw, max(iqrv,eps)], ...
+                'EdgeColor','k','LineWidth',1.1,'FaceColor','none');
+            plot(L+[-bw/2 bw/2],[q(2) q(2)],'k-','LineWidth',1.8);
+        end
+        scatter(X(:,L), M(:,L), 34, cols{L}, 'filled', 'MarkerFaceAlpha',0.85, ...
+            'MarkerEdgeColor',[.2 .2 .2], 'LineWidth',0.3);
+    end
+
+    all_v = M(~isnan(M));
+    yr = range(all_v); if isempty(yr)||yr==0, yr = 1; end
+
+    base = max(all_v) + 0.10*yr; step = 0.10*yr; k = 0;
+    if nS >= min_n
+        for pp = 1:numel(pairs)
+            ij = pairs{pp};
+            ok = ~isnan(M(:,ij(1))) & ~isnan(M(:,ij(2)));
+            if sum(ok) < min_n, continue; end
+            pv = signrank(M(ok,ij(1)), M(ok,ij(2))); s = stars(pv); if isempty(s), s='ns'; end
+            y = base + k*step; k = k + 1;
+            plot([ij(1) ij(1) ij(2) ij(2)], [y-0.02*yr y y y-0.02*yr], 'k-','LineWidth',0.9);
+            text(mean(ij), y, s, 'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',FS.tick);
+        end
+    end
+
+    if ~no_trend && nL >= 3 && nS >= min_n
+        xa = repmat(1:nL, nS, 1); xa = xa(:); ya = M(:);
+        ok = ~isnan(ya); xa = xa(ok); ya = ya(ok);
+        if numel(unique(xa)) >= 2
+            [r, pv] = corr(xa, ya); cf = polyfit(xa, ya, 1);
+            xx = [0.7 nL+0.3];
+            plot(xx, polyval(cf, xx), 'k--', 'LineWidth', 1.6);
+            text(0.7, min(all_v), sprintf('R^2 = %.2f, p = %.2g\ny = %.2f + %.2f x', ...
+                r^2, pv, cf(2), cf(1)), 'FontSize', FS.anno, 'VerticalAlignment','bottom');
+        end
+    end
+
+    set(gca,'XTick',1:nL,'XTickLabel',lvllbl,'FontSize',FS.tick);
+    xlim([0.4 nL+0.6]); ylabel(ylbl,'FontSize',FS.lab);
+    if ~isempty(ttl), title(ttl,'FontSize',FS.ttl); end
+    if nS >= min_n && k > 0
+        ylim([min(all_v)-0.06*yr, base + k*step + 0.05*yr]);
+    end
+    box off; hold off;
 end
-chi2 = 12 / (n*(n+1)) * s;
+
+function s = stars(p), s = repmat('*', 1, (p<0.05)+(p<0.01)+(p<0.001)); end
+
+function nice_yticks(target_n)
+% reduce the y-axis to ~target_n nicely-rounded ticks
+    yl = ylim; rng = yl(2)-yl(1);
+    if ~isfinite(rng) || rng <= 0, return; end
+    raw = rng/max(target_n,1);
+    mag = 10^floor(log10(raw));
+    steps = [1 2 2.5 5 10]*mag;
+    step = steps(find(steps >= raw, 1, 'first'));
+    if isempty(step), step = steps(end); end
+    t = ceil(yl(1)/step)*step : step : floor(yl(2)/step)*step;
+    if numel(t) >= 2, set(gca,'YTick',t); end
 end
 
 function padj = holm(p)

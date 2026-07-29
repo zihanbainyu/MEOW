@@ -10,10 +10,10 @@ if ~exist(res_dir,'dir'), mkdir(res_dir); end
 if ~exist(fig_dir,'dir'), mkdir(fig_dir); end
 min_rt   = 0.150;
 min_n_stat = 5;     % minimum N before paired tests / trend are drawn
-FS = struct('tick',16,'lab',18,'ttl',18,'anno',13);   % one consistent, enlarged type scale
+FS = struct('tick',16,'lab',18,'ttl',18,'anno',18);   % one consistent, enlarged type scale
 
 c_same = [97 125 184]/255; c_sim = [255 191 205]/255; c_new = [219 219 219]/255;
-c_comp = [87 6 140]/255; c_nov = [183 210 205]/255;   % c_comp = NYU violet
+c_comp = [87 6 140]/255; c_nov = [183 210 205]/255; 
 c_ab = [214 96 77]/255; c_aa = [103 169 207]/255; c_an = [90 180 172]/255;
 
 %% ---- find subjects with an n-back concat ----
@@ -89,8 +89,8 @@ paired_line('d''  compared vs novel', dpr(:,1), dpr(:,2), min_n_stat);
 diary off;
 
 %% ---- figures ----
-rlbl = {'pres. same','pres. similar','pres. new'};   % confusion rows (presented)
-clbl = {'resp same','resp similar','resp new'};       % confusion cols (response)
+rlbl = {'exp. same','exp. similar','exp. new'};   % confusion rows (presented)
+clbl = {'resp. same','resp. similar','resp. new'};       % confusion cols (response)
 
 % FIGURE 1 -- 1-back: accuracy + RT
 f = figure('color','w','Position',[60 60 1150 480],'Name','Figure 1: 1-back');
@@ -113,8 +113,8 @@ save_fig(f, fig_dir, 'group_mstback_fig2_1back_confusion');
 % FIGURE 3 -- 2-back indices: DI, d', and their RTs (compared vs novel)
 f = figure('color','w','Position',[40 40 1150 940],'Name','Figure 3: 2-back');
 subplot(2,2,1);
-paired_plot(di, {'compared','novel'}, {c_comp,c_nov}, 'LDI', ...
-    'similar discrimination (DI)', min_n_stat, {[1 2]}, FS);
+paired_plot(di, {'compared','novel'}, {c_comp,c_nov}, 'DI', ...
+    'similar discrimination index (DI)', min_n_stat, {[1 2]}, FS);
 yline(0,'k-'); nice_yticks(4);
 subplot(2,2,2);
 paired_plot(dpr, {'compared','novel'}, {c_comp,c_nov}, 'd''', ...
