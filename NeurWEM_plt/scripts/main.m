@@ -200,7 +200,7 @@ function main()
         % Part 2: post-task MST (old / similar / new)
         %%%%%%%%%%%%%%%%%%%%%%%
         fprintf('Running post-task MST\n\n');
-        run_instructions(p, {'ins_rec'});
+        % run_instructions(p, {'ins_mst'});
         sequence_mst = subject_data.sequence_mst;
         results_mst = F_run_mst(p, sequence_mst);
 
