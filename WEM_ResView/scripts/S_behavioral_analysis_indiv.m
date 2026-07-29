@@ -16,7 +16,7 @@ clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%
 %% setup
 %%%%%%%%%%%%%%%%%%%%%%%
-subj_id  = 602;
+subj_id  = 603;
 base_dir = '..';
 res_dir  = fullfile(base_dir, 'results');
 fig_dir  = fullfile(base_dir, 'figures');

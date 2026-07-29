@@ -1,0 +1,42 @@
+================================================================
+ SINGLE-SUBJECT BEHAVIORAL REPORT  --  sub603   (2026-07-29 16:10)
+================================================================
+
+
+=== 0. DATA QUALITY ==============================================
+
+1-back: 720 trials, blocks [1  2  3  4]
+  block          n    no-resp   fix broken   gate t/o     RT<min
+  1            180       1.1%         0.0%      12.8%       0.0%
+  2            180       0.0%         0.0%       3.9%       0.0%
+  3            180       2.2%         0.0%       1.1%       0.0%
+  4            180       0.6%         0.0%       0.6%       0.0%
+  ALL          720       1.0%         0.0%       4.6%       0.0%
+
+2-back: 631 trials, blocks [1  2  3  4]
+  block          n    no-resp   fix broken   gate t/o     RT<min
+  1            158       0.6%         0.0%       0.0%       0.0%
+  2            157       3.2%         0.0%       6.4%       0.0%
+  3            158       1.3%         0.0%       3.2%       0.0%
+  4            158       4.4%         0.0%       4.4%       0.0%
+  ALL          631       2.4%         0.0%       3.5%       0.0%
+
+RT (>150 ms): 1-back median 0.828 s [IQR 0.717-0.939] | 2-back median 0.993 s [IQR 0.873-1.176]
+
+
+=== 1. ENCODING (1-back) =========================================
+
+-- accuracy (wilson 95% CI) --
+  same    (repeat 2nd)   0.942  [0.884, 0.971]   113/120
+  similar (compared B)   0.850  [0.775, 0.903]   102/120
+  new     (all others)   0.988  [0.973, 0.994]   474/480
+
+-- accuracy contrasts (two-proportion z; disjoint trial sets) --
+{normcdf requires <a href="matlab:matlab.internal.addons.launchers.showExplorer('ErrorRecovery', 'identifier', 'ST', 'focused', 'normcdf');">Statistics and Machine Learning Toolbox</a>.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('S_behavioral_analysis_indiv>prop_test', '/Users/labadmin/Documents/GitHub/MEOW/WEM_ResView/scripts/S_behavioral_analysis_indiv.m', 365)" style="font-weight:bold">S_behavioral_analysis_indiv>prop_test</a> (<a href="matlab: opentoline('/Users/labadmin/Documents/GitHub/MEOW/WEM_ResView/scripts/S_behavioral_analysis_indiv.m',365,0)">line 365</a>)
+    z = (p1-p2)/se; p = 2*(1-normcdf(abs(z)));
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('S_behavioral_analysis_indiv', '/Users/labadmin/Documents/GitHub/MEOW/WEM_ResView/scripts/S_behavioral_analysis_indiv.m', 96)" style="font-weight:bold">S_behavioral_analysis_indiv</a> (<a href="matlab: opentoline('/Users/labadmin/Documents/GitHub/MEOW/WEM_ResView/scripts/S_behavioral_analysis_indiv.m',96,0)">line 96</a>)
+prop_test('same vs similar', r1.correct(i1_sam), r1.correct(i1_sim));
+} 
