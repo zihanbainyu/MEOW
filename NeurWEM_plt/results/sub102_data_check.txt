@@ -1,0 +1,80 @@
+================================================================
+ DATA CHECK  --  sub102   (2026-07-28 21:21)
+ NeurWEM_plt : MST-Back (1-back, 2-back) + MST
+================================================================
+
+=== 0. DATA QUALITY ============================================
+
+1-back: 600 trials, blocks [1  2  3  4]
+  block       n   no-resp    RT<min
+  1         150      0.7%      0.0%
+  2         150      0.7%      0.7%
+  3         150      0.7%      0.7%
+  4         150      2.7%      0.0%
+  ALL       600      1.2%      0.3%  | median RT 0.788 s
+
+2-back: 400 trials, blocks [1  2  3  4]
+  block       n   no-resp    RT<min
+  1         100      0.0%      0.0%
+  2         100      1.0%      1.0%
+  3         100      2.0%      1.0%
+  4         100      0.0%      0.0%
+  ALL       400      0.8%      0.5%  | median RT 0.854 s
+
+MST: 180 trials
+  no-response: 8.9% (16) | RT<150ms: 5.0% | median RT 1.084 s [IQR 0.981-1.248]
+
+
+=== 1. 1-BACK (encoding) =======================================
+
+-- accuracy (Wilson 95% CI) --
+  same    (repeat 2nd)    0.925  [0.864, 0.960]   111/120
+  similar (compared B)    0.875  [0.804, 0.923]   105/120
+  new     (A / filler)    0.989  [0.972, 0.996]   356/360
+
+-- RT on correct (s) --
+  same     median 0.768 s [IQR 0.689-0.936], n=111
+  similar  median 0.785 s [IQR 0.682-0.917], n=105
+
+
+=== 2. 2-BACK (retrieval) ======================================
+
+-- accuracy by goal x condition (Wilson 95% CI) --
+  AA (target/same)
+      compared   0.925  [0.801, 0.974]   37/40
+      novel      1.000  [0.912, 1.000]   40/40
+  AB (lure/similar)
+      compared   0.475  [0.329, 0.625]   19/40
+      novel      0.575  [0.422, 0.715]   23/40
+  AN (foil/new)
+      compared   1.000  [0.910, 1.000]   39/39
+      novel      0.976  [0.874, 0.996]   40/41
+
+-- LDI = p(k|AB) - p(k|AN)  &  d' = z(p(j|AA)) - z(p(j|AN)) --
+  compared  LDI +0.475 | d' 3.671   (AB n=40, AA n=40, AN n=39)
+  novel     LDI +0.551 | d' 4.492   (AB n=40, AA n=40, AN n=41)
+
+
+=== 3. MST (old / similar / new) ===============================
+
+-- response confusion (row=presented, col=response; prop [n]) --
+                  ->old(j)    ->similar(k)        ->new(l)       n
+  old          0.417 [ 25]     0.283 [ 17]     0.217 [ 13]      55
+  lure         0.383 [ 23]     0.133 [  8]     0.367 [ 22]      53
+  new          0.050 [  3]     0.200 [ 12]     0.683 [ 41]      56
+
+-- accuracy per type (Wilson 95% CI) --
+  old   (correct=j)  0.417  [0.301, 0.543]   25/60
+  lure  (correct=k)  0.133  [0.069, 0.242]   8/60
+  new   (correct=l)  0.683  [0.558, 0.787]   41/60
+
+-- standard MST indices --
+  LDI = p(sim|lure) - p(sim|new) = 0.133 - 0.200 = -0.067
+  REC = p(old|old)  - p(old|new) = 0.417 - 0.050 = +0.367
+
+-- RT on correct (s) --
+  old    median 1.035 s [IQR 0.961-1.197], n=25
+  lure   median 1.344 s [IQR 1.097-1.363], n=7
+  new    median 1.020 s [IQR 0.931-1.190], n=40
+
+saved: ..\results\sub102_data_check.txt

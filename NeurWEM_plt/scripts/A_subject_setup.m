@@ -58,9 +58,13 @@ p.keys.same = 'j';
 p.keys.diff = 'k';
 p.keys.quit = 'escape';
 
-p.timing.image_dur = 1.5;           % stimulus presentation
-p.timing.fix_dur = 0.75;            % base fixation (mean ITI)
+p.timing.image_dur = 1.5;           % n-back stimulus presentation
+p.timing.fix_dur = 0.75;            % n-back base fixation (mean ITI)
 p.timing.fix_jitter = 0.25;         % uniform ±0.25s -> ITI 0.5 to 1.0s
+
+% MST has its own, slower timing (longer look, short fixed ITI)
+p.timing.mst_image_dur = 2.0;       % MST stimulus presentation + response window (s)
+p.timing.mst_iti = 0.5;             % MST fixation ITI, fixed (s)
 
 % Sequence aperiodicity control (see P5B). For each block we build
 % n_candidates complete 2-back sequences and keep the one whose
@@ -198,14 +202,6 @@ fprintf('  -> Each block gets %d compared, %d novel, %d repeat pairs (L1+L2).\n'
     numel(p.block_indices.comp_l1{1}) + numel(p.block_indices.comp_l2{1}), ...
     numel(p.block_indices.nov_l1{1})  + numel(p.block_indices.nov_l2{1}), ...
     numel(p.block_indices.rep_l1{1})  + numel(p.block_indices.rep_l2{1}));
-
-% --- Goal-type templates ---
-% Per-block pair counts need not be divisible by 3 (e.g. 40 pairs/block at
-% nBlocks=3), so goal types are dealt from a session-long cyclic template
-% rather than assigned within each block. Cycling A-B / A-A / A-N over the
-% full 120-pair pool guarantees exactly 40 of each type per condition
-% across the session, while spreading the remainder across blocks as
-% 14/13/13, 13/14/13, 13/13/14.
 %
 % The cycle starts on A-B deliberately and is NOT shifted: the leftover
 % goal goes to A-B in block 1, so the goal type that feeds the recognition
@@ -730,7 +726,6 @@ p.mst.n_lure = 60;
 p.mst.n_new  = 60;
 p.keys.mst_old     = 'j';
 p.keys.mst_similar = 'k';
-p.keys.mst_new     = 'l';
 
 assert(height(p.stim.repeat) >= p.mst.n_old + p.mst.n_lure, ...
     'MST: need %d repeat pairs, have %d', p.mst.n_old + p.mst.n_lure, height(p.stim.repeat));
@@ -750,8 +745,9 @@ mst_old  = table(old_pairs.A,  repmat("old",  p.mst.n_old,  1), ...
 mst_lure = table(lure_pairs.B, repmat("lure", p.mst.n_lure, 1), ...
     repmat(string(p.keys.mst_similar), p.mst.n_lure, 1), ...
     'VariableNames', {'stim_id', 'trial_type', 'corr_resp'});
+% new items require NO response (withhold), like the n-back "new" trials
 mst_new  = table(new_items,         repmat("new",  p.mst.n_new,  1), ...
-    repmat(string(p.keys.mst_new),     p.mst.n_new,  1), ...
+    repmat("none",                     p.mst.n_new,  1), ...
     'VariableNames', {'stim_id', 'trial_type', 'corr_resp'});
 
 sequence_mst = [mst_old; mst_lure; mst_new];
@@ -779,9 +775,8 @@ sequence_2_back.fix_duration = ...
 
 sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
 
-% MST uses the same jittered ITI as the n-back (fix_dur +/- jitter)
-sequence_mst.fix_duration = ...
-    p.timing.fix_dur + (rand(n_mst_trials, 1) * 2 - 1) * p.timing.fix_jitter;
+% MST uses its own fixed short ITI
+sequence_mst.fix_duration = repmat(p.timing.mst_iti, n_mst_trials, 1);
 
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);

@@ -2,15 +2,6 @@
 %              Post-task MST: old / similar / new recognition
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
-%
-% Standard MST on the 1-back repeat foils (built in A_subject_setup.m, P6B):
-%   old  = the exact repeat item seen in the 1-back            -> 'j'
-%   lure = its similar pairmate, never shown                   -> 'k'
-%   new  = a fresh foil, never shown                           -> 'l'
-%
-% Fixed 1.5 s image with the response collected DURING the image (fixed
-% window, not self-paced), jittered fixation ITI, and a 10 s lead-in / tail
-% like the n-back runs.
 %==========================================================================
 function [results_table] = F_run_mst(p, sequence_mst)
 
@@ -24,42 +15,18 @@ results_table.rt = nan(num_trials, 1);
 % keys
 old_key     = KbName(p.keys.mst_old);       % 'j' = OLD
 similar_key = KbName(p.keys.mst_similar);   % 'k' = SIMILAR
-new_key     = KbName(p.keys.mst_new);       % 'l' = NEW
-escape_key  = KbName(p.keys.quit);
+escape_key  = KbName(p.keys.quit);           % NEW = no response (withhold)
 start_key   = KbName('f');
 
 Screen('TextSize', p.window, p.text_size);
 Screen('TextFont', p.window, 'Helvetica');
 
 respKeys = zeros(1, 256);
-respKeys([old_key, similar_key, new_key, escape_key]) = 1;
+respKeys([old_key, similar_key, escape_key]) = 1;
 KbQueueCreate(p.keys.device, respKeys);
 KbCheck(p.keys.device);
 
 %% INSTRUCTION
-% Text placeholder. Once an instruction image exists, replace this whole
-% block with:  run_instructions(p, {'ins_mst'});   (as done for recognition)
-DrawFormattedText(p.window, ...
-    ['Final Memory Test\n\n\n' ...
-    'You will see objects one at a time.\n\n' ...
-    'For each object, decide:\n\n' ...
-    'j = OLD (the exact object you saw earlier)\n' ...
-    'k = SIMILAR (the same object, but changed)\n' ...
-    'l = NEW (an object you did not see)\n\n\n' ...
-    'Respond while the image is on the screen.\n\n' ...
-    'When you are ready, press f to begin.'], ...
-    'center', 'center', p.colors.black, [], [], [], 1.2);
-Screen('Flip', p.window);
-KbReleaseWait(p.keys.device);
-while true
-    [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
-    if keyIsDown
-        if keyCode(start_key), break;
-        elseif keyCode(escape_key), error('USER_ABORT'); end
-    end
-    WaitSecs(0.001);
-end
-
 % Lead-in fixation
 draw_fixation_target(p);
 lead_in_onset = Screen('Flip', p.window);
@@ -83,13 +50,13 @@ for i = 1:num_trials
     Screen('DrawTexture', p.window, img_texture, [], [], 0);
     KbQueueFlush(p.keys.device);
 
-    % --- present image (fixed 1.5 s) and collect response during it ---
+    % --- present image (fixed 2 s) and collect response during it ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
 
     key_pressed = "NA";
     response_time = NaN;
     responded = false;
-    while GetSecs < stim_onset_time + p.timing.image_dur
+    while GetSecs < stim_onset_time + p.timing.mst_image_dur
         [pressed, firstPress] = KbQueueCheck(p.keys.device);
         if pressed && ~responded
             response_key_code = find(firstPress > 0, 1);
@@ -101,8 +68,6 @@ for i = 1:num_trials
                 key_pressed = string(p.keys.mst_old);     responded = true;
             elseif response_key_code == similar_key
                 key_pressed = string(p.keys.mst_similar); responded = true;
-            elseif response_key_code == new_key
-                key_pressed = string(p.keys.mst_new);     responded = true;
             end
         end
     end
