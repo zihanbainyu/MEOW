@@ -273,7 +273,7 @@ bar_ci([one.acc_same one.acc_sim one.acc_new], [one.n_same one.n_sim one.n_new],
     {c_same,c_sim,c_new}, {'same','similar','new'}, 'accuracy', '1-back accuracy');
 ylim([0 1.1]); yline(1/3,'k:','chance','LineWidth',1.2);
 subplot(1,3,2);
-raincloud_cell({rt_sam, rt_sim}, {c_same,c_sim}, {'same','similar'}, 'RT (s)', '1-back RT (correct)');
+raincloud_cell({rt_sam, rt_sim}, {c_same,c_sim}, {'same','similar'}, 'RT (s)', '1-back RT (correct)', {[1 2]});
 subplot(1,3,3);
 draw_matrix(m1, c1, {c_same,c_sim,c_new}, {'Exp Same','Exp Sim','Exp New'}, {'Resp Same','Resp Sim','Resp New'});
 title('1-back confusions','FontSize',13);
@@ -293,7 +293,8 @@ yline(0,'k-');
 subplot(2,2,4);
 rc_lbl = [cellfun(@(c) ['AB ' c], cnd_nm, 'UniformOutput', false), ...
           cellfun(@(c) ['AA ' c], cnd_nm, 'UniformOutput', false)];
-raincloud_cell([rt_l, rt_t], [cnd_cols, cnd_cols], rc_lbl, 'RT (s)', '2-back RT (correct)');
+% bracket within goal type: AB compared vs AB novel, and AA compared vs AA novel
+raincloud_cell([rt_l, rt_t], [cnd_cols, cnd_cols], rc_lbl, 'RT (s)', '2-back RT (correct)', {[1 2],[3 4]});
 xtickangle(30);
 save_fig(f, fig_dir, sprintf('sub%03d_2back', subj_id));
 
@@ -513,31 +514,60 @@ function bar_ci_explicit(vals, ci, cols, xlbls, ylbl, ttl)
     box off; hold off;
 end
 
-function raincloud_cell(cells, cols, xlbls, ylbl, ttl)
-% single-subject variant: each cloud is built from that cell's TRIALS
-% (unequal n), so there are no across-subject connecting lines
-    hold on; n_grps = numel(cells); all_v = [];
-    for i = 1:n_grps
+function raincloud_cell(cells, cols, xlbls, ylbl, ttl, pairs)
+% Dot + box-and-whisker plot in the paired-plot cosmetic style: jittered
+% coloured dots overlaid with a thin black box (Q1-Q3), median, and 1.5*IQR
+% whiskers, plus significance brackets with stars between the requested
+% group pairs. Each cloud is that cell's TRIALS -- n = 1, so there are no
+% across-subject connecting lines and no cross-condition regression (those
+% are group-level features of the reference figure).
+%   pairs : optional cell array of [i j] index pairs to rank-sum test and
+%           bracket; default = consecutive pairs.
+    if nargin < 6 || isempty(pairs)
+        pairs = arrayfun(@(k) [k k+1], 1:numel(cells)-1, 'UniformOutput', false);
+    end
+    hold on; n = numel(cells); all_v = [];
+    bw = 0.30; jw = 0.11;                      % box width, dot-jitter half-width
+    for i = 1:n
         d = cells{i}(:); d = d(~isnan(d)); all_v = [all_v; d]; %#ok<AGROW>
         if isempty(d), continue; end
-        if numel(d) > 3
-            [fd, xi] = ksdensity(d); fd = fd/max(fd)*0.35;
-            patch([i+fd, i*ones(1,numel(fd))], [xi, fliplr(xi)], cols{i}, 'EdgeColor','none','FaceAlpha',0.45);
-        end
-        jit = -0.12 - rand(numel(d),1)*0.22;
-        scatter(i+jit, d, 12, cols{i}, 'filled', 'MarkerFaceAlpha', 0.45);
-        q = quantile(d, [0.25 0.5 0.75]);
-        rectangle('Position', [i-0.05, q(1), 0.10, q(3)-q(1)], 'FaceColor', cols{i}, 'EdgeColor','k','LineWidth',1.1);
-        plot([i-0.05 i+0.05], [q(2) q(2)], 'k-', 'LineWidth', 2);
-        text(i+0.40, q(2), sprintf('n=%d', numel(d)), 'FontSize', 8, 'Color', [.3 .3 .3]);
+        % jittered coloured dots
+        jit = (rand(numel(d),1)-0.5)*2*jw;
+        scatter(i+jit, d, 24, cols{i}, 'filled', 'MarkerFaceAlpha',0.55, ...
+            'MarkerEdgeColor',[.25 .25 .25], 'LineWidth',0.25);
+        % box + whiskers (thin black), on top
+        q = quantile(d,[0.25 0.5 0.75]); iqrv = q(3)-q(1);
+        lo_w = max(min(d), q(1)-1.5*iqrv); hi_w = min(max(d), q(3)+1.5*iqrv);
+        plot([i i],[lo_w q(1)],'k-','LineWidth',0.9);
+        plot([i i],[q(3) hi_w],'k-','LineWidth',0.9);
+        plot(i+[-.06 .06],[lo_w lo_w],'k-','LineWidth',0.9);
+        plot(i+[-.06 .06],[hi_w hi_w],'k-','LineWidth',0.9);
+        rectangle('Position',[i-bw/2, q(1), bw, max(iqrv,eps)], ...
+            'EdgeColor','k','LineWidth',1.1,'FaceColor','none');
+        plot(i+[-bw/2 bw/2],[q(2) q(2)],'k-','LineWidth',1.8);   % median
+        text(i+bw/2+0.03, q(2), sprintf('n=%d',numel(d)),'HorizontalAlignment','left', ...
+            'VerticalAlignment','middle','FontSize',7.5,'Color',[.5 .5 .5]);
     end
-    set(gca,'XTick',1:n_grps,'XTickLabel',xlbls,'FontSize',12);
-    xlim([0.4 n_grps+0.7]); ylabel(ylbl,'FontSize',13);
-    if ~isempty(ttl), title(ttl,'FontSize',13); end
+    % significance brackets with stars
     if ~isempty(all_v)
-        rg = range(all_v); if rg==0, rg = 1; end
-        ylim([min(all_v)-0.1*rg, max(all_v)+0.1*rg]);
+        yr = range(all_v); if yr==0, yr = 1; end
+        base = max(all_v) + 0.12*yr; step = 0.11*yr; k = 0;
+        for pp = 1:numel(pairs)
+            ij = pairs{pp};
+            a = cells{ij(1)}(:); a = a(~isnan(a));
+            b = cells{ij(2)}(:); b = b(~isnan(b));
+            if numel(a)<3 || numel(b)<3, continue; end
+            pv = ranksum(a,b); s = stars(pv); if isempty(s), s = 'ns'; end
+            y = base + k*step; k = k + 1;
+            plot([ij(1) ij(1) ij(2) ij(2)], [y-0.02*yr y y y-0.02*yr], 'k-','LineWidth',0.9);
+            text(mean(ij), y, s, 'HorizontalAlignment','center', ...
+                'VerticalAlignment','bottom','FontSize',11);
+        end
+        ylim([min(all_v)-0.06*yr, base + max(k,1)*step + 0.05*yr]);
     end
+    set(gca,'XTick',1:n,'XTickLabel',xlbls,'FontSize',12);
+    xlim([0.4 n+0.6]); ylabel(ylbl,'FontSize',13);
+    if ~isempty(ttl), title(ttl,'FontSize',13); end
     box off; hold off;
 end
 

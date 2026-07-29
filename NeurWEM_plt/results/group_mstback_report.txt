@@ -1,0 +1,20 @@
+================================================================
+ GROUP MST-BACK  --  N = 2   (2026-07-28 22:26)
+================================================================
+  1-back same            mean 0.921  SD 0.006  [range 0.917-0.925]  n=2
+  1-back similar         mean 0.808  SD 0.094  [range 0.742-0.875]  n=2
+  1-back new             mean 0.972  SD 0.025  [range 0.954-0.989]  n=2
+  2-back AB acc          mean 0.438  SD 0.053  [range 0.400-0.475]  n=2
+  2-back AA acc          mean 0.887  SD 0.106  [range 0.812-0.963]  n=2
+  2-back AN acc          mean 0.981  SD 0.009  [range 0.975-0.988]  n=2
+  LDI compared           mean 0.512  SD 0.018  [range 0.500-0.525]  n=2
+  LDI novel              mean 0.350  SD 0.071  [range 0.300-0.401]  n=2
+  d'  compared           mean 3.368  SD 0.429  [range 3.065-3.671]  n=2
+  d'  novel              mean 3.562  SD 1.316  [range 2.632-4.492]  n=2
+
+*** PRIMARY OUTCOME: 2-back lure discrimination (LDI), compared vs novel ***
+  LDI compared vs novel          diff -0.162 (n=2, too few for a test)
+    (per-subject compared - novel: +0.200, +0.124)
+
+-- secondary --
+  d'  compared vs novel          diff +0.194 (n=2, too few for a test)
