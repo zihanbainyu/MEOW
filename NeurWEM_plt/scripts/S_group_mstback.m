@@ -1,16 +1,5 @@
 clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% NeurWEM_plt -- GROUP analysis, MST-Back (1-back + 2-back) only
-%
-% Auto-detects every subject with an n-back concat, computes per-subject
-% behavioural metrics, and draws them in the paired-plot style: per-level box
-% + jittered subject dots + gray lines connecting each subject across levels,
-% significance brackets, and a dashed linear trend with an R^2 / p / equation
-% ("stat_cor") annotation for the >=3-level panels.
-%
-% Stats scale with N: paired tests and the trend are only drawn once enough
-% subjects are present (they are skipped, not faked, at small N).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% ---- config ----
 base_dir = '..';
@@ -21,10 +10,10 @@ if ~exist(res_dir,'dir'), mkdir(res_dir); end
 if ~exist(fig_dir,'dir'), mkdir(fig_dir); end
 min_rt   = 0.150;
 min_n_stat = 5;     % minimum N before paired tests / trend are drawn
+FS = struct('tick',16,'lab',18,'ttl',18,'anno',13);   % one consistent, enlarged type scale
 
 c_same = [97 125 184]/255; c_sim = [255 191 205]/255; c_new = [219 219 219]/255;
-c_comp = [180 174 211]/255; c_nov = [183 210 205]/255;
-% ordered goal colours (lure -> target -> foil = hard -> easy)
+c_comp = [87 6 140]/255; c_nov = [183 210 205]/255;   % c_comp = NYU violet
 c_ab = [214 96 77]/255; c_aa = [103 169 207]/255; c_an = [90 180 172]/255;
 
 %% ---- find subjects with an n-back concat ----
@@ -37,7 +26,7 @@ for i = 1:numel(dd)
     L = load(f, 'final_data_output');
     if isfield(L,'final_data_output') && ...
        all(isfield(L.final_data_output, {'results_1_back_all','results_2_back_all'}))
-        subs(end+1) = id; %#ok<AGROW>
+        subs(end+1) = id;
     end
 end
 subs = sort(subs);
@@ -47,18 +36,34 @@ fprintf('Group MST-Back: %d subjects [%s]\n', nS, num2str(subs));
 
 %% ---- per-subject metrics ----
 one_acc  = nan(nS,3);   % 1-back accuracy: same / similar / new
+one_rt   = nan(nS,2);   % 1-back median RT (correct): same / similar
 goal_acc = nan(nS,3);   % 2-back accuracy by goal: AB(lure) / AA(target) / AN(foil)
-ldi      = nan(nS,2);   % 2-back LDI: compared / novel
-dpr      = nan(nS,2);   % 2-back d' : compared / novel
+di      = nan(nS,2);   % 2-back LDI (similar discrimination): compared / novel
+dpr      = nan(nS,2);   % 2-back d'  (same detection)       : compared / novel
+rt_lure  = nan(nS,2);   % 2-back median RT (correct AB): compared / novel
+rt_targ  = nan(nS,2);   % 2-back median RT (correct AA): compared / novel
+conf1_all = nan(3,3,nS);            % 1-back confusion (row=presented, col=response)
+conf2_all = {nan(3,3,nS), nan(3,3,nS)};   % 2-back confusion: {compared, novel}
 for si = 1:nS
     f = fullfile(data_dir, sprintf('sub%03d', subs(si)), sprintf('sub%03d_concat.mat', subs(si)));
     L = load(f, 'final_data_output'); fdo = L.final_data_output;
     m = nback_metrics(fdo, min_rt);
     one_acc(si,:)  = m.one_acc;
+    one_rt(si,:)   = m.one_rt;
     goal_acc(si,:) = m.goal_acc;
-    ldi(si,:)      = m.ldi;
+    di(si,:)      = m.ldi;
     dpr(si,:)      = m.dpr;
+    rt_lure(si,:)  = m.rt_lure;
+    rt_targ(si,:)  = m.rt_targ;
+    conf1_all(:,:,si)    = m.conf1;
+    conf2_all{1}(:,:,si) = m.conf2{1};
+    conf2_all{2}(:,:,si) = m.conf2{2};
 end
+
+% grand-mean confusion matrices (+/- SE across subjects)
+[C1,  SE1]  = grand_conf(conf1_all);
+[C2c, SE2c] = grand_conf(conf2_all{1});
+[C2n, SE2n] = grand_conf(conf2_all{2});
 
 %% ---- report ----
 diary_file = fullfile(res_dir, 'group_mstback_report.txt');
@@ -73,45 +78,67 @@ grp_line('1-back new',     one_acc(:,3));
 grp_line('2-back AB acc',  goal_acc(:,1));
 grp_line('2-back AA acc',  goal_acc(:,2));
 grp_line('2-back AN acc',  goal_acc(:,3));
-grp_line('LDI compared',   ldi(:,1));    grp_line('LDI novel', ldi(:,2));
+grp_line('DI compared',   di(:,1));    grp_line('DI novel', di(:,2));
 grp_line('d''  compared',  dpr(:,1));    grp_line('d''  novel', dpr(:,2));
-fprintf('\n*** PRIMARY OUTCOME: 2-back lure discrimination (LDI), compared vs novel ***\n');
-paired_line('LDI compared vs novel', ldi(:,1), ldi(:,2), min_n_stat);
+fprintf('\n*** PRIMARY OUTCOME: 2-back discrimination (DI), compared vs novel ***\n');
+paired_line('LDI compared vs novel', di(:,1), di(:,2), min_n_stat);
 fprintf('    (per-subject compared - novel: %s)\n', ...
-    strjoin(compose('%+.3f', ldi(:,1)-ldi(:,2))', ', '));
+    strjoin(compose('%+.3f', di(:,1)-di(:,2))', ', '));
 fprintf('\n-- secondary --\n');
 paired_line('d''  compared vs novel', dpr(:,1), dpr(:,2), min_n_stat);
 diary off;
 
-%% ---- figures (reference paired-plot style) ----
-% PRIMARY: 2-back lure discrimination (LDI), compared vs novel -- its own panel
-f = figure('color','w','Position',[100 100 560 560],'Name','PRIMARY: LDI compared vs novel');
-paired_plot(ldi, {'compared','novel'}, {c_comp,c_nov}, 'LDI  ( p(sim|lure) - p(sim|foil) )', ...
-    '2-back lure discrimination', min_n_stat, {[1 2]});
-yline(0,'k-');
-save_fig(f, fig_dir, 'group_mstback_LDI');
+%% ---- figures ----
+rlbl = {'pres. same','pres. similar','pres. new'};   % confusion rows (presented)
+clbl = {'resp same','resp similar','resp new'};       % confusion cols (response)
 
-f = figure('color','w','Position',[60 60 1300 430],'Name','MST-Back accuracy');
+% FIGURE 1 -- 1-back: accuracy + RT
+f = figure('color','w','Position',[60 60 1150 480],'Name','Figure 1: 1-back');
 subplot(1,2,1);
 paired_plot(one_acc, {'same','similar','new'}, {c_same,c_sim,c_new}, ...
-    'accuracy', '1-back accuracy', min_n_stat, {[1 2],[2 3],[1 3]});
-ylim([0 1.05]); yline(1/3,'k:','chance');
+    'accuracy', '1-back accuracy', min_n_stat, {[1 2],[2 3],[1 3]}, FS);
+ylim([0 1.08]); yline(1/3,'k:','chance'); nice_yticks(4);
 subplot(1,2,2);
-paired_plot(goal_acc, {'AB (lure)','AA (target)','AN (foil)'}, {c_ab,c_aa,c_an}, ...
-    'accuracy', '2-back accuracy by goal', min_n_stat, {[1 2],[2 3],[1 3]});
-ylim([0 1.05]); yline(1/3,'k:','chance');
-save_fig(f, fig_dir, 'group_mstback_accuracy');
+paired_plot(one_rt, {'same','similar'}, {c_same,c_sim}, ...
+    'RT (s)', '1-back RT (correct)', min_n_stat, {[1 2]}, FS);
+nice_yticks(4);
+save_fig(f, fig_dir, 'group_mstback_fig1_1back');
 
-f = figure('color','w','Position',[60 60 900 430],'Name','MST-Back 2-back indices');
-subplot(1,2,1);
-paired_plot(ldi, {'compared','novel'}, {c_comp,c_nov}, 'LDI', ...
-    '2-back lure discrimination', min_n_stat, {[1 2]});
-yline(0,'k-');
-subplot(1,2,2);
+% FIGURE 2 -- 1-back confusion matrix (group mean +/- SE)
+f = figure('color','w','Position',[80 80 560 540],'Name','Figure 2: 1-back confusion');
+draw_matrix_se(C1, SE1, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+title(sprintf('1-back confusions  (N = %d)', nS), 'FontSize', FS.ttl);
+save_fig(f, fig_dir, 'group_mstback_fig2_1back_confusion');
+
+% FIGURE 3 -- 2-back indices: DI, d', and their RTs (compared vs novel)
+f = figure('color','w','Position',[40 40 1150 940],'Name','Figure 3: 2-back');
+subplot(2,2,1);
+paired_plot(di, {'compared','novel'}, {c_comp,c_nov}, 'LDI', ...
+    'similar discrimination (DI)', min_n_stat, {[1 2]}, FS);
+yline(0,'k-'); nice_yticks(4);
+subplot(2,2,2);
 paired_plot(dpr, {'compared','novel'}, {c_comp,c_nov}, 'd''', ...
-    '2-back target detection', min_n_stat, {[1 2]});
-yline(0,'k-');
-save_fig(f, fig_dir, 'group_mstback_indices');
+    'same detection (d'')', min_n_stat, {[1 2]}, FS);
+yline(0,'k-'); nice_yticks(4);
+subplot(2,2,3);
+paired_plot(rt_lure, {'compared','novel'}, {c_comp,c_nov}, 'RT (s)', ...
+    'RT: similar discrimination', min_n_stat, {[1 2]}, FS);
+nice_yticks(4);
+subplot(2,2,4);
+paired_plot(rt_targ, {'compared','novel'}, {c_comp,c_nov}, 'RT (s)', ...
+    'RT: same detection', min_n_stat, {[1 2]}, FS);
+nice_yticks(4);
+save_fig(f, fig_dir, 'group_mstback_fig3_2back');
+
+% FIGURE 4 -- 2-back confusion matrices (compared vs novel, group mean +/- SE)
+f = figure('color','w','Position',[40 40 1120 540],'Name','Figure 4: 2-back confusion');
+subplot(1,2,1);
+draw_matrix_se(C2c, SE2c, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+title('2-back: compared', 'FontSize', FS.ttl);
+subplot(1,2,2);
+draw_matrix_se(C2n, SE2n, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+title('2-back: novel', 'FontSize', FS.ttl);
+save_fig(f, fig_dir, 'group_mstback_fig4_2back_confusion');
 
 fprintf('\nsaved report + figures to %s , %s\n', res_dir, fig_dir);
 
@@ -126,6 +153,12 @@ function m = nback_metrics(fdo, min_rt)
             (r1.condition=="repeat"   & strcmp(r1.corr_resp,'none')) | ...
              r1.condition=="filler";
     m.one_acc = [pmean(r1.correct,i_sam), pmean(r1.correct,i_sim), pmean(r1.correct,i_new)];
+    % 1-back RT on correct trials (median): same / similar
+    v1 = r1.rt > min_rt;
+    m.one_rt = [median(r1.rt(i_sam & r1.correct & v1),'omitnan'), ...
+                median(r1.rt(i_sim & r1.correct & v1),'omitnan')];
+    % 1-back confusion (row=presented same/similar/new, col=response j/k/none)
+    m.conf1 = conf_mat(r1.resp_key, {i_sam, i_sim, i_new}, {'j','k','none'});
     % 2-back goals
     real2 = ~contains(r2.goal, "JUNK");
     pan = false(height(r2),1);
@@ -136,13 +169,18 @@ function m = nback_metrics(fdo, min_rt)
     ab = real2 & strcmp(r2.goal,'A-B') & strcmp(r2.corr_resp,'k');
     an = real2 & pan & strcmp(r2.corr_resp,'none');
     m.goal_acc = [pmean(r2.correct,ab), pmean(r2.correct,aa), pmean(r2.correct,an)];
-    % LDI and d' by condition
+    % LDI, d', RT, and confusion by condition
+    v2 = r2.rt > min_rt;
     conds = {'compared','novel'};
+    m.conf2 = {nan(3,3), nan(3,3)};
     for c = 1:2
         cm = strcmp(r2.condition, conds{c});
         m.ldi(c) = pkey(r2,ab&cm,'k') - pkey(r2,an&cm,'k');
         nh = sum(aa&cm); nf = sum(an&cm);
         m.dpr(c) = zc(pkey(r2,aa&cm,'j'),nh) - zc(pkey(r2,an&cm,'j'),nf);
+        m.rt_lure(c) = median(r2.rt(ab&cm & r2.correct & v2),'omitnan');   % similar discrimination
+        m.rt_targ(c) = median(r2.rt(aa&cm & r2.correct & v2),'omitnan');   % same detection
+        m.conf2{c} = conf_mat(r2.resp_key, {aa&cm, ab&cm, an&cm}, {'j','k','none'});
     end
 end
 
@@ -175,8 +213,9 @@ function paired_line(lbl, a, b, min_n)
         lbl, mean(a), mean(b), mean(b-a), p, stars(p));
 end
 
-function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs)
+function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
 % M: [nS x nL] metric per subject per level. Paired-plot style.
+    if nargin < 8 || isempty(FS), FS = struct('tick',16,'lab',18,'ttl',18,'anno',13); end
     [nS, nL] = size(M);
     if nargin < 7 || isempty(pairs)
         pairs = arrayfun(@(k) [k k+1], 1:nL-1, 'UniformOutput', false);
@@ -220,7 +259,7 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs)
             pv = signrank(M(ok,ij(1)), M(ok,ij(2))); s = stars(pv); if isempty(s), s='ns'; end
             y = base + k*step; k = k + 1;
             plot([ij(1) ij(1) ij(2) ij(2)], [y-0.02*yr y y y-0.02*yr], 'k-','LineWidth',0.9);
-            text(mean(ij), y, s, 'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',11);
+            text(mean(ij), y, s, 'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',FS.tick);
         end
     end
 
@@ -234,13 +273,13 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs)
             plot(xx, polyval(cf, xx), 'k--', 'LineWidth', 1.6);
             xt = 0.7; yt = min(all_v);
             text(xt, yt, sprintf('R^2 = %.2f, p = %.2g\ny = %.2f + %.2f x', ...
-                r^2, pv, cf(2), cf(1)), 'FontSize', 10, 'VerticalAlignment','bottom');
+                r^2, pv, cf(2), cf(1)), 'FontSize', FS.anno, 'VerticalAlignment','bottom');
         end
     end
 
-    set(gca,'XTick',1:nL,'XTickLabel',lvllbl,'FontSize',12);
-    xlim([0.4 nL+0.6]); ylabel(ylbl,'FontSize',13);
-    if ~isempty(ttl), title(ttl,'FontSize',13); end
+    set(gca,'XTick',1:nL,'XTickLabel',lvllbl,'FontSize',FS.tick);
+    xlim([0.4 nL+0.6]); ylabel(ylbl,'FontSize',FS.lab);
+    if ~isempty(ttl), title(ttl,'FontSize',FS.ttl); end
     if nS >= min_n && k > 0
         ylim([min(all_v)-0.06*yr, base + k*step + 0.05*yr]);
     end
@@ -248,6 +287,66 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs)
 end
 
 function s = stars(p), s = repmat('*', 1, (p<0.05)+(p<0.01)+(p<0.001)); end
+
+function M = conf_mat(resp, masks, keys)
+% per-subject confusion: row = presented (mask), col = response key; proportions
+    M = nan(numel(masks), numel(keys));
+    for r = 1:numel(masks)
+        n = sum(masks{r}); if n==0, continue; end
+        for c = 1:numel(keys)
+            M(r,c) = mean(strcmp(resp(masks{r}), keys{c}));
+        end
+    end
+end
+
+function [M, SE] = grand_conf(A)
+% grand mean (+/- SE across subjects) of a stack of confusion matrices [r x c x nS]
+    M  = mean(A, 3, 'omitnan');
+    n  = sum(~isnan(A), 3);
+    SE = std(A, 0, 3, 'omitnan') ./ sqrt(max(n,1));
+    SE(n < 2) = NaN;
+end
+
+function draw_matrix_se(mat, se, cols, ylbl, xlbl, FS)
+% confusion matrix, Experiment-1 style: cell shaded by value, mean + (+/-SE) text
+    hold on; nR = size(mat,1); nC = size(mat,2);
+    for r = 1:nR
+        for c = 1:nC
+            v = mat(r,c); if isnan(v), v = 0; end
+            s = se(r,c);
+            t_c = (v > 0.5)*[1 1 1] + (v <= 0.5)*[0.2 0.2 0.2];
+            patch([c-0.48 c+0.48 c+0.48 c-0.48], [r-0.48 r-0.48 r+0.48 r+0.48], ...
+                cols{r}, 'EdgeColor','none', 'FaceAlpha', v);
+            text(c, r-0.10, sprintf('%.2f', v), 'HorizontalAlignment','center', ...
+                'Color',t_c, 'FontWeight','bold', 'FontSize',FS.lab);
+            if ~isnan(s)
+                text(c, r+0.22, sprintf('\\pm%.2f', s), 'HorizontalAlignment','center', ...
+                    'Color',t_c, 'FontSize',FS.anno);
+            end
+            if r == 1
+                text(c, 0.32, xlbl{c}, 'HorizontalAlignment','center', ...
+                    'Color',cols{c}, 'FontWeight','bold', 'FontSize',FS.tick);
+            end
+        end
+        text(0.42, r, ylbl{r}, 'HorizontalAlignment','right', ...
+            'Color',cols{r}, 'FontWeight','bold', 'FontSize',FS.tick);
+    end
+    axis ij equal; xlim([0.05 3.85]); ylim([0.15 3.55]);
+    set(gca,'XTick',[],'YTick',[],'XColor','none','YColor','none'); hold off;
+end
+
+function nice_yticks(target_n)
+% reduce y-axis to ~target_n nicely-rounded ticks
+    yl = ylim; rng = yl(2)-yl(1);
+    if ~isfinite(rng) || rng <= 0, return; end
+    raw = rng/max(target_n,1);
+    mag = 10^floor(log10(raw));
+    steps = [1 2 2.5 5 10]*mag;
+    step = steps(find(steps >= raw, 1, 'first'));
+    if isempty(step), step = steps(end); end
+    t = ceil(yl(1)/step)*step : step : floor(yl(2)/step)*step;
+    if numel(t) >= 2, set(gca,'YTick',t); end
+end
 
 function save_fig(f, fig_dir, name)
     set(f,'Renderer','painters','PaperPositionMode','auto');
