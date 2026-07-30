@@ -1,5 +1,5 @@
 ================================================================
- GROUP MST-BACK  --  N = 3   (2026-07-29 18:15)
+ GROUP MST-BACK  --  N = 3   (2026-07-30 16:03)
 ================================================================
   1-back same            mean 0.917  SD 0.008  [range 0.908-0.925]  n=3
   1-back similar         mean 0.833  SD 0.079  [range 0.742-0.883]  n=3
@@ -18,3 +18,13 @@
 
 -- secondary --
   d'  compared vs novel          diff +0.004 (n=3, too few for a test)
+
+-- POST-TASK MST (old / lure / new; N with MST = 2) --
+  MST LDI                mean 0.092  SD 0.224  [range -0.067-0.250]  n=2
+  MST recognition        mean 0.425  SD 0.082  [range 0.367-0.483]  n=2
+  MST d' (old)           mean 1.463  SD 0.041  [range 1.434-1.492]  n=2
+  MST hit p(old|old)     mean 0.500  SD 0.118  [range 0.417-0.583]  n=2
+  MST lure p(sim|lure)   mean 0.208  SD 0.106  [range 0.133-0.283]  n=2
+  MST CR  p(new|new)     mean 0.808  SD 0.082  [range 0.750-0.867]  n=2
+  MST RT old (s)         mean 1.048  SD 0.018  [range 1.035-1.061]  n=2
+  MST RT lure (s)        mean 1.401  SD 0.081  [range 1.344-1.458]  n=2

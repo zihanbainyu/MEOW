@@ -503,6 +503,7 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS, no_trend)
         pairs = arrayfun(@(k) [k k+1], 1:nL-1, 'UniformOutput', false);
     end
     hold on; jw = 0.07; bw = 0.34;
+    dot_area = 90;   % per-subject dot size (scatter marker area, points^2)
     X = (1:nL) + (rand(nS,nL)-0.5)*2*jw;
 
     for s = 1:nS
@@ -521,7 +522,7 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS, no_trend)
                 'EdgeColor','k','LineWidth',1.1,'FaceColor','none');
             plot(L+[-bw/2 bw/2],[q(2) q(2)],'k-','LineWidth',1.8);
         end
-        scatter(X(:,L), M(:,L), 34, cols{L}, 'filled', 'MarkerFaceAlpha',0.85, ...
+        scatter(X(:,L), M(:,L), dot_area, cols{L}, 'filled', 'MarkerFaceAlpha',0.85, ...
             'MarkerEdgeColor',[.2 .2 .2], 'LineWidth',0.3);
     end
 

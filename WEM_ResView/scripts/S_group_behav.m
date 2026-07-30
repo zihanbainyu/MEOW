@@ -1,5 +1,10 @@
 clear; clc; close all;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% WEM_ResView -- group behavioural results (subject = unit of analysis)
+% Aesthetic matches NeurWEM_plt/scripts/S_group_mstback.m (paired_plot dots,
+% fixed-size panels, draw_matrix_se confusions). Conditions: compared /
+% isolated / novel; post-task test is old/new recognition.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% ---- config ----
 base_dir = '..';
@@ -10,17 +15,18 @@ if ~exist(res_dir,'dir'), mkdir(res_dir); end
 if ~exist(fig_dir,'dir'), mkdir(fig_dir); end
 min_rt   = 0.150;
 min_n_stat = 5;     % minimum N before paired tests / trend are drawn
-FS = struct('tick',20,'lab',20,'ttl',20,'anno',20);   % enlarged axes (readable from space); title eased so it fits the thinner panels
+FS = struct('tick',20,'lab',20,'ttl',20,'anno',20);   % enlarged, consistent type scale
 
-% Fixed panel geometry (pixels). Every paired-plot panel is sized as
-% nCond*col wide by h tall, so a two-group panel is EXACTLY the same size in
-% every figure (and three-group panels match each other). Margins leave room
-% for the enlarged axis labels/ticks.
+% Fixed panel geometry (pixels): each paired-plot panel is nCond*col wide by h
+% tall, so two-group panels are EXACTLY the same size in every figure.
 GEO = struct('col',150, 'h',380, 'ml',110, 'mr',40, 'mb',72, 'mt',58, 'hg',105, 'vg',120);
 
 c_same = [97 125 184]/255; c_sim = [255 191 205]/255; c_new = [219 219 219]/255;
-c_comp = [87 6 140]/255; c_nov = [183 210 205]/255; 
-c_ab = [214 96 77]/255; c_aa = [103 169 207]/255; c_an = [90 180 172]/255;
+c_comp = [87 6 140]/255; c_iso = [176 230 255]/255; c_nov = [183 210 205]/255;   % c_comp = NYU violet
+cnd_nm   = {'compared','isolated','novel'};
+cnd_cols = {c_comp, c_iso, c_nov};
+rec_nm   = {'compared','isolated'};        % only studied conditions are "old"
+rec_cols = {c_comp, c_iso};
 
 %% ---- find subjects with an n-back concat ----
 dd = dir(fullfile(data_dir, 'sub*'));
@@ -32,33 +38,29 @@ for i = 1:numel(dd)
     L = load(f, 'final_data_output');
     if isfield(L,'final_data_output') && ...
        all(isfield(L.final_data_output, {'results_1_back_all','results_2_back_all'}))
-        subs(end+1) = id;
+        subs(end+1) = id; %#ok<SAGROW>
     end
 end
 subs = sort(subs);
 nS = numel(subs);
 assert(nS >= 1, 'No subjects with an n-back concat found in %s', data_dir);
-fprintf('Group MST-Back: %d subjects [%s]\n', nS, num2str(subs));
+fprintf('Group WEM_ResView: %d subjects [%s]\n', nS, num2str(subs));
 
 %% ---- per-subject metrics ----
 one_acc  = nan(nS,3);   % 1-back accuracy: same / similar / new
 one_rt   = nan(nS,2);   % 1-back median RT (correct): same / similar
-goal_acc = nan(nS,3);   % 2-back accuracy by goal: AB(lure) / AA(target) / AN(foil)
-di      = nan(nS,2);   % 2-back LDI (similar discrimination): compared / novel
-dpr      = nan(nS,2);   % 2-back d'  (same detection)       : compared / novel
-rt_lure  = nan(nS,2);   % 2-back median RT (correct AB): compared / novel
-rt_targ  = nan(nS,2);   % 2-back median RT (correct AA): compared / novel
-conf1_all = nan(3,3,nS);            % 1-back confusion (row=presented, col=response)
-conf2_all = {nan(3,3,nS), nan(3,3,nS)};   % 2-back confusion: {compared, novel}
-% post-task MST (old / lure / new). Only later subjects ran it (earlier ones
-% have results_recognition instead), so rows without MST stay NaN.
-has_mst  = false(nS,1);
-mst_ldi  = nan(nS,1);   % lure discrimination: p(sim|lure) - p(sim|new)
-mst_rec  = nan(nS,1);   % recognition:        p(old|old)  - p(old|new)
-mst_dpr  = nan(nS,1);   % old detection d'
-mst_rate = nan(nS,3);   % hit p(old|old) / lure p(sim|lure) / CR p(new|new)
-mst_rt   = nan(nS,2);   % median RT (correct): old / lure
-mst_conf = nan(3,3,nS); % MST confusion (row=presented old/lure/new, col=response)
+goal_acc = nan(nS,3);   % 2-back accuracy by goal (pooled): AB / AA / AN
+di      = nan(nS,3);    % 2-back LDI (similar discrimination): compared/isolated/novel
+dpr      = nan(nS,3);   % 2-back d'  (same detection)       : compared/isolated/novel
+rt_lure  = nan(nS,3);   % 2-back median RT (correct AB): by condition
+rt_targ  = nan(nS,3);   % 2-back median RT (correct AA): by condition
+conf1_all = nan(3,3,nS);                       % 1-back confusion
+conf2_all = {nan(3,3,nS), nan(3,3,nS), nan(3,3,nS)};   % 2-back confusion: {comp, iso, nov}
+% post-task recognition (old / new by condition)
+has_rec  = false(nS,1);
+rec_d    = nan(nS,2);   % recognition d': compared / isolated
+rec_hit  = nan(nS,2);   % hit rate p(old|old): compared / isolated
+rec_far  = nan(nS,1);   % false-alarm rate (pooled foils)
 for si = 1:nS
     f = fullfile(data_dir, sprintf('sub%03d', subs(si)), sprintf('sub%03d_concat.mat', subs(si)));
     L = load(f, 'final_data_output'); fdo = L.final_data_output;
@@ -73,133 +75,119 @@ for si = 1:nS
     conf1_all(:,:,si)    = m.conf1;
     conf2_all{1}(:,:,si) = m.conf2{1};
     conf2_all{2}(:,:,si) = m.conf2{2};
-    if isfield(fdo, 'results_mst')
-        mm = mst_metrics(fdo, min_rt); has_mst(si) = true;
-        mst_ldi(si)  = mm.ldi;  mst_rec(si) = mm.rec;  mst_dpr(si) = mm.dpr;
-        mst_rate(si,:) = mm.rate; mst_rt(si,:) = mm.rt; mst_conf(:,:,si) = mm.conf;
+    conf2_all{3}(:,:,si) = m.conf2{3};
+    if isfield(fdo, 'results_recognition')
+        rm = rec_metrics(fdo, min_rt, rec_nm); has_rec(si) = true;
+        rec_d(si,:) = rm.d; rec_hit(si,:) = rm.hit; rec_far(si) = rm.far;
     end
 end
-nMST = sum(has_mst);
+nREC = sum(has_rec);
 
 % grand-mean confusion matrices (+/- SE across subjects)
 [C1,  SE1]  = grand_conf(conf1_all);
 [C2c, SE2c] = grand_conf(conf2_all{1});
-[C2n, SE2n] = grand_conf(conf2_all{2});
-[Cm,  SEm]  = grand_conf(mst_conf);
+[C2i, SE2i] = grand_conf(conf2_all{2});
+[C2n, SE2n] = grand_conf(conf2_all{3});
 
 %% ---- report ----
-diary_file = fullfile(res_dir, 'group_mstback_report.txt');
+diary_file = fullfile(res_dir, 'group_behav_report.txt');
 if exist(diary_file,'file'), delete(diary_file); end
 diary(diary_file);
 fprintf('================================================================\n');
-fprintf(' GROUP MST-BACK  --  N = %d   (%s)\n', nS, datestr(now,'yyyy-mm-dd HH:MM'));
+fprintf(' GROUP WEM_ResView  --  N = %d   (%s)\n', nS, datestr(now,'yyyy-mm-dd HH:MM'));
 fprintf('================================================================\n');
 grp_line('1-back same',    one_acc(:,1));
 grp_line('1-back similar', one_acc(:,2));
 grp_line('1-back new',     one_acc(:,3));
-grp_line('2-back AB acc',  goal_acc(:,1));
-grp_line('2-back AA acc',  goal_acc(:,2));
-grp_line('2-back AN acc',  goal_acc(:,3));
-grp_line('DI compared',   di(:,1));    grp_line('DI novel', di(:,2));
-grp_line('d''  compared',  dpr(:,1));    grp_line('d''  novel', dpr(:,2));
-fprintf('\n*** PRIMARY OUTCOME: 2-back discrimination (DI), compared vs novel ***\n');
-paired_line('LDI compared vs novel', di(:,1), di(:,2), min_n_stat);
-fprintf('    (per-subject compared - novel: %s)\n', ...
-    strjoin(compose('%+.3f', di(:,1)-di(:,2))', ', '));
-fprintf('\n-- secondary --\n');
-paired_line('d''  compared vs novel', dpr(:,1), dpr(:,2), min_n_stat);
+for c = 1:3, grp_line(sprintf('DI %s', cnd_nm{c}), di(:,c)); end
+for c = 1:3, grp_line(sprintf('d''  %s', cnd_nm{c}), dpr(:,c)); end
+fprintf('\n*** PRIMARY: 2-back similar discrimination (DI), across conditions ***\n');
+paired_line('DI compared vs isolated', di(:,1), di(:,2), min_n_stat);
+paired_line('DI compared vs novel   ', di(:,1), di(:,3), min_n_stat);
+paired_line('DI isolated vs novel   ', di(:,2), di(:,3), min_n_stat);
+fprintf('\n-- secondary: same detection (d'') --\n');
+paired_line('d''  compared vs isolated', dpr(:,1), dpr(:,2), min_n_stat);
+paired_line('d''  compared vs novel   ', dpr(:,1), dpr(:,3), min_n_stat);
+paired_line('d''  isolated vs novel   ', dpr(:,2), dpr(:,3), min_n_stat);
 
-fprintf('\n-- POST-TASK MST (old / lure / new; N with MST = %d) --\n', nMST);
-if nMST >= 1
-    grp_line('MST LDI',          mst_ldi);
-    grp_line('MST recognition',  mst_rec);
-    grp_line('MST d'' (old)',     mst_dpr);
-    grp_line('MST hit p(old|old)',   mst_rate(:,1));
-    grp_line('MST lure p(sim|lure)', mst_rate(:,2));
-    grp_line('MST CR  p(new|new)',   mst_rate(:,3));
-    grp_line('MST RT old (s)',   mst_rt(:,1));
-    grp_line('MST RT lure (s)',  mst_rt(:,2));
+fprintf('\n-- POST-TASK RECOGNITION (old/new; N with rec = %d) --\n', nREC);
+if nREC >= 1
+    grp_line('rec d'' compared',  rec_d(:,1));
+    grp_line('rec d'' isolated',  rec_d(:,2));
+    grp_line('rec hit compared',  rec_hit(:,1));
+    grp_line('rec hit isolated',  rec_hit(:,2));
+    grp_line('rec false-alarm',   rec_far);
+    paired_line('rec d'' compared vs isolated', rec_d(:,1), rec_d(:,2), min_n_stat);
 else
-    fprintf('  (no subject has results_mst)\n');
+    fprintf('  (no subject has results_recognition)\n');
 end
 diary off;
 
 %% ---- figures ----
-rlbl = {'exp. same','exp. similar','exp. new'};   % confusion rows (presented)
-clbl = {'resp. same','resp. similar','resp. new'};       % confusion cols (response)
+rlbl = {'exp. same','exp. similar','exp. new'};    % confusion rows (presented)
+clbl = {'resp. same','resp. similar','resp. new'};  % confusion cols (response)
+p3 = {[1 2],[2 3],[1 3]};
 
-% FIGURE 1 -- 1-back: accuracy + RT  (row of 3-group then 2-group panel)
+% FIGURE 1 -- 1-back: accuracy (3) + RT (2)
 [f, L] = panel_grid(GEO, [3 2]);   set(f,'Name','Figure 1: 1-back');
 mk_axes(f, L(1,:));
 paired_plot(one_acc, {'same','similar','new'}, {c_same,c_sim,c_new}, ...
-    'accuracy', '1-back accuracy', min_n_stat, {[1 2],[2 3],[1 3]}, FS); nice_yticks(4);
+    'accuracy', '1-back accuracy', min_n_stat, p3, FS);
+ylim([0 1.08]); yline(1/3,'k:','chance'); nice_yticks(4);
 mk_axes(f, L(2,:));
 paired_plot(one_rt, {'same','similar'}, {c_same,c_sim}, ...
     'RT (s)', '1-back RT (correct)', min_n_stat, {[1 2]}, FS);
 nice_yticks(4);
-save_fig(f, fig_dir, 'group_mstback_fig1_1back');
+save_fig(f, fig_dir, 'group_behav_fig1_1back');
 
 % FIGURE 2 -- 1-back confusion matrix (group mean +/- SE)
 f = figure('color','w','Position',[80 80 560 540],'Name','Figure 2: 1-back confusion');
 draw_matrix_se(C1, SE1, {c_same,c_sim,c_new}, rlbl, clbl, FS);
 title(sprintf('1-back confusions  (N = %d)', nS), 'FontSize', FS.ttl);
-save_fig(f, fig_dir, 'group_mstback_fig2_1back_confusion');
+save_fig(f, fig_dir, 'group_behav_fig2_1back_confusion');
 
-% FIGURE 3 -- 2-back indices: DI, d', and their RTs (compared vs novel)
-[f, L] = panel_grid(GEO, [2 2; 2 2]);   set(f,'Name','Figure 3: 2-back');
+% FIGURE 3 -- 2-back indices: DI, d', and their RTs (compared/isolated/novel)
+[f, L] = panel_grid(GEO, [3 3; 3 3]);   set(f,'Name','Figure 3: 2-back');
 mk_axes(f, L(1,:));
-paired_plot(di, {'compared','novel'}, {c_comp,c_nov}, 'DI', ...
-    'similar discrimination index (DI)', min_n_stat, {[1 2]}, FS);
+paired_plot(di, cnd_nm, cnd_cols, 'DI', ...
+    'similar discrimination index (DI)', min_n_stat, p3, FS);
 yline(0,'k-'); nice_yticks(4);
 mk_axes(f, L(2,:));
-paired_plot(dpr, {'compared','novel'}, {c_comp,c_nov}, 'd''', ...
-    'same detection (d'')', min_n_stat, {[1 2]}, FS);
+paired_plot(dpr, cnd_nm, cnd_cols, 'd''', ...
+    'same detection (d'')', min_n_stat, p3, FS);
 yline(0,'k-'); nice_yticks(4);
 mk_axes(f, L(3,:));
-paired_plot(rt_lure, {'compared','novel'}, {c_comp,c_nov}, 'RT (s)', ...
-    'RT: similar discrimination', min_n_stat, {[1 2]}, FS);
+paired_plot(rt_lure, cnd_nm, cnd_cols, 'RT (s)', ...
+    'RT: similar discrimination', min_n_stat, p3, FS);
 nice_yticks(4);
 mk_axes(f, L(4,:));
-paired_plot(rt_targ, {'compared','novel'}, {c_comp,c_nov}, 'RT (s)', ...
-    'RT: same detection', min_n_stat, {[1 2]}, FS);
+paired_plot(rt_targ, cnd_nm, cnd_cols, 'RT (s)', ...
+    'RT: same detection', min_n_stat, p3, FS);
 nice_yticks(4);
-save_fig(f, fig_dir, 'group_mstback_fig3_2back');
+save_fig(f, fig_dir, 'group_behav_fig3_2back');
 
-% FIGURE 4 -- 2-back confusion matrices (compared vs novel, group mean +/- SE)
-f = figure('color','w','Position',[40 40 1120 540],'Name','Figure 4: 2-back confusion');
-subplot(1,2,1);
-draw_matrix_se(C2c, SE2c, {c_same,c_sim,c_new}, rlbl, clbl, FS);
-title('2-back: compared', 'FontSize', FS.ttl);
-subplot(1,2,2);
-draw_matrix_se(C2n, SE2n, {c_same,c_sim,c_new}, rlbl, clbl, FS);
-title('2-back: novel', 'FontSize', FS.ttl);
-save_fig(f, fig_dir, 'group_mstback_fig4_2back_confusion');
+% FIGURE 4 -- 2-back confusion matrices (compared / isolated / novel)
+f = figure('color','w','Position',[40 40 1620 560],'Name','Figure 4: 2-back confusion');
+Cs = {C2c, C2i, C2n}; SEs = {SE2c, SE2i, SE2n};
+for c = 1:3
+    subplot(1,3,c);
+    draw_matrix_se(Cs{c}, SEs{c}, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+    title(sprintf('2-back: %s', cnd_nm{c}), 'FontSize', FS.ttl);
+end
+save_fig(f, fig_dir, 'group_behav_fig4_2back_confusion');
 
-% FIGURE 5 & 6 -- post-task MST
-mst_rlbl = {'exp. old','exp. lure','exp. new'};
-mst_clbl = {'resp. old','resp. similar','resp. new'};
-if nMST >= 1
-    % FIGURE 5 -- MST indices: discrimination (2), response rates (3), RT (2)
-    [f, L] = panel_grid(GEO, [2 3 2]);   set(f,'Name','Figure 5: MST');
+% FIGURE 5 -- post-task recognition (d' and hit rate by condition)
+if nREC >= 1
+    [f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 5: recognition');
     mk_axes(f, L(1,:));
-    paired_plot([mst_ldi mst_rec], {'LDI','recognition'}, {c_sim,c_same}, 'index', ...
-        'MST discrimination', min_n_stat, {[1 2]}, FS);
+    paired_plot(rec_d, rec_nm, rec_cols, 'd''', ...
+        'recognition d''', min_n_stat, {[1 2]}, FS);
     yline(0,'k-'); nice_yticks(4);
     mk_axes(f, L(2,:));
-    paired_plot(mst_rate, {'hit (old)','lure\rightarrowsim','CR (new)'}, {c_same,c_sim,c_new}, ...
-        'proportion', 'MST response rates', min_n_stat, {[1 2],[2 3],[1 3]}, FS);
-    ylim([0 1.05]); nice_yticks(4);
-    mk_axes(f, L(3,:));
-    paired_plot(mst_rt, {'old','lure'}, {c_same,c_sim}, 'RT (s)', ...
-        'MST RT (correct)', min_n_stat, {[1 2]}, FS);
-    nice_yticks(4);
-    save_fig(f, fig_dir, 'group_mstback_fig5_mst');
-
-    % FIGURE 6 -- MST confusion matrix (group mean +/- SE)
-    f = figure('color','w','Position',[80 80 560 540],'Name','Figure 6: MST confusion');
-    draw_matrix_se(Cm, SEm, {c_same,c_sim,c_new}, mst_rlbl, mst_clbl, FS);
-    title(sprintf('MST confusions  (N = %d)', nMST), 'FontSize', FS.ttl);
-    save_fig(f, fig_dir, 'group_mstback_fig6_mst_confusion');
+    paired_plot(rec_hit, rec_nm, rec_cols, 'hit rate', ...
+        'recognition hit rate', min_n_stat, {[1 2]}, FS);
+    ylim([0 1.05]); yline(mean(rec_far,'omitnan'),'r--','FA'); nice_yticks(4);
+    save_fig(f, fig_dir, 'group_behav_fig5_recognition');
 end
 
 fprintf('\nsaved report + figures to %s , %s\n', res_dir, fig_dir);
@@ -208,18 +196,17 @@ fprintf('\nsaved report + figures to %s , %s\n', res_dir, fig_dir);
 function m = nback_metrics(fdo, min_rt)
     r1 = recode(fdo.results_1_back_all);
     r2 = recode(fdo.results_2_back_all);
-    % 1-back accuracy: same / similar / new
+    % 1-back accuracy: same / similar / new  (isolated items count as "new")
     i_sam = r1.condition=="repeat"   & strcmp(r1.corr_resp,'j');
     i_sim = r1.condition=="compared" & r1.identity=="B";
     i_new = (r1.condition=="compared" & r1.identity=="A") | ...
-            (r1.condition=="repeat"   & strcmp(r1.corr_resp,'none')) | ...
-             r1.condition=="filler";
+             r1.condition=="isolated" | ...
+            (r1.condition=="repeat"   & strcmp(r1.corr_resp,'none'));
     m.one_acc = [pmean(r1.correct,i_sam), pmean(r1.correct,i_sim), pmean(r1.correct,i_new)];
     % 1-back RT on correct trials (median): same / similar
     v1 = r1.rt > min_rt;
     m.one_rt = [median(r1.rt(i_sam & r1.correct & v1),'omitnan'), ...
                 median(r1.rt(i_sim & r1.correct & v1),'omitnan')];
-    % 1-back confusion (row=presented same/similar/new, col=response j/k/none)
     m.conf1 = conf_mat(r1.resp_key, {i_sam, i_sim, i_new}, {'j','k','none'});
     % 2-back goals
     real2 = ~contains(r2.goal, "JUNK");
@@ -231,11 +218,11 @@ function m = nback_metrics(fdo, min_rt)
     ab = real2 & strcmp(r2.goal,'A-B') & strcmp(r2.corr_resp,'k');
     an = real2 & pan & strcmp(r2.corr_resp,'none');
     m.goal_acc = [pmean(r2.correct,ab), pmean(r2.correct,aa), pmean(r2.correct,an)];
-    % LDI, d', RT, and confusion by condition
+    % LDI, d', RT, and confusion by condition (compared / isolated / novel)
     v2 = r2.rt > min_rt;
-    conds = {'compared','novel'};
-    m.conf2 = {nan(3,3), nan(3,3)};
-    for c = 1:2
+    conds = {'compared','isolated','novel'};
+    m.conf2 = {nan(3,3), nan(3,3), nan(3,3)};
+    for c = 1:3
         cm = strcmp(r2.condition, conds{c});
         m.ldi(c) = pkey(r2,ab&cm,'k') - pkey(r2,an&cm,'k');
         nh = sum(aa&cm); nf = sum(an&cm);
@@ -246,29 +233,23 @@ function m = nback_metrics(fdo, min_rt)
     end
 end
 
-function m = mst_metrics(fdo, min_rt)
-% Post-task MST: old (j) / similar (k) / new (withhold). Lures are the unseen
-% pairmates of 1-back repeat items; foils are fresh. Stark-style indices:
-%   LDI = p(sim|lure) - p(sim|new)   (lure discrimination / pattern separation)
-%   REC = p(old|old)  - p(old|new)   (recognition memory)
-% sub102 ran a 3-choice version where 'l' was an explicit "new" keypress;
-% sub103+ used 2-choice where "new" = a withheld response. Fold 'l' into
-% 'none' so a "new" judgement is scored identically across both versions.
-    T = fdo.results_mst;
-    T.resp_key = cellstr(T.resp_key);
-    T.resp_key(ismember(T.resp_key, {'NA','l'})) = {'none'};
-    T.correct  = strcmp(cellstr(T.corr_resp), T.resp_key);
+function m = rec_metrics(fdo, min_rt, rec_nm)
+% Post-task recognition: old (j) vs new (withhold). d' = z(hit) - z(FA), with
+% hit rate by study condition and a shared false-alarm rate over fresh foils.
+    T = recode(fdo.results_recognition);
     tt = string(T.trial_type);
-    old = tt=="old"; lure = tt=="lure"; new = tt=="new";
-    m.ldi = pkey(T,lure,'k') - pkey(T,new,'k');
-    m.rec = pkey(T,old,'j')  - pkey(T,new,'j');
-    nh = sum(old); nf = sum(new);
-    m.dpr = zc(pkey(T,old,'j'),nh) - zc(pkey(T,new,'j'),nf);
-    m.rate = [pkey(T,old,'j'), pkey(T,lure,'k'), pkey(T,new,'none')];   % hit / lure-CR / CR
-    v = T.rt > min_rt;
-    m.rt = [median(T.rt(old  & T.correct & v),'omitnan'), ...
-            median(T.rt(lure & T.correct & v),'omitnan')];
-    m.conf = conf_mat(T.resp_key, {old, lure, new}, {'j','k','none'});
+    is_old = tt=="old"; is_new = ~is_old;
+    n_new = sum(is_new);
+    m.far = mean(strcmp(T.resp_key(is_new),'j') & T.rt(is_new) > min_rt);
+    cc = string(T.condition);
+    m.d = nan(1,numel(rec_nm)); m.hit = nan(1,numel(rec_nm));
+    for c = 1:numel(rec_nm)
+        mk = is_old & cc==rec_nm{c};
+        nh = sum(mk); if nh==0, continue; end
+        h  = mean(strcmp(T.resp_key(mk),'j') & T.rt(mk) > min_rt);
+        m.hit(c) = h;
+        m.d(c)   = zc(h,nh) - zc(m.far,n_new);
+    end
 end
 
 function T = recode(T)
@@ -351,7 +332,7 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
         end
     end
 
-    % dashed linear trend + stat_cor (only for >=3 ordered levels, enough N)
+    % dashed linear trend (only for >=3 ordered levels, enough N)
     if nL >= 3 && nS >= min_n
         xa = repmat(1:nL, nS, 1); xa = xa(:); ya = M(:);
         ok = ~isnan(ya); xa = xa(ok); ya = ya(ok);
@@ -359,8 +340,7 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
             [r, pv] = corr(xa, ya); cf = polyfit(xa, ya, 1);
             xx = [0.7 nL+0.3];
             plot(xx, polyval(cf, xx), 'k--', 'LineWidth', 1.6);
-            xt = 0.7; yt = min(all_v);
-            text(xt, yt, sprintf('R^2 = %.2f, p = %.2g\ny = %.2f + %.2f x', ...
+            text(0.7, min(all_v), sprintf('R^2 = %.2f, p = %.2g\ny = %.2f + %.2f x', ...
                 r^2, pv, cf(2), cf(1)), 'FontSize', FS.anno, 'VerticalAlignment','bottom');
         end
     end
@@ -396,7 +376,7 @@ function [M, SE] = grand_conf(A)
 end
 
 function draw_matrix_se(mat, se, cols, ylbl, xlbl, FS)
-% confusion matrix, Experiment-1 style: cell shaded by value, mean + (+/-SE) text
+% confusion matrix: cell shaded by value, mean + (+/-SE) text
     hold on; nR = size(mat,1); nC = size(mat,2);
     for r = 1:nR
         for c = 1:nC
