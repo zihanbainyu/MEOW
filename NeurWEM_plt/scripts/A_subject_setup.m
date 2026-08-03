@@ -54,8 +54,8 @@ p.nBlocks = 4;
 p.nFiller_1back = 30;
 
 % keyboard mappings
-p.keys.same = 'j';
-p.keys.diff = 'k';
+p.keys.same = '1';
+p.keys.diff = '2';
 p.keys.quit = 'escape';
 
 p.timing.image_dur = 1.5;           % n-back stimulus presentation
@@ -724,8 +724,8 @@ fprintf('\nBuilding post-task MST...\n');
 p.mst.n_old  = 60;
 p.mst.n_lure = 60;
 p.mst.n_new  = 60;
-p.keys.mst_old     = 'j';
-p.keys.mst_similar = 'k';
+p.keys.mst_old     = '1';
+p.keys.mst_similar = '2';
 
 assert(height(p.stim.repeat) >= p.mst.n_old + p.mst.n_lure, ...
     'MST: need %d repeat pairs, have %d', p.mst.n_old + p.mst.n_lure, height(p.stim.repeat));
