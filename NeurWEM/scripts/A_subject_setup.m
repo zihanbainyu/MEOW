@@ -555,7 +555,10 @@ end
 % --- First, save the goal_list_full we just built ---
 fprintf('\nBuilding final recognition task...\n');
 
-tested_goals = goal_list_full(goal_list_full.goal_type ~= "A-N" & goal_list_full.condition ~= "novel", :);
+% Test the A-B goals from ALL THREE conditions (compared / isolated / novel):
+% for an A-B goal the subject saw both A and B, so either is a valid old probe
+% in every condition. That is 40 A-B goals per condition = 120 old items.
+tested_goals = goal_list_full(goal_list_full.goal_type == "A-B", :);
 
 n_tested = height(tested_goals);
 selected_items = strings(n_tested, 1);
@@ -578,8 +581,8 @@ all_old_items = table(selected_items, tested_goals.condition, ...
 all_old_items.trial_type = repmat("old", n_tested, 1);
 all_old_items.corr_resp = repmat(p.keys.same, n_tested, 1); 
 
-% --- Pool 2b: The 'Foil' Pool (N=160) ---
-n_rec_foils = 160;
+% --- Foil pool: matched 1:1 to the old items (120 new) ---
+n_rec_foils = height(tested_goals);   % 120 -- one new foil per old item
 assert(height(all_foils_remain) >= n_rec_foils, ...
     'Not enough remaining foils for recognition task! Need %d, have %d', ...
     n_rec_foils, height(all_foils_remain));
