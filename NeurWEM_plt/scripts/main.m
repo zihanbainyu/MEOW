@@ -86,17 +86,17 @@ function main()
         % all shown before the blocks begin
         %%%%%%%%%%%%%%%%%%%%%%%
         % overview + 1-back rules, then 1-back practice
-        % run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
-        % fprintf('   Run 1-back practice\n');
-        % C_run_1_back_practice(p);
-        % 
-        % % 2-back rules, then 2-back practice
-        % run_instructions(p, {'ins_5_b','ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
-        % fprintf('   Run 2-back practice\n');
-        % D_run_2_back_practice(p);
-        % 
-        % % final Part 1 slides before the blocks
-        % run_instructions(p, {'ins_11'});
+        run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+        fprintf('   Run 1-back practice\n');
+        C_run_1_back_practice(p);
+
+        % 2-back rules, then 2-back practice
+        run_instructions(p, {'ins_5_b','ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+        fprintf('   Run 2-back practice\n');
+        D_run_2_back_practice(p);
+
+        % final Part 1 slides before the blocks
+        run_instructions(p, {'ins_11'});
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % % which blocks to run

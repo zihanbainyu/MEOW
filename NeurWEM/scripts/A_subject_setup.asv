@@ -50,8 +50,8 @@ p.keys.quit = 'escape';
 p.timing.image_dur = 1.5;           % stimulus presentation
 p.timing.fix_dur = 0.75;            % base fixation
 p.timing.fix_jitter = 0.25;         % jitter range: ±0.25s (so 0.5 to 1.0s total)
-p.timing.block_lead_in = 6;        % blank-screen s before the first trial (replaces lead-in junk)
-p.timing.block_tail    = 6;        % blank-screen s after the last trial (replaces end junk)
+p.timing.block_lead_in = 10;        % blank-screen s before the first trial (replaces lead-in junk)
+p.timing.block_tail    = 10;        % blank-screen s after the last trial (replaces end junk)
 
 % 2-back sequence: build n_candidates full sequences per block and keep the one
 % that spends zero foils on padding (=> FIXED trial count) and whose compared-
@@ -229,7 +229,7 @@ for b = 1:p.nBlocks
     for i = 1:nComp_b
         comp_miniblocks{end+1} = { ...
             comp_pairs_b.A(i), "compared", "A", "none"; ...
-            comp_pairs_b.B(i), "compared", "B", "2"};
+            comp_pairs_b.B(i), "compared", "B", "k"};
     end
 
     %%%% repeat (R-R): real bin-4 pairs, A shown twice (A-A, "same"). No foils
@@ -239,7 +239,7 @@ for b = 1:p.nBlocks
         rep_item = repeat_pairs_b.A(i);
         repeat_miniblocks{end+1} = { ...
             rep_item, "repeat", "A", "none"; ...
-            rep_item, "repeat", "A", "1"};
+            rep_item, "repeat", "A", "j"};
     end
 
     %%%% isolated items (I-I')
@@ -282,9 +282,9 @@ for b = 1:p.nBlocks
 
     % Update counts
     p.counts.oneback.resp_same = p.counts.oneback.resp_same + ...
-        sum(strcmp(sequence_1_back_block.corr_resp, '1'));
+        sum(strcmp(sequence_1_back_block.corr_resp, 'j'));
     p.counts.oneback.resp_similar = p.counts.oneback.resp_similar + ...
-        sum(strcmp(sequence_1_back_block.corr_resp, '2'));
+        sum(strcmp(sequence_1_back_block.corr_resp, 'k'));
     p.counts.oneback.resp_new = p.counts.oneback.resp_new + ...
         sum(strcmp(sequence_1_back_block.corr_resp, 'none'));
 
@@ -427,10 +427,10 @@ for b = 1:p.nBlocks
                 log_goal_type = X_type;       % Log N-2's goal (it's consistent)
                 
                 if strcmp(X_type, "A-B")
-                    X_resp = "2";
+                    X_resp = "k";
                     X_identity = "B";
                 else
-                    X_resp = "1";
+                    X_resp = "j";
                     X_identity = "A";
                 end
             end
@@ -537,9 +537,9 @@ for b = 1:p.nBlocks
 
     % Update counts
     p.counts.twoback.resp_same = p.counts.twoback.resp_same + ...
-        sum(strcmp(sequence_2_back_block.corr_resp, '1'));
+        sum(strcmp(sequence_2_back_block.corr_resp, 'j'));
     p.counts.twoback.resp_similar = p.counts.twoback.resp_similar + ...
-        sum(strcmp(sequence_2_back_block.corr_resp, '2'));
+        sum(strcmp(sequence_2_back_block.corr_resp, 'k'));
     p.counts.twoback.resp_new = p.counts.twoback.resp_new + ...
         sum(strcmp(sequence_2_back_block.corr_resp, 'none'));
 
