@@ -6,8 +6,8 @@ function C_run_1_back_practice(p)
     % Keys
     start_key = KbName('f');
     escape_key = KbName(p.keys.quit);
-    same_key = KbName(p.keys.same);
-    similar_key = KbName(p.keys.diff);
+    same_key = KbName({'1!','1'});      % top-row '1' and numpad '1'
+    similar_key = KbName({'2@','2'});   % top-row '2' and numpad '2'
     
     Screen('TextSize', p.window, p.text_size);
     Screen('TextFont', p.window, 'Helvetica');
@@ -59,10 +59,10 @@ function C_run_1_back_practice(p)
                 
                 if key_code == escape_key
                     error('USER_ABORT');
-                elseif key_code == same_key
+                elseif any(key_code == same_key)
                     response_key = '1';
                     responded = true;
-                elseif key_code == similar_key
+                elseif any(key_code == similar_key)
                     response_key = '2';
                     responded = true;
                 end

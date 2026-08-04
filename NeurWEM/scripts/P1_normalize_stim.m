@@ -7,7 +7,7 @@ canvas_size = 400;                        % final canvas size
 canvas_color = [255, 255, 255];           % white background
 base_dir = '..';
 root_directory  = fullfile(base_dir, 'stimulus/stim_Stark_etal');
-output_directory = fullfile(base_dir, 'stim_norm');% main output folder
+output_directory = fullfile(base_dir, 'stimulus/stim_norm');% main output folder
 file_types = {'*.jpg'};                   % file types
 
 %--------------------------------------------------------------------------

@@ -1,15 +1,7 @@
 %==========================================================================
-%   run_instructions.m  -- show full-screen instruction images in the task
+%   run_instructions.m
 %==========================================================================
-% Presents the given instruction images (in p.instr_dir), scaled to fit the
-% screen, one per keypress. 'f' advances, escape quits.
-%
-%   names : cell array of image basenames WITHOUT extension, shown in order,
-%           e.g. {'ins_start','ins_1','ins_prac_1back'}. Each <name>.png must
-%           exist in p.instr_dir.
-%
-% Same fit-to-screen logic as preview_ins.m. p.instr_dir is set in main.m.
-%==========================================================================
+
 function run_instructions(p, names)
 
     start_key  = KbName('f');

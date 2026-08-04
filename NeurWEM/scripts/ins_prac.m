@@ -78,17 +78,17 @@ function ins_prac()
     %%%%%%%%%%%%%%%%%%%%%%%
     % run experiment
     %%%%%%%%%%%%%%%%%%%%%%%
-    % fprintf('***Instructions begins\n\n\n');
-    % 
-    % % overview + 1-back rules, then 1-back practice
-    % run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
-    % fprintf('   Run 1-back practice\n');
-    % C_run_1_back_practice(p);
+    fprintf('***Instructions begins\n\n\n');
+
+    % overview + 1-back rules, then 1-back practice
+    run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+    fprintf('   Run 1-back practice\n');
+    C_run_1_back_practice(p);
 
     % 2-back rules, then 2-back practice
-    % run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
-    % fprintf('   Run 2-back practice\n');
-    % D_run_2_back_practice(p);f
+    run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+    fprintf('   Run 2-back practice\n');
+    D_run_2_back_practice(p);
         
     %%%%%%%%%%%%%%%%%%%%%%%
     % clean up

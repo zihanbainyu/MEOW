@@ -25,7 +25,7 @@ p.counts.twoback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
 
 % directory
 base_dir = '..';
-p.stim_dir = fullfile(base_dir, 'stimulus/stim_final/');
+p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
 p.subj_dir = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
@@ -45,6 +45,7 @@ p.nBlocks = 4; % 90 pairs per block
 p.keys.same = '1';
 p.keys.diff = '2';
 p.keys.quit = 'escape';
+p.keys.trigger = '5%';   % scanner trigger ("5" marks scan onset); top-row 5 under UnifyKeyNames
 
 % timing parameters in seconds
 p.timing.image_dur = 1.5;           % stimulus presentation
@@ -52,6 +53,13 @@ p.timing.fix_dur = 0.75;            % base fixation
 p.timing.fix_jitter = 0.25;         % jitter range: ±0.25s (so 0.5 to 1.0s total)
 p.timing.block_lead_in = 6;        % blank-screen s before the first trial (replaces lead-in junk)
 p.timing.block_tail    = 6;        % blank-screen s after the last trial (replaces end junk)
+p.timing.block_midfix  = 6;        % fixation-only rest break inserted mid-run in each 1-back block
+                                   % (position drawn per block in P5A, honoured by C_run_1_back.m)
+% Post-task MST (Part 2): jittered fixation (same as the n-back) + fixed image +
+% blank. The image is shown for mst_image_dur, then a blank for mst_blank_dur
+% during which responses are still accepted (total response window = 2 s).
+p.timing.mst_image_dur = 1.5;      % MST image on-screen duration (s)
+p.timing.mst_blank_dur = 0.5;      % MST post-image blank, still responsive (s)
 
 % 2-back sequence: build n_candidates full sequences per block and keep the one
 % that spends zero foils on padding (=> FIXED trial count) and whose compared-
@@ -99,9 +107,7 @@ master_pair_list_repeat = master_pair_list_repeat(randperm(height(master_pair_li
 
 % Load foil pairs (the A item is used as a single new/foil item)
 all_foil_A_files = dir(fullfile(p.stim_dir, 'mst_*_A_foil.png'));
-all_foil_B_files = dir(fullfile(p.stim_dir, 'mst_*_B_foil.png'));
-all_foil_pairs = table(string({all_foil_A_files.name}'), string({all_foil_B_files.name}'), ...
-    'VariableNames', {'A_foil', 'B_foil'});
+all_foil_pairs = table(string({all_foil_A_files.name}'), 'VariableNames', {'A_foil'});
 all_foil_pairs = all_foil_pairs(randperm(height(all_foil_pairs)), :);
 
 fprintf('Found %d l2 pairs, %d l3 pairs, %d repeat(l4) pairs, %d foil pairs.\n', ...
@@ -255,6 +261,24 @@ for b = 1:p.nBlocks
     shuffled_indices = randperm(numel(miniblocks_1_back));
     final_miniblocks = miniblocks_1_back(shuffled_indices);
     final_1_back_list = vertcat(final_miniblocks{:});
+
+    % ---- Mid-run fixation break position ---------------------------------
+    % Pick a miniblock boundary near (but not exactly at) the midpoint so the
+    % break never splits a within-miniblock comparison: the "1"/"2" response
+    % always falls on the second item of a 2-item miniblock, so a boundary
+    % break only ever precedes a first item (corr_resp "none"). Stored as a
+    % within-block trial index and honoured by C_run_1_back.m. The iso A/B
+    % swap below only exchanges single-row iso miniblocks, so it preserves
+    % these boundary row indices.
+    mb_rows    = cellfun(@(c) size(c, 1), final_miniblocks);
+    cum_rows   = cumsum(mb_rows);
+    total_rows = cum_rows(end);
+    bound      = cum_rows(1:end-1);   % trial index after each interior miniblock
+    cand = find(bound >= 0.4 * total_rows & bound <= 0.6 * total_rows);
+    if isempty(cand)
+        [~, cand] = min(abs(bound - total_rows / 2));
+    end
+    p.timing.midfix_after_trial_1back(b) = bound(cand(randi(numel(cand))));
 
     % Convert to table
     sequence_1_back_block = cell2table(final_1_back_list, ...
@@ -655,7 +679,9 @@ sequence_2_back.fix_duration = ...
     p.timing.fix_dur + (rand(n_2_back_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
 sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
-sequence_mst.fix_duration = repmat(0.5, n_mst_trials, 1);
+% MST uses the same jittered fixation ITI as the n-back runs.
+sequence_mst.fix_duration = ...
+    p.timing.fix_dur + (rand(n_mst_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);

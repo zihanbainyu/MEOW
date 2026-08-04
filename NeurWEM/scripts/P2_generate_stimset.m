@@ -25,9 +25,12 @@ sel_counts = [180    180    120  ];   % 360 experimental (l2+l3) + 120 repeat (l
 n_experimental_total = 360;
 
 base_dir = '..';
-in_dir  = fullfile(base_dir, 'stimulus/stim_norm/');        % normalized images (P1 output; no .txt here)
+in_dir  = fullfile(base_dir, 'stimulus/stim_norm/');                 % normalized images (P1 output; no .txt here)
 bin_dir = fullfile(base_dir, 'stimulus/stim_Stark_etal');   % lure-bin labels stay with the raw Stark set
-out_dir = fullfile(base_dir, 'stimulus/stim_final');
+out_dir = fullfile(base_dir, 'stimulus/stim_pool');        % lean pool: only the stimuli actually used
+% Exact foils drawn per subject: recognition-new (120) + MST-new (60) = 180.
+% (The zero-padding 2-back and the foil-free 1-back consume none.)
+N_FOIL = 180;
 mst_set_folders = {'Set 1','Set 2','Set 3','Set 4','Set 5','Set 6'};
 lure_bin_files  = {'Set1 bins.txt','Set2 bins.txt','Set3 bins.txt',...
     'Set4 bins.txt','Set5 bins.txt','Set6 bins.txt'};
@@ -126,9 +129,12 @@ prac_pairs      = setaside_pairs(n_instr_foil+1:end, :);
 
 %% MAIN FOILS = everything left
 %--------------------------------------------------------------------------
-main_foils = available_pool;
-n_foils = size(main_foils, 1);
-fprintf('Assigned %d pairs as main foils.\n', n_foils);
+assert(size(available_pool,1) >= N_FOIL, ...
+    'Need %d foils, only %d pairs remain.', N_FOIL, size(available_pool,1));
+foil_idx = randperm(size(available_pool,1), N_FOIL);
+main_foils = available_pool(foil_idx, :);   % exactly N_FOIL, chosen at random
+n_foils = N_FOIL;
+fprintf('Assigned %d foils (A-image only).\n', n_foils);
 
 %% COPY EXPERIMENTAL / REPEAT PAIRS (l2, l3, l4)
 %--------------------------------------------------------------------------
@@ -145,10 +151,9 @@ end
 
 %% COPY MAIN FOILS
 %--------------------------------------------------------------------------
-fprintf('Copying %d main foil pairs...\n', n_foils);
+fprintf('Copying %d foils (A-image only)...\n', n_foils);
 for i = 1:n_foils
     copyfile(main_foils{i,1}, fullfile(out_dir, sprintf('mst_%03d_A_foil.png', i)));
-    copyfile(main_foils{i,2}, fullfile(out_dir, sprintf('mst_%03d_B_foil.png', i)));
 end
 
 %% COPY INSTRUCTION / PRACTICE STIMULI
@@ -170,6 +175,6 @@ fprintf('Final output folder: %s\n', out_dir);
 fprintf('  -> l2 (bin 2): %d | l3 (bin 3): %d  [experimental = %d]\n', ...
     sel_counts(1), sel_counts(2), n_experimental_total);
 fprintf('  -> l4 (bin 4): %d  [repeat / MST]\n', sel_counts(3));
-fprintf('  -> Main foils: %d pairs (all remaining)\n', n_foils);
+fprintf('  -> Foils: %d (A-image only, exact)\n', n_foils);
 fprintf('  -> Instruction: 2 pairs | Practice: %d pairs\n', size(prac_pairs,1));
 fprintf('------------------------------------------------------------\n');
