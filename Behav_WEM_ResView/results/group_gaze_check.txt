@@ -1,0 +1,88 @@
+
+========================================================
+ GROUP -- restricted-viewing manipulation check (N = 3)
+ subjects: 601  602  603
+========================================================
+Screen centre (959.5, 539.5); radii: gate 100 px, break 150 px
+
+--- Overall containment (per subject, both tasks) ---
+  within 100 px :  79.6% +/- 7.3  [range 72.3-86.9]
+  within 150 px :  92.9% +/- 5.5  [range 86.7-96.8]
+  median deviation : 60.2 px +/- 12.9  [range 48.0-73.7]
+  per subject:
+    sub601  medDev  73.7 px  within100  72.3%  within150  86.7%
+    sub602  medDev  58.9 px  within100  79.5%  within150  95.3%
+    sub603  medDev  48.0 px  within100  86.9%  within150  96.8%
+
+--- Deviation by condition (per subject) ---
+condition        medDev(px)    within100    within150
+compared       60.3 +/-11.7      80.9%        94.1%
+isolated       59.4 +/-13.1      79.2%        93.5%
+novel          60.2 +/-15.4      78.2%        89.8%
+
+  Friedman across conditions (subject level): chi2(2) = 0.67, p = 0.7165
+  pairwise signed-rank (Holm-adjusted):
+    compared  vs isolated  : p = 1.0000  (adj 1.0000)
+    compared  vs novel     : p = 1.0000  (adj 1.0000)
+    isolated  vs novel     : p = 1.0000  (adj 1.0000)
+
+--- Deviation by task (per subject) ---
+  1-back  median 61.4 px +/- 10.9
+  2-back  median 59.7 px +/- 15.3
+  signed-rank 1-back vs 2-back: p = 0.7500
+
+--- Deviation by block (per subject; drift check) ---
+  block       medDev(px)    within100    within150
+      1     52.2 +/-10.0      86.2%        97.2%
+      2     69.9 +/-15.3      76.9%        95.3%
+      3     82.1 +/-40.6      70.0%        85.5%
+      4     51.8 +/-7.9       88.8%        97.1%
+
+  Friedman across blocks (subject level): chi2(3) = 3.40, p = 0.3340
+
+--- Data loss (missing gaze samples) ---
+ subject      mean pct      max pct
+  sub601       14.39%       48.69%
+  sub602       11.37%       75.83%
+  sub603        5.60%        7.54%
+  overall: 11.50% of samples missing
+
+  A run with heavy data loss cannot pass the onset gate yet also
+  cannot trigger fix_broken (invalid samples are excluded from break
+  detection). High gate_timeout + 0% fix_broken is the signature of a
+  tracker problem, not of the subject looking away.
+
+========================================================
+ GROUP -- restricted-viewing manipulation check (N = 3)
+ subjects: 601  602  603
+========================================================
+Screen centre (959.5, 539.5); radii: gate 100 px, break 150 px
+
+--- Overall containment (per subject, both tasks) ---
+  within 100 px :  79.6% +/- 7.3  [range 72.3-86.9]
+  within 150 px :  92.9% +/- 5.5  [range 86.7-96.8]
+  median deviation : 60.2 px +/- 12.9  [range 48.0-73.7]
+  per subject:
+    sub601  medDev  73.7 px  within100  72.3%  within150  86.7%
+    sub602  medDev  58.9 px  within100  79.5%  within150  95.3%
+    sub603  medDev  48.0 px  within100  86.9%  within150  96.8%
+
+--- Deviation by condition (per subject) ---
+condition        medDev(px)    within100    within150
+compared       60.3 +/-11.7      80.9%        94.1%
+isolated       59.4 +/-13.1      79.2%        93.5%
+novel          60.2 +/-15.4      78.2%        89.8%
+
+  Friedman across conditions (subject level): chi2(2) = 0.67, p = 0.7165
+  pairwise signed-rank (Holm-adjusted):
+    compared  vs isolated  : p = 1.0000  (adj 1.0000)
+    compared  vs novel     : p = 1.0000  (adj 1.0000)
+    isolated  vs novel     : p = 1.0000  (adj 1.0000)
+
+--- Deviation by task (per subject) ---
+  1-back  median 61.4 px +/- 10.9
+  2-back  median 59.7 px +/- 15.3
+  signed-rank 1-back vs 2-back: p = 0.7500
+
+--- Data quality ---
+  missing gaze samples: 11.50% overall (per-run max 75.83%)

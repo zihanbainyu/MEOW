@@ -1,0 +1,30 @@
+================================================================
+ GROUP WEM_ResView  --  N = 3   (2026-07-30 16:31)
+================================================================
+  1-back same            mean 0.883  SD 0.094  [range 0.775-0.942]  n=3
+  1-back similar         mean 0.819  SD 0.039  [range 0.775-0.850]  n=3
+  1-back new             mean 0.988  SD 0.008  [range 0.979-0.996]  n=3
+  DI compared            mean 0.408  SD 0.142  [range 0.250-0.525]  n=3
+  DI isolated            mean 0.376  SD 0.067  [range 0.300-0.425]  n=3
+  DI novel               mean 0.442  SD 0.189  [range 0.225-0.575]  n=3
+  d'  compared           mean 3.094  SD 0.659  [range 2.714-3.856]  n=3
+  d'  isolated           mean 3.199  SD 0.214  [range 2.952-3.339]  n=3
+  d'  novel              mean 2.907  SD 0.442  [range 2.411-3.258]  n=3
+
+*** PRIMARY: 2-back similar discrimination (DI), across conditions ***
+  DI compared vs isolated        diff -0.033 (n=3, too few for a test)
+  DI compared vs novel           diff +0.033 (n=3, too few for a test)
+  DI isolated vs novel           diff +0.066 (n=3, too few for a test)
+
+-- secondary: same detection (d') --
+  d'  compared vs isolated       diff +0.105 (n=3, too few for a test)
+  d'  compared vs novel          diff -0.187 (n=3, too few for a test)
+  d'  isolated vs novel          diff -0.292 (n=3, too few for a test)
+
+-- POST-TASK RECOGNITION (old/new; N with rec = 3) --
+  rec d' compared        mean 2.486  SD 0.844  [range 1.735-3.399]  n=3
+  rec d' isolated        mean 2.209  SD 0.826  [range 1.443-3.084]  n=3
+  rec hit compared       mean 0.883  SD 0.101  [range 0.775-0.975]  n=3
+  rec hit isolated       mean 0.783  SD 0.289  [range 0.450-0.950]  n=3
+  rec false-alarm        mean 0.153  SD 0.149  [range 0.058-0.325]  n=3
+  rec d' compared vs isolated    diff -0.278 (n=3, too few for a test)

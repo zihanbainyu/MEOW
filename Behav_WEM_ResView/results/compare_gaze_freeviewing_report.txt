@@ -1,0 +1,45 @@
+================================================================
+ GAZE: restricted (N=3) vs free viewing (N=29)   (2026-07-30 18:08)
+================================================================
+NOTE: restricted fixations are the presentation-window set; this
+assumes the free-viewing Mw is likewise viewing-period fixations. If
+Mw spans the whole trial epoch, free counts are inflated (the contrast
+direction still holds; magnitude does not).
+
+-- sampling --
+fixations per trial
+  free       median 3.13  [IQR 2.98-3.65]  mean 3.30  n=29
+  restricted median 2.37  [IQR 2.33-2.62]  mean 2.46  n=3
+  rank-sum: p = 0.0080 ** | Cliff's delta = +0.95 (free - restricted)
+
+fixations per second
+  free       median 2.21  [IQR 2.00-2.38]  mean 2.24  n=29
+  restricted median 3.32  [IQR 3.31-3.79]  mean 3.53  n=3
+  rank-sum: p = 0.0080 ** | Cliff's delta = -0.95 (free - restricted)
+
+-- exploration --
+saccade amplitude (px)
+  free       median 66.95  [IQR 58.80-74.77]  mean 68.20  n=29
+  restricted median 46.97  [IQR 33.69-49.82]  mean 42.33  n=3
+  rank-sum: p = 0.0080 ** | Cliff's delta = +0.95 (free - restricted)
+
+scanpath length (px)
+  free       median 141.75  [IQR 114.91-181.07]  mean 145.70  n=29
+  restricted median 48.72  [IQR 30.61-65.87]  mean 48.30  n=3
+  rank-sum: p = 0.0066 ** | Cliff's delta = +0.98 (free - restricted)
+
+explored area (px^2)
+  free       median 768.31  [IQR 331.68-1514.66]  mean 924.85  n=29
+  restricted median 0.00  [IQR 0.00-19.94]  mean 8.86  n=3
+  rank-sum: p = 0.0116 * | Cliff's delta = +0.91 (free - restricted)
+
+-- spread --
+within-trial dispersion (px)
+  free       median 41.23  [IQR 37.71-48.48]  mean 42.84  n=29
+  restricted median 19.86  [IQR 12.58-23.11]  mean 18.07  n=3
+  rank-sum: p = 0.0054 ** | Cliff's delta = +1.00 (free - restricted)
+
+deviation from center (px)
+  free       median 65.43  [IQR 58.91-75.68]  mean 71.12  n=29
+  restricted median 56.30  [IQR 47.97-60.06]  mean 54.27  n=3
+  rank-sum: p = 0.1060  | Cliff's delta = +0.59 (free - restricted)
