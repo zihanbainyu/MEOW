@@ -1,0 +1,127 @@
+================================================================================
+HYBRID MNEMONIC-SIMILARITY / N-BACK fMRI TASK
+Preregistered Procedure
+================================================================================
+
+
+1. STUDY OVERVIEW
+--------------------------------------------------------------------------------
+Participants complete a single functional MRI session consisting of two parts.
+Part 1 interleaves a 1-back and a 2-back object-recognition task across four
+blocks; within each block, participants complete one 1-back run followed by one
+2-back run over the same set of objects. Part 2 is a post-task mnemonic-
+similarity test (MST) administered as a single run. The session therefore
+comprises nine functional runs: four 1-back runs, four 2-back runs, and one MST
+run. Eye position and pupil size are recorded continuously throughout with an
+EyeLink 1000 eye tracker (1000 Hz). Every run is time-locked to the scanner and
+begins on its first acquisition trigger.
+
+
+2. MATERIALS
+--------------------------------------------------------------------------------
+Stimuli are everyday-object photographs drawn from the Stark mnemonic-similarity
+stimulus set, luminance-matched and resized, presented one at a time at the
+centre of a mid-grey background. The objects are organised into four sets of 120
+pairs -- compared, isolated, novel, and repeat -- with similar lures drawn from
+graded similarity bins. A combined bullseye-and-crosshair fixation target
+(Thaler et al., 2013) is shown between stimuli.
+
+
+3. PROCEDURE
+--------------------------------------------------------------------------------
+
+3.1 Part 1: 1-back and 2-back (four blocks)
+
+In each block, participants first complete a 1-back run and then a 2-back run
+over the same block-specific objects. On every trial they judge whether the
+current object matches an earlier object as SAME (index finger), SIMILAR (middle
+finger), or NEW (no button press).
+
+1-back (180 trials per block). Each object is compared with the one immediately
+preceding it. Thirty objects are repeated on consecutive trials (correct
+response: same); thirty objects are each followed immediately by a similar lure
+(similar); and thirty further pairs are presented as sixty non-adjacent single
+items (new). Same and similar pairs are presented as adjacent two-trial units
+that are never separated.
+
+2-back (150 trials per block). Each object is compared with the one two trials
+back, using the same response mapping. Trials are generated from ninety probe
+relationships per block, balanced across the three response types -- same
+(repetition), similar (lure), and new -- within each of three item conditions:
+previously compared, previously isolated, and novel. Previously compared and
+previously isolated objects reappear from the same block's 1-back run, whereas
+novel objects appear only in the 2-back. Match trials are spaced aperiodically
+across the run.
+
+In both runs the response window is the 1.5 s object presentation.
+
+
+3.2 Part 2: Mnemonic-similarity test (single run, 180 trials)
+
+The MST assesses recognition memory for the repeat objects. Each of the 120
+repeat pairs had one member shown twice during Part 1, while its pairmate was
+never shown. Sixty pairs are probed with the previously seen object (OLD), sixty
+with the unseen pairmate (SIMILAR), and sixty fresh foils are added (NEW),
+yielding 180 trials in total. Participants judge each object as OLD (index
+finger), SIMILAR (middle finger), or NEW (no button press). The response window
+is 2.0 s, comprising the 1.5 s image and a subsequent 0.5 s blank during which
+responses are still accepted.
+
+
+3.3 Trial timing
+
+Each trial begins with a jittered fixation of 0.75 +/- 0.25 s (uniform over
+0.5-1.0 s), followed by the object image.
+
+    Event                 1-back / 2-back        MST
+    -------------------   --------------------   --------------------
+    Fixation (jittered)   0.75 +/- 0.25 s        0.75 +/- 0.25 s
+    Object image          1.5 s                  1.5 s
+    Responsive blank      --                     0.5 s
+    Response window       1.5 s (image)          2.0 s (image + blank)
+    Mean trial duration   2.25 s                 2.75 s
+
+
+3.4 Run structure and MRI synchronization
+
+Every run opens with an instruction screen. After the experimenter starts the
+run, the program waits for the scanner's first trigger pulse and only then
+begins, so that stimulus timing is locked to image acquisition. Each run opens
+with a 6 s fixation lead-in and closes with a 6 s fixation tail; the 1-back
+additionally includes a single 6 s fixation break near the block midpoint,
+placed so that it never interrupts a same/similar pair. All event timing is
+referenced to the first trigger, and the scanner's repetition-time pulses are
+additionally logged in the eye-tracking record to provide an independent index
+of volume onsets.
+
+Because the inter-trial fixation is jittered, run length varies negligibly
+across participants (standard deviation of the summed jitter < 2 s per run). At
+a repetition time of 1.5 s, each run is acquired for a fixed number of volumes
+sized to cover the run with margin:
+
+    Run       Acquisition time    Volumes (TR = 1.5 s)
+    -------   -----------------   --------------------
+    1-back    432 s               288
+    2-back    360 s               240
+    MST       516 s               344
+
+The task ends a few seconds before the end of acquisition; the remaining volumes
+are fixation baseline. The 6 s lead-in additionally serves as the signal-settle
+period at the start of each run.
+
+
+3.5 Eye tracking
+
+Gaze position and pupil size are recorded monocularly at 1000 Hz. A nine-point
+calibration is performed at the start of the session, with an optional
+recalibration before the MST to correct for drift accumulated during Part 1.
+Fixation onsets, stimulus onsets, responses, and scanner triggers are recorded
+for every run.
+
+
+================================================================================
+Sections to be completed for the full preregistration: hypotheses, sampling
+plan, variables and analysis plan, MRI acquisition parameters (scanner, sequence,
+resolution), and apparatus specifics (display, projector, viewing distance,
+button-box mapping).
+================================================================================
