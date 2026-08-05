@@ -21,8 +21,8 @@ results_table.resp_key(:) = "NA";
 results_table.rt = nan(num_trials, 1);
 
 % define key names (Assuming KbName('UnifyKeyNames') was called in main)
-old_key     = KbName(p.keys.mst_old);      % OLD
-similar_key = KbName(p.keys.mst_similar);  % SIMILAR
+old_key     = KbName({'1!','1'});      % OLD: top-row '1' and numpad '1' (button box)
+similar_key = KbName({'2@','2'});      % SIMILAR: top-row '2' and numpad '2' (button box)
 escape_key  = KbName(p.keys.quit);         % NEW = withhold (no press)
 start_key   = KbName('f');
 % Scanner trigger key ("5" marks scan onset). Configurable via p.keys.trigger;
@@ -85,6 +85,10 @@ if is_eyetracking
 end
 % --- Wait for the scanner trigger ("5") before starting the run ---
 wait_for_scanner(p, trigger_key, escape_key);
+% Suppress keystrokes from reaching the MATLAB command window for the rest of
+% the run, so the scanner's per-TR 5s stop flooding it. KbQueue still captures
+% responses (it reads the device directly). Restored at the end of the run.
+ListenChar(2);
 fprintf('Scanner trigger received; MST starting.\n');
 % Lead-in fixation before the first trial. The fixation target is held for
 % p.timing.block_lead_in, giving the BOLD signal time to settle.
@@ -149,9 +153,9 @@ for i = 1:num_trials
             response_time = firstPress(response_key_code) - stim_onset_time;
             if response_key_code == escape_key
                 error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
-            elseif response_key_code == old_key
+            elseif any(response_key_code == old_key)
                 key_pressed = string(p.keys.mst_old);
-            elseif response_key_code == similar_key
+            elseif any(response_key_code == similar_key)
                 key_pressed = string(p.keys.mst_similar);
             else
                 key_pressed = "invalid";
@@ -208,6 +212,7 @@ if is_eyetracking
 end
 % Release the KbQueue resources after the trial loop
 KbQueueRelease(p.keys.device);
+ListenChar(0);   % restore keystrokes to MATLAB between runs
 
 end
 

@@ -1,5 +1,5 @@
 %==========================================================================
-%                  Hybrid MST N-Back Task
+%                  MST N-Back Task
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
 %==========================================================================
@@ -25,6 +25,7 @@ function main()
         base_dir = '..';
         addpath(genpath(fullfile(base_dir, 'functions')));
         p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool/');
+        p.instr_dir = fullfile(base_dir, 'stimulus');   % instruction slides (run_instructions)
         p.setup_dir = fullfile(base_dir, 'subj_setup');
         p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
         final_data_filename = fullfile(p.results_dir, sprintf('sub%03d_concat.mat', p.subj_id));
@@ -32,7 +33,6 @@ function main()
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         load(setup_filename, 'subject_data');
 
-        
         % additional parameters
         p.keys = subject_data.parameters.keys;
         p.timing = subject_data.parameters.timing;
@@ -120,163 +120,188 @@ function main()
             el.foregroundcolour = p.colors.black;
             el.calibrationtargetcolour = p.colors.black;
             EyelinkUpdateDefaults(el);
-        end
+            endffffffff1
     
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % run experiment
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % fprintf('***Experiment begins\n\n\n');
-        % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % eye-tracker calibration
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % if p.eyetracking == 1
-        %     instructions(p, 'calibration');
-        %     fprintf('Performing initial calibration\n');
-        %     EyelinkDoTrackerSetup(el);
-        % end
-        % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % which blocks to run
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
-        % if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
-        % 
-        % edf_to_transfer = {};
-        % 
-        % for b = b_seq
-        %     fprintf('Block...%d\n\n', b);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % Part 1: 1-back
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     fprintf('   Run 1-back\n');
-        %     sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % eyetracking version
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if p.eyetracking == 1
-        %         edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
-        %         Eyelink('OpenFile', edf_filename);
-        %         fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-        %         Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
-        % 
-        %         results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
-        %     else
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % behavior-only version
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %         results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
-        %     end
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % rest
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if p.eyetracking == 1
-        %         Eyelink('CloseFile');
-        %         edf_to_transfer{end+1} = edf_filename;
-        %     end
-        %     try
-        %         block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
-        %         save(block_filepath, 'results_1_back');
-        %         fprintf('1-back block %d data saved.\n', b);
-        %     catch ME
-        %         warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
-        %     end
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % optional recalibration
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if p.eyetracking == 1
-        %         fprintf('Checking Calibration\n');
-        %         ask_for_recalibration(p, el);
-        %     end
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % Part 1: 2-back
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     fprintf('   Running 2-back\n\n');
-        %     sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % eyetracking version
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if p.eyetracking == 1
-        %         edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
-        %         fprintf('EYELINK: opening edf file: %s\n', edf_filename);
-        %         Eyelink('OpenFile', edf_filename);
-        %         Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
-        %         results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
-        %     else
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % behavior-only version
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %         results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
-        %     end
-        % 
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     % rest
-        %     %%%%%%%%%%%%%%%%%%%%%%%
-        %     if b < p.nBlocks
-        %         rest_dur = 60;  
-        %         message = sprintf('Fantastic job!\n\nYou have completed this block.\n\nPlease use the next 1 minute to relax.');
-        %         DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-        %         rest_onset = Screen('Flip', p.window);
-        % 
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         % save 2-back data
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         if p.eyetracking == 1
-        %             Eyelink('CloseFile');
-        %             edf_to_transfer{end+1} = edf_filename;
-        %         end
-        %         try
-        %             block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-        %             save(block_filepath, 'results_2_back');
-        %             fprintf('2-back block %d data saved.\n', b);
-        %         catch ME
-        %             warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-        %         end
-        % 
-        %         fprintf('Rest... (%d s)\n', rest_dur);
-        %         WaitSecs('UntilTime', rest_onset + rest_dur);
-        % 
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         % optional recalibration
-        %         %%%%%%%%%%%%%%%%%%%%%%%
-        %         if p.eyetracking == 1
-        %             fprintf('Checking Calibration\n');
-        %             ask_for_recalibration(p, el);
-        %         end
-        %     else
-        % 
-        %         if p.eyetracking == 1
-        %             Eyelink('CloseFile');
-        %             edf_to_transfer{end+1} = edf_filename;
-        %         end
-        %         try
-        %             block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-        %             save(block_filepath, 'results_2_back');
-        %             fprintf('2-back block %d data saved.\n', b);
-        %         catch ME
-        %             warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-        %         end
-        %     end
-        % end % block loop ends
-        % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % save 1-back & 2-back data
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % results_1_back_all = consolidate_data(p, '1_back');
-        % results_2_back_all = consolidate_data(p, '2_back');
-        % final_data_output.subj_id = p.subj_id;
-        % final_data_output.parameters = p;
-        % final_data_output.results_1_back_all = results_1_back_all;
-        % final_data_output.results_2_back_all = results_2_back_all;
-        % save(final_data_filename, 'final_data_output');
-        % fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
-        % 
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % run experiment
+        %%%%%%%%%%%%%%%%%%%%%%%
+        fprintf('***Experiment begins\n\n\n');
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % instructions & practice (run during the anatomical scan)
+        %%%%%%%%%%%%%%%%%%%%%%%
+        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        if do_practice
+            run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+            fprintf('   Run 1-back practice\n');
+            C_run_1_back_practice(p);
+            run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+            fprintf('   Run 2-back practice\n');
+            D_run_2_back_practice(p);
+            run_instructions(p, {'ins_11'});
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % eye-tracker calibration (last, so it is fresh for the first run)
+        %%%%%%%%%%%%%%%%%%%%%%%
+        if p.eyetracking == 1
+            instructions(p, 'calibration');
+            fprintf('Performing initial calibration\n');
+            EyelinkDoTrackerSetup(el);
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % which blocks to run
+        %%%%%%%%%%%%%%%%%%%%%%%
+        b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
+        if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
+
+        edf_to_transfer = {};
+
+        for b = b_seq
+            fprintf('Block...%d\n\n', b);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % Part 1: 1-back
+            %%%%%%%%%%%%%%%%%%%%%%%
+            fprintf('   Run 1-back\n');
+            sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % eyetracking version
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if p.eyetracking == 1
+                edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
+                Eyelink('OpenFile', edf_filename);
+                fprintf('EYELINK: opened edf file: %s\n', edf_filename);
+                Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
+
+                results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
+            else
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % behavior-only version
+            %%%%%%%%%%%%%%%%%%%%%%%
+                results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
+            end
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % save 1-back data (every block: close/queue the EDF and write the
+            % .mat before the 2-back opens its own file)
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if p.eyetracking == 1
+                Eyelink('CloseFile');
+                edf_to_transfer{end+1} = edf_filename;
+            end
+            try
+                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
+                save(block_filepath, 'results_1_back');
+                fprintf('1-back block %d data saved.\n', b);
+            catch ME
+                warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
+            end
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % rest (after every 1-back, before the 2-back)
+            %%%%%%%%%%%%%%%%%%%%%%%
+            rest_dur = 30;
+            message = sprintf('Fantastic job!\n\nYou are halfway through this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
+            DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+            rest_onset = Screen('Flip', p.window);
+            fprintf('Rest... (%d s)\n', rest_dur);
+            WaitSecs('UntilTime', rest_onset + rest_dur);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % optional recalibration
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if p.eyetracking == 1
+                fprintf('Checking Calibration\n');
+                ask_for_recalibration(p, el);
+            end
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % Part 1: 2-back
+            %%%%%%%%%%%%%%%%%%%%%%%
+            fprintf('   Running 2-back\n\n');
+            sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % eyetracking version
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if p.eyetracking == 1
+                edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
+                fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+                Eyelink('OpenFile', edf_filename);
+                Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
+                results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
+            else
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % behavior-only version
+            %%%%%%%%%%%%%%%%%%%%%%%
+                results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
+            end
+
+            %%%%%%%%%%%%%%%%%%%%%%%
+            % rest
+            %%%%%%%%%%%%%%%%%%%%%%%
+            if b < p.nBlocks
+                rest_dur = 60;  
+                message = sprintf('Fantastic job!\n\nYou have completed this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
+                DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+                rest_onset = Screen('Flip', p.window);
+
+                %%%%%%%%%%%%%%%%%%%%%%%
+                % save 2-back data
+                %%%%%%%%%%%%%%%%%%%%%%%
+                if p.eyetracking == 1
+                    Eyelink('CloseFile');
+                    edf_to_transfer{end+1} = edf_filename;
+                end
+                try
+                    block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+                    save(block_filepath, 'results_2_back');
+                    fprintf('2-back block %d data saved.\n', b);
+                catch ME
+                    warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+                end
+
+                fprintf('Rest... (%d s)\n', rest_dur);
+                WaitSecs('UntilTime', rest_onset + rest_dur);
+
+                %%%%%%%%%%%%%%%%%%%%%%%
+                % optional recalibration
+                %%%%%%%%%%%%%%%%%%%%%%%
+                if p.eyetracking == 1
+                    fprintf('Checking Calibration\n');
+                    ask_for_recalibration(p, el);
+                end
+            else
+
+                if p.eyetracking == 1
+                    Eyelink('CloseFile');
+                    edf_to_transfer{end+1} = edf_filename;
+                end
+                try
+                    block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+                    save(block_filepath, 'results_2_back');
+                    fprintf('2-back block %d data saved.\n', b);
+                catch ME
+                    warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
+                end
+            end
+        end % block loop ends
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % save 1-back & 2-back data
+        %%%%%%%%%%%%%%%%%%%%%%%
+        results_1_back_all = consolidate_data(p, '1_back');
+        results_2_back_all = consolidate_data(p, '2_back');
+        final_data_output.subj_id = p.subj_id;
+        final_data_output.parameters = p;
+        final_data_output.results_1_back_all = results_1_back_all;
+        final_data_output.results_2_back_all = results_2_back_all;
+        save(final_data_filename, 'final_data_output');
+        fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
+
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % Part 2: post-task MST (old / similar / new)

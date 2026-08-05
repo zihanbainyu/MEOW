@@ -17,8 +17,8 @@ results_table.rt = nan(num_trials_in_block, 1);
 
 % Define key codes
 escape_key = KbName(p.keys.quit);
-same_key = KbName(p.keys.same);
-similar_key = KbName(p.keys.diff);
+same_key = KbName({'1!','1'});      % top-row '1' and numpad '1' (button box)
+similar_key = KbName({'2@','2'});   % top-row '2' and numpad '2' (button box)
 start_key = KbName('f');
 % Scanner trigger key ("5" marks scan onset). Configurable via p.keys.trigger;
 % defaults to the top-row 5 that most trigger boxes emulate.
@@ -85,6 +85,10 @@ end
 
 % --- Wait for the scanner trigger ("5") before starting the run ---
 wait_for_scanner(p, trigger_key, escape_key);
+% Suppress keystrokes from reaching the MATLAB command window for the rest of
+% the run, so the scanner's per-TR 5s stop flooding it. KbQueue still captures
+% responses (it reads the device directly). Restored at the end of the run.
+ListenChar(2);
 fprintf('Scanner trigger received; 2-back block %d starting.\n', current_block);
 
 % Lead-in fixation before the first trial of the block. The fixation target is
@@ -156,9 +160,9 @@ for i = 1:height(results_table)
             % Determine which key was pressed
             if response_key_code == escape_key
                 error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
-            elseif response_key_code == same_key
+            elseif any(response_key_code == same_key)
                 key_pressed = string(p.keys.same);
-            elseif response_key_code == similar_key
+            elseif any(response_key_code == similar_key)
                 key_pressed = string(p.keys.diff);
             else
                 key_pressed = "invalid";
@@ -222,6 +226,7 @@ end
 
 % Release the KbQueue resources after the trial loop
 KbQueueRelease(p.keys.device);
+ListenChar(0);   % restore keystrokes to MATLAB between runs
 
 end
 
