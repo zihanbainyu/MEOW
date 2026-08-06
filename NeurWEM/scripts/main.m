@@ -120,7 +120,7 @@ function main()
             el.foregroundcolour = p.colors.black;
             el.calibrationtargetcolour = p.colors.black;
             EyelinkUpdateDefaults(el);
-            endffffffff1
+        end
     
         %%%%%%%%%%%%%%%%%%%%%%%
         % run experiment

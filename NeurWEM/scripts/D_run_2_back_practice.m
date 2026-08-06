@@ -115,13 +115,13 @@ function D_run_2_back_practice(p)
         summary_text = sprintf(...
             ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
             'The real task provides no feedback.\n\n' ...
-            'press f to end.'], accuracy);
+            'press any button to end.'], accuracy);
         summary_color = p.colors.black;
     else
         summary_text = sprintf(...
             ['Practice complete. Accuracy: %.0f%%\n\n\n\n' ...
             'The practice will be repeated once more.\n\n' ...
-            'Press f to continue. If anything is unclear, please ask the experimenter.'], accuracy);
+            'Press any button to continue. If anything is unclear, please ask the experimenter.'], accuracy);
         summary_color = p.colors.black;
     end
 
@@ -132,7 +132,7 @@ function D_run_2_back_practice(p)
     while true
         [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
         if keyIsDown
-            if keyCode(start_key)
+            if any(keyCode([same_key, similar_key]))   % any button advances
                 if accuracy < pass_thresh
                     D_run_2_back_practice(p);   % repeat practice
                 end
@@ -196,8 +196,8 @@ end
 function label = resp_label(key)
 % Human-readable label for a response code, for feedback text.
 switch key
-    case '1',  label = '1 (SAME)';
-    case '2',  label = '2 (SIMILAR)';
+    case '1',  label = 'SAME';
+    case '2',  label = 'SIMILAR';
     otherwise, label = 'nothing (NEW)';
 end
 end
