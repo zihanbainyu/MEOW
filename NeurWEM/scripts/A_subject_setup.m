@@ -9,7 +9,12 @@ clear;
 clc;
 rng('shuffle');
 
-subj_id_str = input('please enter subject ID (e.g., 101): ', 's');
+subj_env = getenv('NEURWEM_SUBJ');   % set this env var for non-interactive/batch generation
+if ~isempty(subj_env)
+    subj_id_str = subj_env;
+else
+    subj_id_str = input('please enter subject ID (e.g., 101): ', 's');
+end
 if isempty(subj_id_str)
     error('subject ID cannot be empty.');
 end
@@ -61,18 +66,29 @@ p.timing.block_midfix  = 6;        % fixation-only rest break inserted mid-run i
 p.timing.mst_image_dur = 1.5;      % MST image on-screen duration (s)
 p.timing.mst_blank_dur = 0.5;      % MST post-image blank, still responsive (s)
 
+% --- best-of-N fMRI efficiency optimization of the 1-back trial order -------
+% Post-pass (P7): keeps miniblock pairs intact and all counts/timing fixed,
+% but picks the most efficient of many valid orderings + jitter realizations
+% instead of a single random draw. Set oneback=false for the original behavior.
+p.optimize.oneback = true;   % optimize the 1-back run order for efficiency
+p.optimize.nTry    = 500;    % candidate designs scored per block
+p.optimize.TR      = 1.5;    % scanner TR (s) assumed by the efficiency model
+p.optimize.hp      = 128;    % high-pass filter cutoff (s)
+
 % 2-back sequence: build n_candidates full sequences per block and keep the one
-% that spends zero foils on padding (=> FIXED trial count) and whose compared-
-% trial train has the flattest spectrum (aperiodic; avoids aliasing with fMRI
-% drift/physiological noise). Validated against a permutation null.
-p.seq.n_candidates = 30;
+% that spends zero foils on padding (=> FIXED trial count) and whose analyzed
+% judgment trials -- SAME and SIMILAR, in each of compared/isolated/novel -- are
+% the most evenly tiled across the run, keeping every condition's judgment from
+% confounding with within-run drift/time-on-task. Compared-train aperiodicity is
+% still validated against a permutation null.
+p.seq.n_candidates = 200;
 p.seq.n_perm = 500;
 p.seq.alpha = 0.05;
 
 %% P2: Load stimuli
 output_filename = fullfile(p.setup_dir, sprintf('sub%03d_setup.mat', subj_id));
 
-if exist(output_filename, 'file')
+if exist(output_filename, 'file') && isempty(getenv('NEURWEM_SUBJ'))
     overwrite = input(sprintf('setup for subject %03d exists. overwrite? (y/n): ', subj_id), 's');
     if ~strcmpi(overwrite, 'y')
         fprintf('aborted.\n');
@@ -360,7 +376,8 @@ for b = 1:p.nBlocks
     %      run brackets each block with block_lead_in / block_tail blank screen.
     goal_list_pool = goal_list;         % pre-shuffle copy, reused per attempt
     foils_snapshot = all_foils_remain;  % rewind point for discarded attempts
-    best_stat = Inf; best = struct(); best.foils_used = Inf;
+    cand = repmat(struct('bal',Inf,'stat',Inf,'foils_used',Inf, ...
+        'sequence',[],'row_idx',0,'goal_list',[],'foils',[],'indicator',[]), 1, p.seq.n_candidates);
 
     for attempt = 1:p.seq.n_candidates
     all_foils_remain = foils_snapshot;
@@ -506,20 +523,41 @@ for b = 1:p.nBlocks
         end
     end
     
-    % ---- Score this attempt: padding foils (want 0), then aperiodicity ----
+    % ---- Score this attempt: store it; selection happens after all candidates
+    %      so we can jointly honour compared-train aperiodicity AND an even
+    %      temporal spread of every analyzed judgment (same + similar) per condition. ----
     cond_col = string(sequence(1:row_idx-1, 2));
-    stat = seq_peak_ratio(cond_col == "compared");
-    foils_used = height(foils_snapshot) - height(all_foils_remain);
-    if foils_used < best.foils_used || (foils_used == best.foils_used && stat < best_stat)
-        best_stat = stat;
-        best.foils_used = foils_used;
-        best.sequence = sequence;
-        best.row_idx = row_idx;
-        best.goal_list = goal_list;
-        best.foils = all_foils_remain;
-        best.indicator = (cond_col == "compared");
-    end
+    resp_col = string(sequence(1:row_idx-1, 5));
+    ind = (cond_col == "compared");
+    cand(attempt).bal        = twoback_judg_balance(cond_col, resp_col);
+    cand(attempt).stat       = seq_peak_ratio(ind);
+    cand(attempt).foils_used = height(foils_snapshot) - height(all_foils_remain);
+    cand(attempt).sequence   = sequence;
+    cand(attempt).row_idx    = row_idx;
+    cand(attempt).goal_list  = goal_list;
+    cand(attempt).foils      = all_foils_remain;
+    cand(attempt).indicator  = ind;
     end % attempt
+
+    % ---- Select: fewest padding foils; among those, aperiodicity is a HARD gate
+    %      -- keep only candidates whose compared-train peak ratio is below the
+    %      permutation null's upper quantile (with a margin, so the per-candidate
+    %      re-test below also passes); among that passing set, take the most evenly
+    %      balanced (same+similar per condition). Falls back to the single most
+    %      aperiodic candidate if none clear the gate. ----
+    fu = [cand.foils_used]; keep = find(fu == min(fu));
+    ref_ind = cand(keep(1)).indicator;                 % same #compared / N across candidates
+    nd = zeros(p.seq.n_perm, 1);
+    for it = 1:p.seq.n_perm, nd(it) = seq_peak_ratio(ref_ind(randperm(numel(ref_ind)))); end
+    nd = sort(nd);
+    thr_idx = min(max(ceil((1 - p.seq.alpha - 0.05) * p.seq.n_perm), 1), p.seq.n_perm);
+    thr = nd(thr_idx);                                 % ~p>=alpha+0.05 margin
+    stats = [cand(keep).stat];
+    aper = keep(stats <= thr);
+    if isempty(aper), [~, mi] = min(stats); aper = keep(mi); end   % fallback: most aperiodic
+    [best_bal, mi] = min([cand(aper).bal]);
+    best = cand(aper(mi));
+    bal_mean = mean([cand.bal]);
 
     % Retain the best candidate (zero padding if achieved; flattest within that)
     sequence = best.sequence;
@@ -533,7 +571,8 @@ for b = 1:p.nBlocks
                  b, best.foils_used, p.seq.n_candidates);
     end
 
-    % Validate aperiodicity against a permutation null (same trials, shuffled)
+    % Validate compared-train aperiodicity against a permutation null (retained seq)
+    best_stat = seq_peak_ratio(best.indicator);
     null_stats = zeros(p.seq.n_perm, 1);
     for it = 1:p.seq.n_perm
         null_stats(it) = seq_peak_ratio(best.indicator(randperm(numel(best.indicator))));
@@ -541,9 +580,10 @@ for b = 1:p.nBlocks
     p.seq.block_stat(b) = best_stat;
     p.seq.block_p(b)    = mean(null_stats >= best_stat);
     p.seq.block_pass(b) = p.seq.block_p(b) >= p.seq.alpha;
+    p.seq.block_balance(b) = best_bal;
     if p.seq.block_pass(b), verdict = 'PASS'; else, verdict = 'FAIL'; end
-    fprintf('  Aperiodicity: %.2f (null M=%.2f, p=%.3f) -> %s\n', ...
-        best_stat, mean(null_stats), p.seq.block_p(b), verdict);
+    fprintf('  Judg-balance %.2f (mean cand %.2f) | aperiodicity %.2f (p=%.3f) -> %s\n', ...
+        best_bal, bal_mean, best_stat, p.seq.block_p(b), verdict);
 
     % Record the RETAINED goal_list for the recognition test
     goal_list_b = goal_list;
@@ -683,6 +723,26 @@ sequence_recognition.fix_duration = repmat(0.5, n_rec_trials, 1);
 sequence_mst.fix_duration = ...
     p.timing.fix_dur + (rand(n_mst_trials, 1) * 2 - 1) * p.timing.fix_jitter;
 
+% --- Best-of-N efficiency optimization of the 1-back order (optional) -------
+% Reorders each 1-back block's miniblocks and re-draws its jitter to maximize
+% design efficiency, keeping pairs intact and every count/timing fixed. This
+% only rewrites sequence_1_back's within-block order + fix_duration and the
+% mid-run break position; the 2-back / recognition / MST schedules are untouched.
+if isfield(p, 'optimize') && p.optimize.oneback
+    fprintf('\nOptimizing 1-back order for fMRI efficiency (best of %d per block)...\n', p.optimize.nTry);
+    for b = 1:p.nBlocks
+        idx  = find(sequence_1_back.block == b);
+        seqB = sequence_1_back(idx, :);
+        [seqB_opt, mf_new, rep] = nb_optimize_1back(seqB, ...
+            p.timing.midfix_after_trial_1back(b), p.timing, ...
+            p.optimize.nTry, p.optimize.TR, p.optimize.hp);
+        sequence_1_back(idx, :) = seqB_opt;
+        p.timing.midfix_after_trial_1back(b) = mf_new;
+        fprintf('  block %d efficiency gain -- Similar-Same %+.0f%%, Similar-New %+.0f%%, Same-New %+.0f%%\n', ...
+            b, rep.pct_gain(1), rep.pct_gain(2), rep.pct_gain(3));
+    end
+end
+
 % --- Add subj_id to all schedules ---
 sequence_1_back.subj_id = repmat(subj_id, n_1_back_trials, 1);
 sequence_2_back.subj_id = repmat(subj_id, n_2_back_trials, 1);
@@ -713,4 +773,24 @@ function pk = seq_peak_ratio(ind)
     P = abs(fft(ind)).^2 / N;
     halfband = 2:floor(N/2);
     pk = max(P(halfband)) / median(P(halfband));
+end
+
+function b = twoback_judg_balance(cond_col, resp_col)
+% Temporal imbalance of the response-required judgment trials -- SIMILAR
+% (corr_resp "2", the discrimination) and SAME (corr_resp "1", the control) --
+% in each of the three item conditions (6 analyzed cells). Each cell's trial
+% positions are binned into run-quarters; the SD of the quarter counts
+% (0 = perfectly even) is summed over all cells. Lower = every judgment
+% regressor that will be analyzed is evenly tiled across the run, i.e. less
+% confounded with within-run drift / time-on-task. (The A-N "new" judgments,
+% which share a trial with the next encoding item, are left out.)
+    n = numel(cond_col); Q = 4; b = 0;
+    for c = ["compared","isolated","novel"]
+        for r = ["2","1"]   % similar (discrimination) and same (control)
+            pos = find(resp_col == r & cond_col == c);
+            if isempty(pos), continue; end
+            q = min(ceil(pos(:)' / n * Q), Q);
+            b = b + std(histcounts(q, 1:Q+1));
+        end
+    end
 end
