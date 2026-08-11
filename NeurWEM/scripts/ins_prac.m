@@ -34,7 +34,10 @@ function ins_prac()
     % additional parameters
     p.keys = subject_data.parameters.keys;
     p.timing = subject_data.parameters.timing;
-    p.stim_dir = subject_data.parameters.stim_dir;
+    % NB: do NOT inherit subject_data.parameters.stim_dir. A setup file
+    % generated on Windows stores a backslash path that dir()/fullfile()
+    % cannot resolve on macOS/Linux, leaving the stimulus list empty and
+    % crashing with "Index exceeds array bounds". Keep the local path above.
     p.nBlocks = subject_data.parameters.nBlocks;
     sequence_1_back_all = subject_data.sequence_1_back;
     sequence_2_back_all = subject_data.sequence_2_back;

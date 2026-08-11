@@ -36,7 +36,11 @@ function main()
         % additional parameters
         p.keys = subject_data.parameters.keys;
         p.timing = subject_data.parameters.timing;
-        p.stim_dir = subject_data.parameters.stim_dir;
+        % NB: do NOT inherit subject_data.parameters.stim_dir. A setup file
+        % generated on Windows stores a backslash path (e.g. '..\stimulus\
+        % stim_pool') that dir()/fullfile() cannot resolve on macOS/Linux,
+        % which leaves the practice stimulus list empty and crashes with
+        % "Index exceeds array bounds". Keep the local path set at line 27.
         p.nBlocks = subject_data.parameters.nBlocks;
         sequence_1_back_all = subject_data.sequence_1_back;
         sequence_2_back_all = subject_data.sequence_2_back;
@@ -142,7 +146,7 @@ function main()
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%
-        % eye-tracker calibration (last, so it is fresh for the first run)
+        % eye-tracker calibration
         %%%%%%%%%%%%%%%%%%%%%%%
         if p.eyetracking == 1
             instructions(p, 'calibration');
@@ -185,8 +189,7 @@ function main()
             end
 
             %%%%%%%%%%%%%%%%%%%%%%%
-            % save 1-back data (every block: close/queue the EDF and write the
-            % .mat before the 2-back opens its own file)
+            % save 1-back data
             %%%%%%%%%%%%%%%%%%%%%%%
             if p.eyetracking == 1
                 Eyelink('CloseFile');
@@ -201,10 +204,10 @@ function main()
             end
 
             %%%%%%%%%%%%%%%%%%%%%%%
-            % rest (after every 1-back, before the 2-back)
+            % rest
             %%%%%%%%%%%%%%%%%%%%%%%
             rest_dur = 30;
-            message = sprintf('Fantastic job!\n\nYou are halfway through this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
+            message = sprintf('Fantastic job!\n\nYou are halfway through this block.\n\nPlease use the next 30 seconds to relax.\n\nYou can have you eyes open or closed.');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             rest_onset = Screen('Flip', p.window);
             fprintf('Rest... (%d s)\n', rest_dur);
@@ -301,7 +304,6 @@ function main()
         final_data_output.results_2_back_all = results_2_back_all;
         save(final_data_filename, 'final_data_output');
         fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
-
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % Part 2: post-task MST (old / similar / new)
