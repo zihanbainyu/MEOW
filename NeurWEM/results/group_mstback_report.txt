@@ -1,0 +1,39 @@
+================================================================
+ GROUP MST-BACK  --  N = 1   (2026-08-11 21:06)
+================================================================
+  1-back same            mean 0.483  SD 0.000  [range 0.483-0.483]  n=1
+  1-back similar         mean 0.400  SD 0.000  [range 0.400-0.400]  n=1
+  1-back new             mean 0.979  SD 0.000  [range 0.979-0.979]  n=1
+  2-back AB acc          mean 0.267  SD 0.000  [range 0.267-0.267]  n=1
+  2-back AA acc          mean 0.650  SD 0.000  [range 0.650-0.650]  n=1
+  2-back AN acc          mean 0.983  SD 0.000  [range 0.983-0.983]  n=1
+  DI compared            mean 0.400  SD 0.000  [range 0.400-0.400]  n=1
+  DI isolated            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  DI novel               mean 0.400  SD 0.000  [range 0.400-0.400]  n=1
+  d' compared            mean 1.898  SD 0.000  [range 1.898-1.898]  n=1
+  d' isolated            mean 2.439  SD 0.000  [range 2.439-2.439]  n=1
+  d' novel               mean 2.386  SD 0.000  [range 2.386-2.386]  n=1
+
+*** PRIMARY OUTCOME: 2-back discrimination (DI), by condition ***
+  DI compared vs novel           diff +0.000 (n=1, too few for a test)
+  DI compared vs isolated        diff -0.400 (n=1, too few for a test)
+  DI isolated vs novel           diff +0.400 (n=1, too few for a test)
+    (per-subject compared - novel: +0.000)
+
+-- secondary --
+  d'  compared vs novel          diff +0.488 (n=1, too few for a test)
+
+-- POST-TASK MST (old / lure / new; N with MST = 1) --
+  MST LDI                mean -0.017  SD 0.000  [range -0.017--0.017]  n=1
+  MST recognition        mean 0.167  SD 0.000  [range 0.167-0.167]  n=1
+  MST d' (old)           mean 0.773  SD 0.000  [range 0.773-0.773]  n=1
+  MST hit p(old|old)     mean 0.233  SD 0.000  [range 0.233-0.233]  n=1
+  MST lure p(sim|lure)   mean 0.250  SD 0.000  [range 0.250-0.250]  n=1
+  MST CR  p(new|new)     mean 0.667  SD 0.000  [range 0.667-0.667]  n=1
+  MST RT old (s)         mean 1.029  SD 0.000  [range 1.029-1.029]  n=1
+  MST RT lure (s)        mean 1.154  SD 0.000  [range 1.154-1.154]  n=1
+
+-- DATA QUALITY: non-response / dozing (per subject) --
+  a "miss" is a withheld response on a trial that NEEDED a press (same/similar/old/lure).
+  subj     miss%(req)   NA%(all)  max NA run   flag
+  sub101         45%        73%          46   << high miss -- likely drowsy

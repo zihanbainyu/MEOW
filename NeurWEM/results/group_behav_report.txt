@@ -1,0 +1,25 @@
+================================================================
+ GROUP WEM_ResView  --  N = 1   (2026-08-11 19:58)
+================================================================
+  1-back same            mean 0.483  SD 0.000  [range 0.483-0.483]  n=1
+  1-back similar         mean 0.400  SD 0.000  [range 0.400-0.400]  n=1
+  1-back new             mean 0.979  SD 0.000  [range 0.979-0.979]  n=1
+  DI compared            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  DI isolated            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  DI novel               mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  d'  compared           mean -0.315  SD 0.000  [range -0.315--0.315]  n=1
+  d'  isolated           mean -0.045  SD 0.000  [range -0.045--0.045]  n=1
+  d'  novel              mean 0.040  SD 0.000  [range 0.040-0.040]  n=1
+
+*** PRIMARY: 2-back similar discrimination (DI), across conditions ***
+  DI compared vs isolated        diff +0.000 (n=1, too few for a test)
+  DI compared vs novel           diff +0.000 (n=1, too few for a test)
+  DI isolated vs novel           diff +0.000 (n=1, too few for a test)
+
+-- secondary: same detection (d') --
+  d'  compared vs isolated       diff +0.270 (n=1, too few for a test)
+  d'  compared vs novel          diff +0.356 (n=1, too few for a test)
+  d'  isolated vs novel          diff +0.086 (n=1, too few for a test)
+
+-- POST-TASK RECOGNITION (old/new; N with rec = 0) --
+  (no subject has results_recognition)
