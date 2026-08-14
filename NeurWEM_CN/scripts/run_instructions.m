@@ -2,11 +2,15 @@
 %   run_instructions.m
 %==========================================================================
 
-function run_instructions(p, names)
+function run_instructions(p, names, advance_keys)
 
     % In-scanner: the subject advances each instruction with the button box
-    % (button 1 or 2). Top-row and numpad names are both accepted.
-    advance_keys = KbName({'1!','1','2@','2'});
+    % (button 1 or 2). Top-row and numpad names are both accepted. Pass the
+    % optional advance_keys (e.g. KbName('f')) to override this for an
+    % experimenter-advanced screen, such as the MST start page.
+    if nargin < 3 || isempty(advance_keys)
+        advance_keys = KbName({'1!','1','2@','2'});
+    end
     escape_key   = KbName(p.keys.quit);
 
     if ischar(names) || isstring(names)

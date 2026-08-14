@@ -70,9 +70,9 @@ p.timing.image_dur = 1.5;           % n-back stimulus presentation
 p.timing.fix_dur = 1.5;             % n-back base fixation (mean ITI)
 p.timing.fix_jitter = 1.0;          % uniform ±1.0s -> ITI 0.5 to 2.5s (mean 1.5)
 
-% MST timing (matches NeurWEM F_run_mst: image on-screen, then a responsive blank)
-p.timing.mst_image_dur = 1.5;       % MST image on-screen (s)
-p.timing.mst_blank_dur = 0.5;       % MST post-image responsive blank (s) -> 2 s response window
+% MST timing: image on-screen; responses collected during the image, then the
+% next trial's fixation (the ITI) replaces it -- same structure as the n-back.
+p.timing.mst_image_dur = 1.5;       % MST image on-screen (s) = response window
 
 % Sequence aperiodicity control (see P5B). For each block we build
 % n_candidates complete 2-back sequences and keep the one whose

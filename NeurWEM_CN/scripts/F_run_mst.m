@@ -4,10 +4,11 @@
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
 %
 % Scanner version: keeps eyetracking and waits for the scanner trigger, like
-% the n-back runs. Each trial is a jittered fixation (0.75 +/- 0.25 s, same as
-% the n-back) + a fixed 1.5 s image + a 0.5 s blank during which responses are
-% still accepted (2 s response window in total). Lead-in and tail fixations are
-% held for p.timing.block_lead_in / block_tail (6 s), matching the n-back.
+% the n-back runs. Each trial is a jittered fixation (the ITI, 0.5-2.5 s, same
+% as the n-back) + a fixed 1.5 s image, during which responses are collected.
+% The image is replaced directly by the next trial's fixation (no post-image
+% blank). Lead-in and tail fixations are held for p.timing.block_lead_in /
+% block_tail (6 s), matching the n-back.
 %==========================================================================
 function [results_table] = F_run_mst(p, el, sequence_mst)
 %% ========================================================================
@@ -46,7 +47,7 @@ KbCheck(p.keys.device);
 % 2A: Start of Run Screen -- show the MST instruction figure (like the
 %     one-back / two-back). Displays ins_mst and advances on 'f'.
 %------------------------------------------------------------------
-run_instructions(p, {'ins_mst'});
+run_instructions(p, {'ins_mst'}, start_key);   % experimenter advances the MST start screen with 'f'
 % Eyelink: start recording eye movements
 if is_eyetracking
     if Eyelink('IsConnected') ~= 1
@@ -98,7 +99,7 @@ for i = 1:num_trials
     Screen('DrawTexture', p.window, img_texture, [], [], 0);
     % Clear any events that occurred during fixation before presenting stimulus
     KbQueueFlush(p.keys.device);
-    % --- present image for exactly mst_image_dur, then a responsive blank ---
+    % --- present image for exactly mst_image_dur (responses collected during it) ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
     if is_eyetracking
         Eyelink('Message', 'SYNCTIME');
@@ -109,21 +110,10 @@ for i = 1:num_trials
     key_pressed = "NA";
     response_time = NaN;
     responded = false;
-    blank_flipped = false;
-    blank_time = stim_onset_time + p.timing.mst_image_dur - 0.5 * p.ifi;
-    resp_window_end = stim_onset_time + p.timing.mst_image_dur + p.timing.mst_blank_dur;
-    % Single response window spanning image + blank (2 s). The image is
-    % replaced by a blank exactly at mst_image_dur; responses are collected
-    % throughout both phases.
-    while GetSecs < resp_window_end
-        % Flip to blank once the image duration has elapsed (frame-accurate).
-        if ~blank_flipped && GetSecs >= blank_time
-            Screen('FillRect', p.window, p.colors.bgcolor);
-            Screen('Flip', p.window, blank_time);
-            Screen('Close', img_texture);
-            if is_eyetracking, Eyelink('Message', 'BLANK_ONSET'); end
-            blank_flipped = true;
-        end
+    % Response window = the image presentation (mst_image_dur). The image stays
+    % on screen throughout and is replaced by the next trial's fixation (or, for
+    % the last trial, the tail fixation). No post-image blank.
+    while GetSecs < stim_onset_time + p.timing.mst_image_dur
         [pressed, firstPress] = KbQueueCheck(p.keys.device);
         if pressed && ~responded
             responded = true;
@@ -149,14 +139,7 @@ for i = 1:num_trials
             end
         end
     end
-    % Safety: guarantee the texture is closed / blank shown even if the image
-    % duration was shorter than one refresh (should not happen at 1.5 s).
-    if ~blank_flipped
-        Screen('FillRect', p.window, p.colors.bgcolor);
-        Screen('Flip', p.window);
-        Screen('Close', img_texture);
-        if is_eyetracking, Eyelink('Message', 'BLANK_ONSET'); end
-    end
+    Screen('Close', img_texture);
     % Eyelink: log trial variables
     if is_eyetracking
         Eyelink('Message', '!V TRIAL_VAR stimulus %s', char(trial_info.stim_id));

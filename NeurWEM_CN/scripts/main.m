@@ -200,14 +200,11 @@ function main()
             fprintf('1-back block %d data saved.\n', b);
 
             %%%%%%%%%%%%%%%%%%%%%%%
-            % rest
+            % rest (experimenter-advanced; replaces the old fixed timer)
             %%%%%%%%%%%%%%%%%%%%%%%
-            rest_dur = 60;
-            message = sprintf('You are halfway through this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
-            DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-            rest_onset = Screen('Flip', p.window);
-            fprintf('Rest... (%d s)\n', rest_dur);
-            WaitSecs('UntilTime', rest_onset + rest_dur);
+            message = sprintf('Take a break.\n\nThe experimenter will continue when you are ready.');
+            fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+            rest_break(p, message);
 
             %%%%%%%%%%%%%%%%%%%%%%%
             % optional recalibration
@@ -243,11 +240,6 @@ function main()
             % rest
             %%%%%%%%%%%%%%%%%%%%%%%
             if b < p.nBlocks
-                rest_dur = 60;  
-                message = sprintf('You have completed this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
-                DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-                rest_onset = Screen('Flip', p.window);
-
                 %%%%%%%%%%%%%%%%%%%%%%%
                 % save 2-back data
                 %%%%%%%%%%%%%%%%%%%%%%%
@@ -259,8 +251,9 @@ function main()
                 robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
                 fprintf('2-back block %d data saved.\n', b);
 
-                fprintf('Rest... (%d s)\n', rest_dur);
-                WaitSecs('UntilTime', rest_onset + rest_dur);
+                message = sprintf('You have completed this block.\n\nTake a break.\n\nThe experimenter will continue when you are ready.');
+                fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+                rest_break(p, message);
 
                 %%%%%%%%%%%%%%%%%%%%%%%
                 % optional recalibration
@@ -382,6 +375,31 @@ function ask_for_recalibration(p, el)
     end
     Screen('Flip', p.window);
     WaitSecs(0.5);
+end
+
+function rest_break(p, message)
+% Break screen advanced by the EXPERIMENTER pressing 'f' (same key as the
+% instruction / calibration pages). Escape aborts. Replaces the old fixed
+% 60 s rest timer, so breaks last as long as the experimenter wants.
+    DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+    Screen('Flip', p.window);
+
+    continue_key = KbName('f');
+    escape_key   = KbName(p.keys.quit);
+
+    KbReleaseWait(p.keys.device);   % wait until all keys are released
+    while true
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
+        if keyIsDown
+            if keyCode(continue_key)
+                break;
+            elseif keyCode(escape_key)
+                error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
+            end
+        end
+        WaitSecs(0.001);
+    end
+    KbReleaseWait(p.keys.device);   % wait for release before continuing
 end
 
 function [full_data_table] = consolidate_data(p, task_name)
