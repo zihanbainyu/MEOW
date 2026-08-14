@@ -130,27 +130,34 @@ function main()
             el.backgroundcolour = p.colors.bgcolor;
             el.foregroundcolour = p.colors.black;
             el.calibrationtargetcolour = p.colors.black;
+            % Disable calibration beeps. On this Mac PortAudio cannot open the
+            % default audio device (device -1) with the requested params; the
+            % thrown error aborts PsychEyelinkDispatchCallback and leaves the
+            % PTB window invalid, cascading into "Invalid Window" errors on
+            % every later FillRect/TextSize. The beeps aren't needed in-scanner.
+            el.targetbeep   = 0;
+            el.feedbackbeep = 0;
             EyelinkUpdateDefaults(el);
         end
     
         %%%%%%%%%%%%%%%%%%%%%%%
         % run experiment
         %%%%%%%%%%%%%%%%%%%%%%%
-        fprintf('***Experiment begins\n\n\n');
-
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % instructions & practice (run during the anatomical scan)
-        %%%%%%%%%%%%%%%%%%%%%%%
-        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
-        if do_practice
-            run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
-            fprintf('   Run 1-back practice\n');
-            C_run_1_back_practice(p);
-            run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
-            fprintf('   Run 2-back practice\n');
-            D_run_2_back_practice(p);
-            run_instructions(p, {'ins_11'});
-        end
+        % fprintf('***Experiment begins\n\n\n');
+        % 
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % % instructions & practice (run during the anatomical scan)
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        % if do_practice
+        %     run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+        %     fprintf('   Run 1-back practice\n');
+        %     C_run_1_back_practice(p);
+        %     run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+        %     fprintf('   Run 2-back practice\n');
+        %     D_run_2_back_practice(p);
+        %     run_instructions(p, {'ins_11'});
+        % end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % eye-tracker calibration
