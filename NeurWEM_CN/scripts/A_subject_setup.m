@@ -30,10 +30,10 @@ p.counts.twoback = struct('resp_same', 0, 'resp_similar', 0, 'resp_new', 0);
 
 % directory
 base_dir = '..';
-% Locked stimulus pool (built by A0_build_stim_pool.m): all 180 L1 + 180 L2
-% pairs plus a fixed foil subset, identical across subjects. Only the
-% condition assignment (compared / novel / repeat) is shuffled per subject.
-% stim_final still holds the full master set.
+% Locked stimulus pool (built by P2_generate_stimset.m): 120 L2 + 120 L3
+% condition pairs, 80 L4 repeat pairs, and a fixed dedicated foil pool (single
+% A-images), identical across subjects. Only the condition assignment
+% (compared / novel / repeat) is shuffled per subject.
 p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool/');
 p.setup_dir = fullfile(base_dir, 'subj_setup/');
 if ~exist(p.setup_dir, 'dir'), mkdir(p.setup_dir); end
@@ -43,8 +43,10 @@ if ~exist(p.subj_dir, 'dir'), mkdir(p.subj_dir); end
 %% P1: Setup
 p.nComparison = 120;
 p.nNovel = 120;
-p.nRepeat = 120;   % 1-back A-A repeats, drawn from the third of the L-pool
-p.nTotalPairs = p.nComparison + p.nNovel + p.nRepeat; % 360 L-pairs, all used
+p.nRepeat = 80;    % 1-back A-A repeats (20/block x 4), drawn from the L4 pool.
+                   % All 80 are probed in the post-task MST: 40 old (seen A) +
+                   % 40 lure (unseen pairmate B). See P6B.
+p.nTotalPairs = p.nComparison + p.nNovel + p.nRepeat; % 320 L-pairs used
 
 % # of blocks in experiment
 % 4 blocks -> 30 compared + 30 novel pairs per block, which divides exactly
@@ -143,29 +145,41 @@ fprintf('Found %d L2 pairs, %d L3 pairs, %d repeat(l4) pairs, %d foils.\n', ...
     height(master_pair_list_l1), height(master_pair_list_l2), ...
     height(master_pair_list_repeat), height(all_foil_pairs));
 
+% Each level supplies exactly its compared + novel pairs (no recycled-foil
+% leftover), so the pool must be sized precisely. Guards against a stale pool.
+n_per_level = (p.nComparison + p.nNovel) / 2;   % 120: this level's compared + novel
+assert(height(master_pair_list_l1) == n_per_level && ...
+       height(master_pair_list_l2) == n_per_level, ...
+    ['Expected exactly %d pairs in each of L2/L3 (found %d, %d). ' ...
+     'Re-run P2_generate_stimset.m (sel_counts l2 = l3 = %d).'], ...
+    n_per_level, height(master_pair_list_l1), height(master_pair_list_l2), n_per_level);
+
+% The L4 pool holds exactly p.nRepeat pairs (P2 copies no buffer), so every
+% subject draws from the same fixed pool -- all 80 are used, 20/block x 4, and
+% all 80 are probed in the MST (40 old + 40 lure). Only the shuffle above (which
+% pair lands in which block / old vs lure role) differs across subjects.
+assert(height(master_pair_list_repeat) == p.nRepeat, ...
+    ['Expected exactly %d L4 repeat pairs in the pool, found %d. ' ...
+     'Re-run P2_generate_stimset.m (sel_counts l4 = %d).'], ...
+    p.nRepeat, height(master_pair_list_repeat), p.nRepeat);
+
 %% P3: Stimuli assignment
-% Each condition level (L2, L3; 180 pairs) splits into 60 compared + 60 novel;
-% the remaining 60/level are recycled as extra foils. Repeat pairs come from the
-% separate L4 pool (loaded above), shown A-A in the 1-back with B held as the MST lure.
-n_comp = 60; n_nov = 60;   % per level
+% Each condition level (L2, L3; 120 pairs) splits exactly into 60 compared +
+% 60 novel -- no leftovers, since foils are a separate dedicated pool (all
+% single A-images; see P2). Repeat pairs come from the separate L4 pool (loaded
+% above), shown A-A in the 1-back with B held as the MST lure.
+n_comp = 60; n_nov = 60;   % per level (uses the whole 120-pair level)
 
 final_list_l1 = master_pair_list_l1(randperm(height(master_pair_list_l1)), :);
 comp_l1  = final_list_l1(1:n_comp, :);
 nov_l1   = final_list_l1(n_comp+1 : n_comp+n_nov, :);
-extra_l1 = final_list_l1(n_comp+n_nov+1 : end, :);
 
 final_list_l2 = master_pair_list_l2(randperm(height(master_pair_list_l2)), :);
 comp_l2  = final_list_l2(1:n_comp, :);
 nov_l2   = final_list_l2(n_comp+1 : n_comp+n_nov, :);
-extra_l2 = final_list_l2(n_comp+n_nov+1 : end, :);
 
 comp_pairs  = [comp_l1; comp_l2];  comp_pairs  = comp_pairs(randperm(height(comp_pairs)), :);
 novel_pairs = [nov_l1;  nov_l2];   novel_pairs = novel_pairs(randperm(height(novel_pairs)), :);
-
-% recycle the unused condition pairs' A item as extra foils (fillers / new)
-extra_foils = table([extra_l1.A; extra_l2.A], 'VariableNames', {'A_foil'});
-all_foil_pairs = [all_foil_pairs; extra_foils];
-all_foil_pairs = all_foil_pairs(randperm(height(all_foil_pairs)), :);
 
 assert(height(comp_pairs) == p.nComparison && height(novel_pairs) == p.nNovel, ...
     'Pool size wrong: got %d compared / %d novel (need %d each).', ...
@@ -178,7 +192,7 @@ p.stim.compared = comp_pairs;
 p.stim.novel    = novel_pairs;
 p.stim.repeat   = master_pair_list_repeat;   % L4 pool (bin 4)
 
-fprintf(' compared: %d | novel: %d | repeat(L4): %d | foils(+recycled): %d\n', ...
+fprintf(' compared: %d | novel: %d | repeat(L4): %d | foils: %d\n', ...
     height(comp_pairs), height(novel_pairs), height(p.stim.repeat), height(all_foil_pairs));
 
 %% P4: Split stimuli into blocks

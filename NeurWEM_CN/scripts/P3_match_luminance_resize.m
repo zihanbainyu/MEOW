@@ -1,35 +1,38 @@
 %==========================================================================
-%                  MATCH LUMINANCE AND RESIZE
+%                  MATCH LUMINANCE (in place, on the final pool)
 %==========================================================================
 % Author: Zihan Bai
+%
+% Run order: P1 (normalize -> stim_norm) -> P2 (select -> stim_pool) -> P3.
+% P3 matches the mean luminance & contrast of the images subjects actually see
+% (the selected pool) and OVERWRITES them in place, so A_subject_setup loads the
+% matched files. No resizing here -- P1 already sets the canvas size (300x300).
+%
+% NOTE: re-running P2 re-copies fresh, UNMATCHED images from stim_norm into
+% stim_pool, so P3 must be run again after every P2.
 %==========================================================================
 clear;
 clc;
-rng('shuffle');
 
 %% SETUP
 %--------------------------------------------------------------------------
-base_dir   = '..'; 
+base_dir   = '..';
 shine_path = fullfile(base_dir, 'scripts/functions/SHINE_toolbox');
-in_dir     = fullfile(base_dir, 'stimulus/stim_norm'); 
-out_dir    = fullfile(base_dir, 'stimulus/stim_processed');
-% p.target_size      = [500, 500];
+pool_dir   = fullfile(base_dir, 'stimulus/stim_pool');   % matched IN PLACE
 %--------------------------------------------------------------------------
 addpath(shine_path);
-if ~exist(out_dir, 'dir'), mkdir(out_dir); end
-fprintf('Input folder: %s\n', in_dir);
-fprintf('Output folder: %s\n\n', out_dir);
+fprintf('Pool folder (matched in place): %s\n\n', pool_dir);
 
 
-%% 1. GATHER ALL IMAGE FILES
+%% 1. GATHER ALL POOL IMAGES
 %--------------------------------------------------------------------------
-fprintf('Finding all .png images in the input directory...\n');
-image_files = dir(fullfile(in_dir, '**', '*.png'));
+fprintf('Finding all .png images in the pool...\n');
+image_files = dir(fullfile(pool_dir, '*.png'));         % stim_pool is flat
 if isempty(image_files)
-    error('No .png files found in %s. Did you run generate_stim_set.m first?', in_dir);
+    error('No .png files found in %s. Did you run P2_generate_stimset.m first?', pool_dir);
 end
 all_source_paths = fullfile({image_files.folder}, {image_files.name})';
-fprintf('Found %d unique images to process.\n', numel(all_source_paths));
+fprintf('Found %d pool images to match.\n', numel(all_source_paths));
 
 
 %% 2. BATCH LUMINANCE PROCESSING & STATISTICS
@@ -37,8 +40,7 @@ fprintf('Found %d unique images to process.\n', numel(all_source_paths));
 fprintf('Loading image data for batch processing...\n');
 all_images_raw = cell(numel(all_source_paths), 1);
 for i = 1:numel(all_source_paths)
-    % This step only READS data into a variable. The original file is not changed.
-    all_images_raw{i} = imread(all_source_paths{i});
+    all_images_raw{i} = imread(all_source_paths{i});    % read only; file unchanged
 end
 
 % --- Calculate statistics BEFORE matching ---
@@ -46,8 +48,7 @@ stats_before = get_luminance_stats(all_images_raw);
 
 % --- Use SHINE to match luminance and contrast ---
 fprintf('Matching luminance and contrast across all %d images...\n', numel(all_images_raw));
-% This operation happens entirely in MATLAB's memory.
-all_images_lum_matched = lumMatch(all_images_raw);
+all_images_lum_matched = lumMatch(all_images_raw);      % in memory
 fprintf('Luminance matching complete.\n\n');
 
 % --- Calculate statistics AFTER matching ---
@@ -69,25 +70,19 @@ fprintf('  Range of means: [%.2f to %.2f]\n', min(stats_after.means), max(stats_
 fprintf('------------------------------------------\n\n');
 
 
-%% 4. RESIZE AND SAVE PROCESSED IMAGES
+%% 4. SAVE MATCHED IMAGES (overwrite the pool in place)
 %--------------------------------------------------------------------------
-
+fprintf('Overwriting pool images with luminance-matched versions...\n');
 for i = 1:numel(all_source_paths)
-    source_path = all_source_paths{i};
-    img_data = all_images_lum_matched{i}; % Use the processed data from memory
-    
-    [~, filename, ext] = fileparts(source_path);
-    dest_path = fullfile(out_dir, [filename, ext]); % Define path for the NEW file
-    
-    % This function SAVES A NEW FILE to the destination path.
-    % resize_and_save_image(img_data, dest_path, p.target_size);
-    
+    imwrite(all_images_lum_matched{i}, all_source_paths{i});   % same path, PNG
+
     if mod(i, 100) == 0 || i == numel(all_source_paths)
-        fprintf('  Processed and saved %d / %d images.\n', i, numel(all_source_paths));
+        fprintf('  Saved %d / %d images.\n', i, numel(all_source_paths));
     end
 end
 
-fprintf('\nAll images have been processed and saved to:\n%s\n', out_dir);
+fprintf('\nAll %d pool images matched and saved in place:\n%s\n', ...
+    numel(all_source_paths), pool_dir);
 
 
 %% HELPER FUNCTIONS
@@ -103,10 +98,4 @@ function stats = get_luminance_stats(image_cell_array)
     end
     stats.means = means;
     stats.stds = stds;
-end
-
-function resize_and_save_image(img_data, dest_path, target_size)
-    % This function takes image data from memory and saves it to a new file.
-    resized_img = imresize(img_data, [target_size(2), target_size(1)], 'bicubic');
-    imwrite(resized_img, dest_path); % Creates the new file on disk
 end

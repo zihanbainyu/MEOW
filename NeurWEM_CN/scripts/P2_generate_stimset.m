@@ -5,12 +5,15 @@
 % email: zihan.bai@nyu.edu
 %
 % Selection (fMRI design):
-%   experimental pairs  : 180 from lure bin 2 (-> l2) + 180 from bin 3 (-> l3)
-%                         = 360 pairs, for compared / isolated / novel.
-%   repeat pairs        : 120 from lure bin 4 (-> l4), real A-B pairs whose A is
-%                         shown twice (A-A) in the 1-back and whose B is the MST lure.
-%   foils               : every remaining pair (A item used as a single new/foil
-%                         item for the MST-new and recognition-new trials).
+%   condition pairs : 120 from lure bin 2 (-> l2) + 120 from bin 3 (-> l3)
+%                     = 240 pairs. In A_subject_setup (P3) each level's 120
+%                     splits into 60 compared + 60 novel, giving 120 compared +
+%                     120 novel overall; both A and B of every pair are shown.
+%   repeat pairs    : 80 from lure bin 4 (-> l4), real A-B pairs whose A is
+%                     shown twice (A-A) in the 1-back and whose B is the MST lure.
+%   foils           : N_FOIL single images (A only) drawn from the remaining
+%                     pool -- new/filler items for the 1-back, recognition and
+%                     MST. No condition pairs are recycled as foils.
 % All selections are balanced by set. Same per-set machinery as the old l1/l2.
 clear;
 clc;
@@ -21,16 +24,22 @@ rng('shuffle');
 % lure bin -> level label -> number of pairs
 sel_bins   = [2      3      4    ];
 sel_labels = {'l2', 'l3', 'l4'};
-sel_counts = [180    180    120  ];   % 360 experimental (l2+l3) + 120 repeat (l4)
-n_experimental_total = 360;
+sel_counts = [120    120    80   ];   % l2 + l3 = 240 condition pairs, l4 = 80 repeat
+% Each level's 120 splits into 60 compared + 60 novel in A_subject_setup (P3),
+% giving 120 compared + 120 novel overall. Foils are separate single images.
+n_experimental_total = 240;
 
 base_dir = '..';
 in_dir  = fullfile(base_dir, 'stimulus/stim_norm/');                 % normalized images (P1 output; no .txt here)
 bin_dir = fullfile(base_dir, 'stimulus/stim_Stark_etal');   % lure-bin labels stay with the raw Stark set
 out_dir = fullfile(base_dir, 'stimulus/stim_pool');        % lean pool: only the stimuli actually used
-% Exact foils drawn per subject: recognition-new (120) + MST-new (60) = 180.
-% (The zero-padding 2-back and the foil-free 1-back consume none.)
-N_FOIL = 180;
+% Foils consumed per subject across all three tasks: 1-back fillers (30 x 4 =
+% 120) + recognition-new (80) + MST-new (40) = 240, ALL drawn as single A-images
+% from the remaining pool (no condition pairs recycled). P2 supplies exactly 240
+% dedicated foils -- no buffer. (The 2-back is built to spend zero padding foils;
+% if an unlucky block spends any, setup generation errors on an empty foil pool
+% and you re-run it.)
+N_FOIL = 240;
 mst_set_folders = {'Set 1','Set 2','Set 3','Set 4','Set 5','Set 6'};
 lure_bin_files  = {'Set1 bins.txt','Set2 bins.txt','Set3 bins.txt',...
     'Set4 bins.txt','Set5 bins.txt','Set6 bins.txt'};
@@ -64,26 +73,33 @@ all_bins = cell2mat(master_pair_list(:,3));
 %% SELECT PAIRS PER BIN (balanced by set), using the same machinery for each
 %--------------------------------------------------------------------------
 selected = cell(1, numel(sel_bins));   % selected{k} = pairs for level sel_labels{k}
+nSets = numel(mst_set_folders);
 for k = 1:numel(sel_bins)
     this_bin  = sel_bins(k);
     n_total   = sel_counts(k);
-    n_per_set = n_total / numel(mst_set_folders);
-    if mod(n_per_set,1) ~= 0
-        error('%s: %d pairs does not divide evenly across %d sets.', ...
-            sel_labels{k}, n_total, numel(mst_set_folders));
-    end
-    fprintf('\nSelecting %d bin-%d pairs (%s), %d per set...\n', ...
-        n_total, this_bin, sel_labels{k}, n_per_set);
+
+    % Distribute n_total across the sets as evenly as possible. When it does
+    % not divide evenly (e.g. l4 = 80 over 6 sets -> 14,14,13,13,13,13), a
+    % random subset of sets takes one extra pair, so per-set counts differ by
+    % at most one and the total is EXACT -- the pool holds no buffer, and every
+    % subject draws from the same fixed pool.
+    base    = floor(n_total / nSets);
+    n_extra = n_total - base * nSets;
+    per_set_counts = base * ones(1, nSets);
+    per_set_counts(randperm(nSets, n_extra)) = base + 1;
+
+    fprintf('\nSelecting %d bin-%d pairs (%s), per-set counts [%s]...\n', ...
+        n_total, this_bin, sel_labels{k}, num2str(per_set_counts));
     this_bin_pairs = master_pair_list(all_bins==this_bin, :);
     picked = [];
-    for s = 1:numel(mst_set_folders)
+    for s = 1:nSets
         set_name = mst_set_folders{s};
         set_pairs = this_bin_pairs(strcmp(this_bin_pairs(:,4), set_name), :);
-        if size(set_pairs,1) < n_per_set
+        if size(set_pairs,1) < per_set_counts(s)
             error('%s has insufficient bin-%d pairs (need %d, found %d).', ...
-                set_name, this_bin, n_per_set, size(set_pairs,1));
+                set_name, this_bin, per_set_counts(s), size(set_pairs,1));
         end
-        idx = randperm(size(set_pairs,1), n_per_set);
+        idx = randperm(size(set_pairs,1), per_set_counts(s));
         picked = [picked; set_pairs(idx,:)];
     end
     selected{k} = picked;
