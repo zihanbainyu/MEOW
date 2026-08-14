@@ -101,8 +101,10 @@ function main()
             Eyelink('command', 'pupil_model = ELLIPSE');
             Eyelink('command', 'pupil_size_diameter = YES');
             [width, height] = Screen('WindowSize', screen_number);
-            Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
-            Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
+            Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width, height);
+            Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width, height);
+            % Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
+            % Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('command', 'calibration_type = HV9');
             Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
             Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
@@ -145,14 +147,14 @@ function main()
         %     run_instructions(p, {'ins_11'});
         % end
         % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % eye-tracker calibration
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % if p.eyetracking == 1
-        %     instructions(p, 'calibration');
-        %     fprintf('Performing initial calibration\n');
-        %     EyelinkDoTrackerSetup(el);
-        % end
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % eye-tracker calibration
+        %%%%%%%%%%%%%%%%%%%%%%%
+        if p.eyetracking == 1
+            instructions(p, 'calibration');
+            fprintf('Performing initial calibration\n');
+            EyelinkDoTrackerSetup(el);
+        end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
