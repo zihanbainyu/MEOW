@@ -111,6 +111,14 @@ function main()
             Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('command', 'calibration_type = HV9');
+            % Shrink the calibration/validation grid so every target lands inside
+            % the region the subject can actually see through the bore (the bore
+            % clips the corners/edges, so the default ~0.88 x 0.83 grid pushes the
+            % outer points off-screen). Proportions of the full display: central
+            % ~50% wide x ~60% tall. Widen if calibration looks too central;
+            % shrink further if any edge point is still not visible.
+            Eyelink('command', 'calibration_area_proportion 0.50 0.60');
+            Eyelink('command', 'validation_area_proportion 0.50 0.60');
             Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
             Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
     
@@ -150,13 +158,19 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
         if do_practice
-            run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+            % 1-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('oneback'));
             fprintf('   Run 1-back practice\n');
             C_run_1_back_practice(p);
-            run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+            run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
+
+            % 2-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('twoback'));
             fprintf('   Run 2-back practice\n');
             D_run_2_back_practice(p);
-            run_instructions(p, {'ins_11'});
+            run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
+
+            run_text_instructions(p, instruction_text('final'));
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%

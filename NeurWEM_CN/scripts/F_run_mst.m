@@ -44,10 +44,10 @@ KbCheck(p.keys.device);
 % SECTION 2: RUN EXECUTION
 % ========================================================================
 %------------------------------------------------------------------
-% 2A: Start of Run Screen -- show the MST instruction figure (like the
-%     one-back / two-back). Displays ins_mst and advances on 'f'.
+% 2A: Start of Run Screen -- show the MST instruction text (like the
+%     one-back / two-back). The experimenter advances it with 'f'.
 %------------------------------------------------------------------
-run_instructions(p, {'ins_mst'}, start_key);   % experimenter advances the MST start screen with 'f'
+run_text_instructions(p, instruction_text('mst'), start_key);   % experimenter advances with 'f'
 % Eyelink: start recording eye movements
 if is_eyetracking
     if Eyelink('IsConnected') ~= 1

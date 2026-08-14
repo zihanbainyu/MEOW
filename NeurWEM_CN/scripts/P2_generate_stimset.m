@@ -132,7 +132,7 @@ fprintf('\nFound %d remaining pairs available for foils/practice.\n', size(avail
 %% SET ASIDE INSTRUCTION/PRACTICE FOILS
 %--------------------------------------------------------------------------
 n_instr_foil = 1;
-n_prac_pairs = 25;                          % 15 lure + 10 repeat
+n_prac_pairs = 18;                          % practice pool: 1-back uses objects 1-9, 2-back uses 10-18 (disjoint, all used)
 n_total_setaside = n_instr_foil + n_prac_pairs;
 assert(size(available_pool,1) >= n_total_setaside, ...
     'Not enough remaining foils for practice! Need %d, have %d', ...

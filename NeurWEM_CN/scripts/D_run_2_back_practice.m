@@ -109,7 +109,7 @@ function D_run_2_back_practice(p)
     
     %% Performance summary
     accuracy = (n_correct / nTrials) * 100;
-    pass_thresh = 100;   % percent correct required to move on to the real task
+    pass_thresh = 80;   % percent correct required to move on (relaxed for the longer practice)
 
     if accuracy >= pass_thresh
         summary_text = sprintf(...
@@ -156,22 +156,29 @@ function [sequence_2_back_practice] = gen_2_back_practice(p)
     A_files = dir(fullfile(p.stim_dir,'prac_*_A.png'));
     B_files = dir(fullfile(p.stim_dir,'prac_*_B.png'));
 
-    A_names = string({A_files.name});
-    B_names = string({B_files.name});
-    
+    A_names = string(sort({A_files.name}));   % zero-padded -> alphabetical == numeric
+    B_names = string(sort({B_files.name}));
+
+    % 2-back practice (15 trials): each response trial's target is the item TWO
+    % back (verified position by position below). 3 same (A-A), 3 similar (A->B
+    % lure), 3 foils. Uses prac objects 10-18 (1-back uses 1-9).
+    % prac_example_images('2back') shows A(10) [same] and A(13)/B(13) [similar].
     seq = { ...
-        A_names(5), "foil", "A", "none"; ... 
-        A_names(6), "same", "A", "none"; ... 
-        A_names(11), "similar", "A", "none"; ...
-        A_names(6), "same", "A", "1";...
-        B_names(11), "similar", "B", "2";   ... 
-        A_names(12), "similar", "A", "none"; ...
-        A_names(13), "same", "A", "none";...
-        B_names(12), "similar", "B", "2"; ...
-        A_names(13), "same", "A", "1";...
-        A_names(14), "similar", "A", "none";...
-        A_names(15), "foil", "A", "none";...
-        B_names(14), "similar", "B", "2";...
+        A_names(16), "foil",    "A", "none"; ...  % p1
+        A_names(10), "same",    "A", "none"; ...  % p2
+        A_names(13), "similar", "A", "none"; ...  % p3
+        A_names(10), "same",    "A", "1";    ...  % p4  == p2 (A10)
+        B_names(13), "similar", "B", "2";    ...  % p5  == p3 (lure of A13)
+        A_names(14), "similar", "A", "none"; ...  % p6
+        A_names(11), "same",    "A", "none"; ...  % p7
+        B_names(14), "similar", "B", "2";    ...  % p8  == p6 (lure of A14)
+        A_names(11), "same",    "A", "1";    ...  % p9  == p7 (A11)
+        A_names(15), "similar", "A", "none"; ...  % p10
+        A_names(17), "foil",    "A", "none"; ...  % p11
+        B_names(15), "similar", "B", "2";    ...  % p12 == p10 (lure of A15)
+        A_names(12), "same",    "A", "none"; ...  % p13
+        A_names(18), "foil",    "A", "none"; ...  % p14
+        A_names(12), "same",    "A", "1"     ...  % p15 == p13 (A12)
     };
     
     col_names = {'stim_id','condition','identity','corr_resp','fix_duration'};
@@ -196,9 +203,9 @@ end
 function label = resp_label(key)
 % Human-readable label for a response code, for feedback text.
 switch key
-    case '1',  label = 'SAME';
-    case '2',  label = 'SIMILAR';
-    otherwise, label = 'nothing (NEW)';
+    case '1',  label = 'Same';
+    case '2',  label = 'Similar';
+    otherwise, label = 'nothing (New)';
 end
 end
 
