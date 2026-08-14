@@ -89,6 +89,13 @@ function main()
             % before EyelinkInit.
             Eyelink('SetAddress', '192.168.1.5');
             el=EyelinkInitDefaults(p.window);
+            % PLACEHOLDER FIX: force the imaging-pipeline callback that draws the
+            % camera image + calibration targets INTO the PTB window. Without this
+            % the Host's "Calibrate" hands off to a Display PC that draws nothing
+            % (screen drops to desktop) and the Host pauses. Must precede
+            % EyelinkUpdateDefaults(el) below so it is applied. Revisit if the
+            % scanner projector still shows no targets (check resolution/focus).
+            el.callback = 'PsychEyelinkDispatchCallback';
             if ~EyelinkInit(dummymode)
                 fprintf('Eyelink Ignit aborted.\n');
                 error('EYELINK_INIT_FAILED'); %
