@@ -30,9 +30,6 @@ function main()
         p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
         if ~exist(p.results_dir, 'dir'), mkdir(p.results_dir); end
         final_data_filename = fullfile(p.results_dir, sprintf('sub%03d_concat.mat', p.subj_id));
-        % --- Robust saving: mirror every result into a per-session timestamped
-        %     backup folder, so re-running a subject never overwrites or loses a
-        %     previous session's data. ---
         p.backup_dir = fullfile(base_dir, 'data_backup', ...
             sprintf('sub%03d_%s', p.subj_id, datestr(now, 'yyyymmdd_HHMMSS')));
         if ~exist(p.backup_dir, 'dir'), mkdir(p.backup_dir); end
@@ -44,11 +41,6 @@ function main()
         % additional parameters
         p.keys = subject_data.parameters.keys;
         p.timing = subject_data.parameters.timing;
-        % NB: do NOT inherit subject_data.parameters.stim_dir. A setup file
-        % generated on Windows stores a backslash path (e.g. '..\stimulus\
-        % stim_pool') that dir()/fullfile() cannot resolve on macOS/Linux,
-        % which leaves the practice stimulus list empty and crashes with
-        % "Index exceeds array bounds". Keep the local path set at line 27.
         p.nBlocks = subject_data.parameters.nBlocks;
         sequence_1_back_all = subject_data.sequence_1_back;
         sequence_2_back_all = subject_data.sequence_2_back;
@@ -139,28 +131,28 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         fprintf('***Experiment begins\n\n\n');
 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % instructions & practice (run during the anatomical scan)
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
-        % if do_practice
-        %     run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
-        %     fprintf('   Run 1-back practice\n');
-        %     C_run_1_back_practice(p);
-        %     run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
-        %     fprintf('   Run 2-back practice\n');
-        %     D_run_2_back_practice(p);
-        %     run_instructions(p, {'ins_11'});
-        % end
-        % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % eye-tracker calibration
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % if p.eyetracking == 1
-        %     instructions(p, 'calibration');
-        %     fprintf('Performing initial calibration\n');
-        %     EyelinkDoTrackerSetup(el);
-        % end
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % instructions & practice (run during the anatomical scan)
+        %%%%%%%%%%%%%%%%%%%%%%%
+        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        if do_practice
+            run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
+            fprintf('   Run 1-back practice\n');
+            C_run_1_back_practice(p);
+            run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
+            fprintf('   Run 2-back practice\n');
+            D_run_2_back_practice(p);
+            run_instructions(p, {'ins_11'});
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % eye-tracker calibration
+        %%%%%%%%%%%%%%%%%%%%%%%
+        if p.eyetracking == 1
+            instructions(p, 'calibration');
+            fprintf('Performing initial calibration\n');
+            EyelinkDoTrackerSetup(el);
+        end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
@@ -210,8 +202,8 @@ function main()
             %%%%%%%%%%%%%%%%%%%%%%%
             % rest
             %%%%%%%%%%%%%%%%%%%%%%%
-            rest_dur = 30;
-            message = sprintf('Fantastic job!\n\nYou are halfway through this block.\n\nPlease use the next 30 seconds to relax.\n\nYou can have you eyes open or closed.');
+            rest_dur = 60;
+            message = sprintf('You are halfway through this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
             DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
             rest_onset = Screen('Flip', p.window);
             fprintf('Rest... (%d s)\n', rest_dur);
@@ -252,7 +244,7 @@ function main()
             %%%%%%%%%%%%%%%%%%%%%%%
             if b < p.nBlocks
                 rest_dur = 60;  
-                message = sprintf('Fantastic job!\n\nYou have completed this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
+                message = sprintf('You have completed this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
                 DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
                 rest_onset = Screen('Flip', p.window);
 
