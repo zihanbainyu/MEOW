@@ -159,7 +159,7 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
         %%%%%%%%%%%%%%%%%%%%%%%
-        b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
+        b_to_run = [1 2]; % 0 = all; [x] = specific block numbers [2 3 4]
         if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
 
         edf_to_transfer = {};
