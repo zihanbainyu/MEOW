@@ -73,6 +73,15 @@ fprintf('\n--- Pupil: Target trials (condition main effect) ---\n');
 within_3 = table(categorical({'compared';'isolated';'novel'}), 'VariableNames', {'Condition'});
 [stat_results.pup_targ_cond, stat_results.pup_targ_cond_ph] = run_rm_anova('Pupil target', pup_targ_cond(:,1), pup_targ_cond(:,2), pup_targ_cond(:,3), within_3);
 
+%% ---- Harmonised reporting (integer df; GG only where numerator df>1; partial eta^2) ----
+% Requires rm_3x2.m, rm_oneway.m, gg_eps.m, pstr.m on the path.
+fprintf('\n===== Harmonised pupil reporting =====\n');
+rm_3x2('pupil lure 3x2', ...
+    pup_lure_corr(:,1), pup_lure_incorr(:,1), ...   % compared: correct, incorrect
+    pup_lure_corr(:,2), pup_lure_incorr(:,2), ...   % isolated: correct, incorrect
+    pup_lure_corr(:,3), pup_lure_incorr(:,3));      % novel:    correct, incorrect
+rm_oneway('pupil same-detect', pup_targ_cond(:,1), pup_targ_cond(:,2), pup_targ_cond(:,3));
+
 
 
 n_perm   = 1000;
