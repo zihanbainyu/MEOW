@@ -1,14 +1,3 @@
-% S_gaze_bin_split.m
-% Sebastian's check: does the A1-B1 gaze pattern-separation effect (hit vs miss)
-% differ by lure bin (l1 = harder/more similar, l2 = easier)?
-% 2x2 (lure bin x subsequent B2 accuracy) on A1-B1 gaze similarity, run SEPARATELY
-% for the compared and isolated conditions, WITH a Bayes factor on the interaction:
-%   BF01 > 1  =  positive evidence that the gaze effect does NOT depend on bin
-%              (i.e. is independent of image similarity) -- the key claim, which a
-%              non-significant p-value alone cannot support.
-% Requires rm_2x2.m, gg_eps.m, pstr.m and the bayesFactor toolbox on the path.
-% Run from Experiment_1/scripts.
-
 clear; clc;
 base_dir='..'; res_dir=fullfile(base_dir,'results');
 bf_path = fullfile(base_dir,'..','toolbox','bayesFactor-master');
@@ -17,7 +6,6 @@ if exist(bf_path,'dir'), addpath(genpath(bf_path)); end
 S = load(fullfile(res_dir,'gaze_reinstat_res_ab.mat'),'reinstat_res_ab');
 load(fullfile(base_dir,'data','eye_movement_data','group_eye_movement_combined.mat'),'Mw');
 
-% bin lookup: (subj_id, 1-back B trial_id) -> is_l1
 oneB = unique(Mw(strcmp(Mw.task,'1_back') & strcmp(Mw.identity,'B'), {'subj_id','trial_id','stim_id'}));
 oneB.isl1 = double(contains(string(oneB.stim_id),'_l1'));
 kmap = containers.Map(compose('%d_%d', oneB.subj_id, oneB.trial_id), oneB.isl1);
@@ -40,16 +28,31 @@ function bin_split(name, C, kmap)
         h2(s)=mean(d.reinst_index(d.isl1==0 & d.correct==1),'omitnan');
         m2(s)=mean(d.reinst_index(d.isl1==0 & d.correct==0),'omitnan');
     end
-    fprintf('\n=== A1-B1 gaze (%s): 2x2 (lure bin x B2 accuracy) ===\n', upper(name));
+    fprintf('\nA1-B1 gaze (%s): 2x2 (lure bin x B2 accuracy)\n', name);
     fprintf('   [factor "condition" = lure bin l1/l2 ; "accuracy" = hit/miss]\n');
     rm_2x2('bin x accuracy', h1, m1, h2, m2);
-    d_l1 = m1 - h1; d_l2 = m2 - h2;            % pattern-separation effect (miss - hit)
+
+    d_l1 = m1 - h1; d_l2 = m2 - h2;
     v = ~isnan(d_l1) & ~isnan(d_l2);
     [~,p,~,st] = ttest(d_l1(v), d_l2(v));
-    fprintf('   gaze effect (miss - hit):  L1 = %.4f, L2 = %.4f\n', mean(d_l1(v)), mean(d_l2(v)));
-    fprintf('   L1 vs L2 effect difference: t(%d) = %.2f, %s, n = %d\n', st.df, st.tstat, pstr(p), sum(v));
+    fprintf('    gaze similarity difference between L1 and L2: t(%d) = %.2f, %s, n = %d\n', st.df, st.tstat, pstr(p), sum(v));
+    bf_interaction(h1, m1, h2, m2);
 
-    % ---- Bayes factor for the bin x accuracy INTERACTION ----
+    fprintf('   subsequent-memory effect within bin (hit vs miss, one-tailed):\n');
+    within_bin('L1', h1, m1);
+    within_bin('L2', h2, m2);
+end
+
+function within_bin(lbl, h, m)
+    v = ~isnan(h) & ~isnan(m);
+    [~,p,~,st] = ttest(h(v), m(v), 'Tail','left');     % pattern separation: hit < miss
+    line = sprintf('     %s: t(%d) = %.2f, %s, miss-hit = %.4f, n = %d', ...
+                   lbl, st.df, st.tstat, pstr(p), mean(m(v)-h(v)), sum(v));
+    try, bf10 = bf.ttest(m(v)-h(v)); line = sprintf('%s, BF10 = %.2f', line, bf10); catch, end
+    fprintf('%s\n', line);
+end
+
+function bf_interaction(h1, m1, h2, m2)
     M = [h1 m1 h2 m2]; keep = all(~isnan(M),2); M = M(keep,:); n = size(M,1);
     try
         subj = (1:n)';
@@ -59,9 +62,9 @@ function bin_split(name, C, kmap)
         T = table(categorical(repmat(subj,4,1)), bin, acc, y, 'VariableNames', {'subj','bin','acc','y'});
         bf_full = bf.anova(T, 'y ~ bin*acc', 'treatAsRandom', {'subj'}, 'verbose', false);
         bf_add  = bf.anova(T, 'y ~ bin+acc', 'treatAsRandom', {'subj'}, 'verbose', false);
-        bf_int  = bf_full / bf_add;   % BF10 for the interaction term
-        fprintf('   interaction BF10 = %.3f  ->  BF01 = %.2f  (evidence for NO bin-dependence)\n', bf_int, 1/bf_int);
+        bf_int  = bf_full / bf_add;
+        fprintf('   interaction BF01 = %.2f\n', 1/bf_int);
     catch ME
-        fprintf('   [BF skipped: %s]\n', ME.message);
+        fprintf('   [interaction BF skipped: %s]\n', ME.message);
     end
 end

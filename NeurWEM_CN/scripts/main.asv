@@ -1,4 +1,4 @@
-%==========================================================================
+11212121111%==========================================================================
 %                  MST N-Back Task
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
@@ -28,7 +28,12 @@ function main()
         p.instr_dir = fullfile(base_dir, 'stimulus');   % instruction slides (run_instructions)
         p.setup_dir = fullfile(base_dir, 'subj_setup');
         p.results_dir  = fullfile(base_dir, 'data', sprintf('sub%03d', p.subj_id));
+        if ~exist(p.results_dir, 'dir'), mkdir(p.results_dir); end
         final_data_filename = fullfile(p.results_dir, sprintf('sub%03d_concat.mat', p.subj_id));
+        p.backup_dir = fullfile(base_dir, 'data_backup', ...
+            sprintf('sub%03d_%s', p.subj_id, datestr(now, 'yyyymmdd_HHMMSS')));
+        if ~exist(p.backup_dir, 'dir'), mkdir(p.backup_dir); end
+        fprintf('Data folder:   %s\nBackup folder: %s\n', p.results_dir, p.backup_dir);
 
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         load(setup_filename, 'subject_data');
@@ -36,11 +41,6 @@ function main()
         % additional parameters
         p.keys = subject_data.parameters.keys;
         p.timing = subject_data.parameters.timing;
-        % NB: do NOT inherit subject_data.parameters.stim_dir. A setup file
-        % generated on Windows stores a backslash path (e.g. '..\stimulus\
-        % stim_pool') that dir()/fullfile() cannot resolve on macOS/Linux,
-        % which leaves the practice stimulus list empty and crashes with
-        % "Index exceeds array bounds". Keep the local path set at line 27.
         p.nBlocks = subject_data.parameters.nBlocks;
         sequence_1_back_all = subject_data.sequence_1_back;
         sequence_2_back_all = subject_data.sequence_2_back;
@@ -89,6 +89,13 @@ function main()
             % before EyelinkInit.
             Eyelink('SetAddress', '192.168.1.5');
             el=EyelinkInitDefaults(p.window);
+            % PLACEHOLDER FIX: force the imaging-pipeline callback that draws the
+            % camera image + calibration targets INTO the PTB window. Without this
+            % the Host's "Calibrate" hands off to a Display PC that draws nothing
+            % (screen drops to desktop) and the Host pauses. Must precede
+            % EyelinkUpdateDefaults(el) below so it is applied. Revisit if the
+            % scanner projector still shows no targets (check resolution/focus).
+            el.callback = 'PsychEyelinkDispatchCallback';
             if ~EyelinkInit(dummymode)
                 fprintf('Eyelink Ignit aborted.\n');
                 error('EYELINK_INIT_FAILED'); %
@@ -104,6 +111,14 @@ function main()
             Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('command', 'calibration_type = HV9');
+            % Shrink the calibration/validation grid so every target lands inside
+            % the region the subject can actually see through the bore (the bore
+            % clips the corners/edges, so the default ~0.88 x 0.83 grid pushes the
+            % outer points off-screen). Proportions of the full display: central
+            % ~50% wide x ~60% tall. Widen if calibration looks too central;
+            % shrink further if any edge point is still not visible.
+            Eyelink('command', 'calibration_area_proportion 0.50 0.60');
+            Eyelink('command', 'validation_area_proportion 0.50 0.60');
             Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
             Eyelink('command', 'link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
     
@@ -123,6 +138,13 @@ function main()
             el.backgroundcolour = p.colors.bgcolor;
             el.foregroundcolour = p.colors.black;
             el.calibrationtargetcolour = p.colors.black;
+            % Disable calibration beeps. On this Mac PortAudio cannot open the
+            % default audio device (device -1) with the requested params; the
+            % thrown error aborts PsychEyelinkDispatchCallback and leaves the
+            % PTB window invalid, cascading into "Invalid Window" errors on
+            % every later FillRect/TextSize. The beeps aren't needed in-scanner.
+            el.targetbeep   = 0;
+            el.feedbackbeep = 0;
             EyelinkUpdateDefaults(el);
         end
     
@@ -131,28 +153,34 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         fprintf('***Experiment begins\n\n\n');
 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % instructions & practice (run during the anatomical scan)
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
-        % if do_practice
-        %     run_instructions(p, {'ins_start','ins_1','ins_2','ins_3','ins_4','ins_5','ins_prac_1back'});
-        %     fprin5555541tf('   Run 1-back practice\n');
-        %     C_run_1_back_practice(p);
-        %     run_instructions(p, {'ins_6','ins_7','ins_8','ins_9','ins_10','ins_prac_2back'});
-        %     fprintf('   Run 2-back practice\n');
-        %     D_run_2_back_practice(p);
-        %     run_instructions(p, {'ins_11'});
-        % end
-        % 
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % % eye-tracker calibration
-        % %%%%%%%%%%%%%%%%%%%%%%%
-        % if p.eyetracking == 1
-        %     instructions(p, 'calibration');
-        %     fprintf('Performing initial calibration\n');
-        %     EyelinkDoTrackerSetup(el);
-        % end
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % instructions & practice (run during the anatomical scan)
+        %%%%%%%%%%%%%%%%%%%%%%%
+        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        if do_practice
+            % 1-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('oneback'));
+            fprintf('   Run 1-back practice\n');
+            C_run_1_back_practice(p);
+            run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
+
+            % 2-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('twoback'));
+            fprintf('   Run 2-back practice\n');
+            D_run_2_back_practice(p);
+            run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
+
+            run_text_instructions(p, instruction_text('final'));
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % eye-tracker calibration
+        %%%%%%%%%%%%%%%%%%%%%%%
+        if p.eyetracking == 1
+            instructions(p, 'calibration');
+            fprintf('Performing initial calibration\n');
+            EyelinkDoTrackerSetup(el);
+        end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
@@ -195,23 +223,16 @@ function main()
                 Eyelink('CloseFile');
                 edf_to_transfer{end+1} = edf_filename;
             end
-            try
-                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
-                save(block_filepath, 'results_1_back');
-                fprintf('1-back block %d data saved.\n', b);
-            catch ME
-                warning('Could not save 1-back data for block %d. Reason: %s', b, ME.message);
-            end
+            block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
+            robust_save(block_filepath, 'results_1_back', results_1_back, p.backup_dir);
+            fprintf('1-back block %d data saved.\n', b);
 
             %%%%%%%%%%%%%%%%%%%%%%%
-            % rest
+            % rest (experimenter-advanced; replaces the old fixed timer)
             %%%%%%%%%%%%%%%%%%%%%%%
-            rest_dur = 30;
-            message = sprintf('Fantastic job!\n\nYou are halfway through this block.\n\nPlease use the next 30 seconds to relax.\n\nYou can have you eyes open or closed.');
-            DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-            rest_onset = Screen('Flip', p.window);
-            fprintf('Rest... (%d s)\n', rest_dur);
-            WaitSecs('UntilTime', rest_onset + rest_dur);
+            message = sprintf('Take a break.\n\nThe experimenter will continue when you are ready.');
+            fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+            rest_break(p, message);
 
             %%%%%%%%%%%%%%%%%%%%%%%
             % optional recalibration
@@ -247,11 +268,6 @@ function main()
             % rest
             %%%%%%%%%%%%%%%%%%%%%%%
             if b < p.nBlocks
-                rest_dur = 60;  
-                message = sprintf('Fantastic job!\n\nYou have completed this block.\n\nPlease use the next 1 minute to relax.\n\nYou can have you eyes open or closed.');
-                DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
-                rest_onset = Screen('Flip', p.window);
-
                 %%%%%%%%%%%%%%%%%%%%%%%
                 % save 2-back data
                 %%%%%%%%%%%%%%%%%%%%%%%
@@ -259,16 +275,13 @@ function main()
                     Eyelink('CloseFile');
                     edf_to_transfer{end+1} = edf_filename;
                 end
-                try
-                    block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-                    save(block_filepath, 'results_2_back');
-                    fprintf('2-back block %d data saved.\n', b);
-                catch ME
-                    warning('SAVE_FAILED: Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-                end
+                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+                robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
+                fprintf('2-back block %d data saved.\n', b);
 
-                fprintf('Rest... (%d s)\n', rest_dur);
-                WaitSecs('UntilTime', rest_onset + rest_dur);
+                message = sprintf('You have completed this block.\n\nTake a break.\n\nThe experimenter will continue when you are ready.');
+                fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+                rest_break(p, message);
 
                 %%%%%%%%%%%%%%%%%%%%%%%
                 % optional recalibration
@@ -283,13 +296,9 @@ function main()
                     Eyelink('CloseFile');
                     edf_to_transfer{end+1} = edf_filename;
                 end
-                try
-                    block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-                    save(block_filepath, 'results_2_back');
-                    fprintf('2-back block %d data saved.\n', b);
-                catch ME
-                    warning('Could not save 2-back data for block %d. Reason: %s', b, ME.message);
-                end
+                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+                robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
+                fprintf('2-back block %d data saved.\n', b);
             end
         end % block loop ends
 
@@ -302,7 +311,7 @@ function main()
         final_data_output.parameters = p;
         final_data_output.results_1_back_all = results_1_back_all;
         final_data_output.results_2_back_all = results_2_back_all;
-        save(final_data_filename, 'final_data_output');
+        robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
         fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
 
         %%%%%%%%%%%%%%%%%%%%%%%
@@ -325,19 +334,15 @@ function main()
         else
             results_mst = F_run_mst(p, el, sequence_mst);
         end
-        try
-            mst_filepath = fullfile(p.results_dir, sprintf('sub%03d_mst.mat', p.subj_id));
-            save(mst_filepath, 'results_mst');
-            fprintf('MST data saved.\n');
-        catch ME
-            warning('SAVE_FAILED: Could not save MST data. Reason: %s', ME.message);
-        end
+        mst_filepath = fullfile(p.results_dir, sprintf('sub%03d_mst.mat', p.subj_id));
+        robust_save(mst_filepath, 'results_mst', results_mst, p.backup_dir);
+        fprintf('MST data saved.\n');
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % append the MST to the concatenated file
         %%%%%%%%%%%%%%%%%%%%%%%
         final_data_output.results_mst = results_mst;
-        save(final_data_filename, 'final_data_output');
+        robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
         fprintf('All data saved to:\n%s\n', final_data_filename);
 
         %%%%%%%%%%%%%%%%%%%%%%%
@@ -400,12 +405,39 @@ function ask_for_recalibration(p, el)
     WaitSecs(0.5);
 end
 
+function rest_break(p, message)
+% Break screen advanced by the EXPERIMENTER pressing 'f' (same key as the
+% instruction / calibration pages). Escape aborts. Replaces the old fixed
+% 60 s rest timer, so breaks last as long as the experimenter wants.
+    DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
+    Screen('Flip', p.window);
+
+    continue_key = KbName('f');
+    escape_key   = KbName(p.keys.quit);
+
+    KbReleaseWait(p.keys.device);   % wait until all keys are released
+    while true
+        [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
+        if keyIsDown
+            if keyCode(continue_key)
+                break;
+            elseif keyCode(escape_key)
+                error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
+            end
+        end
+        WaitSecs(0.001);
+    end
+    KbReleaseWait(p.keys.device);   % wait for release before continuing
+end
+
 function [full_data_table] = consolidate_data(p, task_name)
     full_data_table = table();
     for b = 1:p.nBlocks
         block_filename = sprintf('sub%03d_%s_b%d.mat', p.subj_id, task_name, b);
         block_filepath = fullfile(p.results_dir, block_filename);
-    
+        if ~exist(block_filepath, 'file') && isfield(p, 'backup_dir')
+            block_filepath = fullfile(p.backup_dir, block_filename);   % fall back to the backup copy
+        end
         if exist(block_filepath, 'file')
             loaded_data = load(block_filepath);
     
@@ -417,8 +449,32 @@ function [full_data_table] = consolidate_data(p, task_name)
                 warning('Variable (results_1_back/results_2_back) not found in file: %s.', block_filename);
             end
         else
-            warning('Data file not found: %s. Final data set will be incomplete.', block_filename);
+            warning('Data file not found in primary OR backup: %s. Final set incomplete.', block_filename);
         end
+    end
+end
+
+function robust_save(primary_path, varname, data, backup_dir)
+% Save `data` under variable name `varname` to primary_path AND a mirror copy in
+% backup_dir (the per-session timestamped folder). A failure on either target
+% warns loudly but never aborts the run; a total failure is flagged CRITICAL.
+    S = struct(); S.(varname) = data;
+    [~, nm, ext] = fileparts(primary_path);
+    targets = {primary_path};
+    if nargin >= 4 && ~isempty(backup_dir)
+        targets{end+1} = fullfile(backup_dir, [nm ext]);
+    end
+    saved_any = false;
+    for i = 1:numel(targets)
+        try
+            save(targets{i}, '-struct', 'S');
+            saved_any = true;
+        catch ME
+            warning('SAVE_FAILED: %s  (%s)', targets{i}, ME.message);
+        end
+    end
+    if ~saved_any
+        fprintf(2, '\n!! CRITICAL: %s could not be saved to ANY location !!\n\n', varname);
     end
 end
 
