@@ -1,0 +1,35 @@
+================================================================
+ GROUP MST-BACK  --  N = 1   (2026-08-22 23:10)
+================================================================
+  1-back same            mean 0.850  SD 0.000  [range 0.850-0.850]  n=1
+  1-back similar         mean 0.875  SD 0.000  [range 0.875-0.875]  n=1
+  1-back new             mean 1.000  SD 0.000  [range 1.000-1.000]  n=1
+  2-back AB acc          mean 0.562  SD 0.000  [range 0.562-0.562]  n=1
+  2-back AA acc          mean 0.900  SD 0.000  [range 0.900-0.900]  n=1
+  2-back AN acc          mean 0.975  SD 0.000  [range 0.975-0.975]  n=1
+  DI compared            mean 0.577  SD 0.000  [range 0.577-0.577]  n=1
+  DI novel               mean 0.497  SD 0.000  [range 0.497-0.497]  n=1
+  d' compared            mean 3.560  SD 0.000  [range 3.560-3.560]  n=1
+  d' novel               mean 3.482  SD 0.000  [range 3.482-3.482]  n=1
+
+*** PRIMARY OUTCOME: 2-back discrimination (DI), by condition ***
+  DI compared vs novel           diff -0.080 (n=1, too few for a test)
+    (per-subject compared - novel: +0.080)
+
+-- secondary --
+  d'  compared vs novel          diff -0.078 (n=1, too few for a test)
+
+-- POST-TASK MST (old / lure / new; N with MST = 1) --
+  MST LDI                mean 0.500  SD 0.000  [range 0.500-0.500]  n=1
+  MST recognition        mean 0.675  SD 0.000  [range 0.675-0.675]  n=1
+  MST d' (old)           mean 2.243  SD 0.000  [range 2.243-2.243]  n=1
+  MST hit p(old|old)     mean 0.725  SD 0.000  [range 0.725-0.725]  n=1
+  MST lure p(sim|lure)   mean 0.700  SD 0.000  [range 0.700-0.700]  n=1
+  MST CR  p(new|new)     mean 0.750  SD 0.000  [range 0.750-0.750]  n=1
+  MST RT old (s)         mean 0.855  SD 0.000  [range 0.855-0.855]  n=1
+  MST RT lure (s)        mean 1.039  SD 0.000  [range 1.039-1.039]  n=1
+
+-- DATA QUALITY: non-response / dozing (per subject) --
+  a "miss" is a withheld response on a trial that NEEDED a press (same/similar/old/lure).
+  subj     miss%(req)   NA%(all)  max NA run   flag
+  sub102          5%        58%          10   

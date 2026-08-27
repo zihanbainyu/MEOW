@@ -19,7 +19,7 @@ FS = struct('tick',20,'lab',20,'ttl',20,'anno',20);   % enlarged axes (readable 
 GEO = struct('col',150, 'h',380, 'ml',110, 'mr',40, 'mb',72, 'mt',58, 'hg',105, 'vg',120);
 
 c_same = [97 125 184]/255; c_sim = [255 191 205]/255; c_new = [219 219 219]/255;
-c_comp = [87 6 140]/255; c_iso = [140 120 180]/255; c_nov = [183 210 205]/255;
+c_comp = [87 6 140]/255; c_nov = [183 210 205]/255;
 c_ab = [214 96 77]/255; c_aa = [103 169 207]/255; c_an = [90 180 172]/255;
 
 %% ---- find subjects with an n-back concat ----
@@ -44,12 +44,12 @@ fprintf('Group MST-Back: %d subjects [%s]\n', nS, num2str(subs));
 one_acc  = nan(nS,3);   % 1-back accuracy: same / similar / new
 one_rt   = nan(nS,2);   % 1-back median RT (correct): same / similar
 goal_acc = nan(nS,3);   % 2-back accuracy by goal: AB(lure) / AA(target) / AN(foil)
-di      = nan(nS,3);   % 2-back LDI (similar discrimination): compared / isolated / novel
-dpr      = nan(nS,3);   % 2-back d'  (same detection)       : compared / isolated / novel
-rt_lure  = nan(nS,3);   % 2-back median RT (correct AB): compared / isolated / novel
-rt_targ  = nan(nS,3);   % 2-back median RT (correct AA): compared / isolated / novel
+di      = nan(nS,2);   % 2-back LDI (similar discrimination): compared / novel
+dpr      = nan(nS,2);   % 2-back d'  (same detection)       : compared / novel
+rt_lure  = nan(nS,2);   % 2-back median RT (correct AB): compared / novel
+rt_targ  = nan(nS,2);   % 2-back median RT (correct AA): compared / novel
 conf1_all = nan(3,3,nS);            % 1-back confusion (row=presented, col=response)
-conf2_all = {nan(3,3,nS), nan(3,3,nS), nan(3,3,nS)};   % {compared, isolated, novel}
+conf2_all = {nan(3,3,nS), nan(3,3,nS)};   % {compared, novel}
 % post-task MST (old / lure / new). Only later subjects ran it (earlier ones
 % have results_recognition instead), so rows without MST stay NaN.
 has_mst  = false(nS,1);
@@ -77,7 +77,6 @@ for si = 1:nS
     conf1_all(:,:,si)    = m.conf1;
     conf2_all{1}(:,:,si) = m.conf2{1};
     conf2_all{2}(:,:,si) = m.conf2{2};
-    conf2_all{3}(:,:,si) = m.conf2{3};
     if isfield(fdo, 'results_mst')
         mm = mst_metrics(fdo, min_rt); has_mst(si) = true;
         mst_ldi(si)  = mm.ldi;  mst_rec(si) = mm.rec;  mst_dpr(si) = mm.dpr;
@@ -91,8 +90,7 @@ nMST = sum(has_mst);
 % grand-mean confusion matrices (+/- SE across subjects)
 [C1,  SE1]  = grand_conf(conf1_all);
 [C2c, SE2c] = grand_conf(conf2_all{1});
-[C2i, SE2i] = grand_conf(conf2_all{2});
-[C2n, SE2n] = grand_conf(conf2_all{3});
+[C2n, SE2n] = grand_conf(conf2_all{2});
 [Cm,  SEm]  = grand_conf(mst_conf);
 
 %% ---- report ----
@@ -108,16 +106,14 @@ grp_line('1-back new',     one_acc(:,3));
 grp_line('2-back AB acc',  goal_acc(:,1));
 grp_line('2-back AA acc',  goal_acc(:,2));
 grp_line('2-back AN acc',  goal_acc(:,3));
-grp_line('DI compared', di(:,1));  grp_line('DI isolated', di(:,2));  grp_line('DI novel', di(:,3));
-grp_line('d'' compared', dpr(:,1)); grp_line('d'' isolated', dpr(:,2)); grp_line('d'' novel', dpr(:,3));
+grp_line('DI compared', di(:,1));  grp_line('DI novel', di(:,2));
+grp_line('d'' compared', dpr(:,1)); grp_line('d'' novel', dpr(:,2));
 fprintf('\n*** PRIMARY OUTCOME: 2-back discrimination (DI), by condition ***\n');
-paired_line('DI compared vs novel',    di(:,1), di(:,3), min_n_stat);
-paired_line('DI compared vs isolated', di(:,1), di(:,2), min_n_stat);
-paired_line('DI isolated vs novel',    di(:,2), di(:,3), min_n_stat);
+paired_line('DI compared vs novel',    di(:,1), di(:,2), min_n_stat);
 fprintf('    (per-subject compared - novel: %s)\n', ...
-    strjoin(compose('%+.3f', di(:,1)-di(:,3))', ', '));
+    strjoin(compose('%+.3f', di(:,1)-di(:,2))', ', '));
 fprintf('\n-- secondary --\n');
-paired_line('d''  compared vs novel', dpr(:,1), dpr(:,3), min_n_stat);
+paired_line('d''  compared vs novel', dpr(:,1), dpr(:,2), min_n_stat);
 
 fprintf('\n-- POST-TASK MST (old / lure / new; N with MST = %d) --\n', nMST);
 if nMST >= 1
@@ -144,8 +140,8 @@ end
 diary off;
 
 %% ---- figures ----
-rlbl = {'exp. same','exp. similar','exp. new'};   % confusion rows (presented)
-clbl = {'resp. same','resp. similar','resp. new'};       % confusion cols (response)
+rlbl = {'exp. same','exp. similar','exp. new'};   % presented -> confusion columns (horizontal)
+clbl = {'resp. same','resp. similar','resp. new'};       % response  -> confusion rows (vertical)
 
 % FIGURE 1 -- 1-back: accuracy + RT  (row of 3-group then 2-group panel)
 [f, L] = panel_grid(GEO, [3 2]);   set(f,'Name','Figure 1: 1-back');
@@ -160,41 +156,42 @@ save_fig(f, fig_dir, 'group_mstback_fig1_1back');
 
 % FIGURE 2 -- 1-back confusion matrix (group mean +/- SE)
 f = figure('color','w','Position',[80 80 560 540],'Name','Figure 2: 1-back confusion');
-draw_matrix_se(C1, SE1, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+draw_matrix_se(C1.', SE1.', {c_same,c_sim,c_new}, clbl, rlbl, FS);
 title(sprintf('1-back confusions  (N = %d)', nS), 'FontSize', FS.ttl);
 save_fig(f, fig_dir, 'group_mstback_fig2_1back_confusion');
 
-% FIGURE 3 -- 2-back indices: DI, d', and their RTs (compared / isolated / novel)
-[f, L] = panel_grid(GEO, [3 3; 3 3]);   set(f,'Name','Figure 3: 2-back');
-cnd3 = {'compared','isolated','novel'}; col3 = {c_comp,c_iso,c_nov}; pr3 = {[1 2],[2 3],[1 3]};
+% FIGURE 3 -- 2-back similar discrimination: index (DI) + its RT (compared / novel)
+cnd2 = {'compared','novel'}; col2 = {c_comp,c_nov}; pr2 = {[1 2]};
+[f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 3: 2-back similar discrimination');
 mk_axes(f, L(1,:));
-paired_plot(di, cnd3, col3, 'DI', ...
-    'similar discrimination index (DI)', min_n_stat, pr3, FS);
+paired_plot(di, cnd2, col2, 'DI', ...
+    'similar discrimination index (DI)', min_n_stat, pr2, FS);
 yline(0,'k-'); nice_yticks(4);
 mk_axes(f, L(2,:));
-paired_plot(dpr, cnd3, col3, 'd''', ...
-    'same detection (d'')', min_n_stat, pr3, FS);
+paired_plot(rt_lure, cnd2, col2, 'RT (s)', ...
+    'RT: similar discrimination', min_n_stat, pr2, FS);
+nice_yticks(4);
+save_fig(f, fig_dir, 'group_mstback_fig3_2back_similar');
+
+% FIGURE 3b -- 2-back same detection: index (d') + its RT (compared / novel)
+[f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 3b: 2-back same detection');
+mk_axes(f, L(1,:));
+paired_plot(dpr, cnd2, col2, 'd''', ...
+    'same detection (d'')', min_n_stat, pr2, FS);
 yline(0,'k-'); nice_yticks(4);
-mk_axes(f, L(3,:));
-paired_plot(rt_lure, cnd3, col3, 'RT (s)', ...
-    'RT: similar discrimination', min_n_stat, pr3, FS);
+mk_axes(f, L(2,:));
+paired_plot(rt_targ, cnd2, col2, 'RT (s)', ...
+    'RT: same detection', min_n_stat, pr2, FS);
 nice_yticks(4);
-mk_axes(f, L(4,:));
-paired_plot(rt_targ, cnd3, col3, 'RT (s)', ...
-    'RT: same detection', min_n_stat, pr3, FS);
-nice_yticks(4);
-save_fig(f, fig_dir, 'group_mstback_fig3_2back');
+save_fig(f, fig_dir, 'group_mstback_fig3b_2back_same');
 
 % FIGURE 4 -- 2-back confusion matrices (compared vs novel, group mean +/- SE)
-f = figure('color','w','Position',[40 40 1650 540],'Name','Figure 4: 2-back confusion');
-subplot(1,3,1);
-draw_matrix_se(C2c, SE2c, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+f = figure('color','w','Position',[40 40 1100 540],'Name','Figure 4: 2-back confusion');
+subplot(1,2,1);
+draw_matrix_se(C2c.', SE2c.', {c_same,c_sim,c_new}, clbl, rlbl, FS);
 title('2-back: compared', 'FontSize', FS.ttl);
-subplot(1,3,2);
-draw_matrix_se(C2i, SE2i, {c_same,c_sim,c_new}, rlbl, clbl, FS);
-title('2-back: isolated', 'FontSize', FS.ttl);
-subplot(1,3,3);
-draw_matrix_se(C2n, SE2n, {c_same,c_sim,c_new}, rlbl, clbl, FS);
+subplot(1,2,2);
+draw_matrix_se(C2n.', SE2n.', {c_same,c_sim,c_new}, clbl, rlbl, FS);
 title('2-back: novel', 'FontSize', FS.ttl);
 save_fig(f, fig_dir, 'group_mstback_fig4_2back_confusion');
 
@@ -220,7 +217,7 @@ if nMST >= 1
 
     % FIGURE 6 -- MST confusion matrix (group mean +/- SE)
     f = figure('color','w','Position',[80 80 560 540],'Name','Figure 6: MST confusion');
-    draw_matrix_se(Cm, SEm, {c_same,c_sim,c_new}, mst_rlbl, mst_clbl, FS);
+    draw_matrix_se(Cm.', SEm.', {c_same,c_sim,c_new}, mst_clbl, mst_rlbl, FS);
     title(sprintf('MST confusions  (N = %d)', nMST), 'FontSize', FS.ttl);
     save_fig(f, fig_dir, 'group_mstback_fig6_mst_confusion');
 end
@@ -230,15 +227,14 @@ fprintf('\nsaved report + figures to %s , %s\n', res_dir, fig_dir);
 %% ==================== local functions ====================
 function m = nback_metrics(fdo, min_rt)
     % NeurWEM response keys: '1' = same/old (index), '2' = similar (middle),
-    % 'none' = new (withheld). 1-back conditions: repeat / compared / isolated.
+    % 'none' = new (withheld). 1-back conditions: repeat / compared.
     r1 = recode(fdo.results_1_back_all);
     r2 = recode(fdo.results_2_back_all);
     % 1-back accuracy: same / similar / new
     i_sam = r1.condition=="repeat"   & strcmp(r1.corr_resp,'1');
     i_sim = r1.condition=="compared" & r1.identity=="B";
     i_new = (r1.condition=="compared" & r1.identity=="A") | ...
-            (r1.condition=="repeat"   & strcmp(r1.corr_resp,'none')) | ...
-             r1.condition=="isolated";
+            (r1.condition=="repeat"   & strcmp(r1.corr_resp,'none'));
     m.one_acc = [pmean(r1.correct,i_sam), pmean(r1.correct,i_sim), pmean(r1.correct,i_new)];
     % 1-back RT on correct trials (median): same / similar
     v1 = r1.rt > min_rt;
@@ -256,11 +252,11 @@ function m = nback_metrics(fdo, min_rt)
     ab = real2 & strcmp(r2.goal,'A-B') & strcmp(r2.corr_resp,'2');
     an = real2 & pan & strcmp(r2.corr_resp,'none');
     m.goal_acc = [pmean(r2.correct,ab), pmean(r2.correct,aa), pmean(r2.correct,an)];
-    % LDI, d', RT, and confusion by condition: compared / isolated / novel
+    % LDI, d', RT, and confusion by condition: compared / novel
     v2 = r2.rt > min_rt;
-    conds = {'compared','isolated','novel'};
-    m.conf2 = {nan(3,3), nan(3,3), nan(3,3)};
-    for c = 1:3
+    conds = {'compared','novel'};
+    m.conf2 = {nan(3,3), nan(3,3)};
+    for c = 1:2
         cm = strcmp(r2.condition, conds{c});
         m.ldi(c) = pkey(r2,ab&cm,'2') - pkey(r2,an&cm,'2');
         nh = sum(aa&cm); nf = sum(an&cm);
