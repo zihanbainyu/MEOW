@@ -6,7 +6,6 @@
 
 function main()
     addpath(genpath(fullfile('/Users/Shared/Psychtoolbox')));
-    clear;
     clc;
     sca;
     Priority(0);
@@ -34,7 +33,7 @@ function main()
             sprintf('sub%03d_%s', p.subj_id, datestr(now, 'yyyymmdd_HHMMSS')));
         if ~exist(p.backup_dir, 'dir'), mkdir(p.backup_dir); end
         fprintf('Data folder:   %s\nBackup folder: %s\n', p.results_dir, p.backup_dir);
-
+536
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         load(setup_filename, 'subject_data');
 
