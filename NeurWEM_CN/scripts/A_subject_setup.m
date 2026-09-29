@@ -69,6 +69,7 @@ p.keys.trigger = '5%';   % scanner trigger ("5" marks scan onset); used by the f
 p.timing.image_dur = 1.5;           % n-back stimulus presentation
 p.timing.fix_dur = 1.5;             % n-back base fixation (mean ITI)
 p.timing.fix_jitter = 1.0;          % uniform ±1.0s -> ITI 0.5 to 2.5s (mean 1.5)
+p.timing.TR = 1.5;                  % scanner TR (s); used to log onsets in TR units (onset_tr)
 
 % MST timing: image on-screen; responses collected during the image, then the
 % next trial's fixation (the ITI) replaces it -- same structure as the n-back.
