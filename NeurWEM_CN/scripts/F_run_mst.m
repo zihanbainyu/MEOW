@@ -20,6 +20,11 @@ num_trials = height(results_table);
 results_table.resp_key = strings(num_trials, 1);
 results_table.resp_key(:) = "NA";
 results_table.rt = nan(num_trials, 1);
+% Per-trial fixation and stimulus onsets, in TRs since the scanner trigger
+% (= scan / run start, so the 6 s lead-in is included; first trial ~4 TR).
+if isfield(p.timing, 'TR'), TR = p.timing.TR; else, TR = 1.5; end
+results_table.fix_onset_tr  = nan(num_trials, 1);  % fixation onset, TRs since trigger
+results_table.stim_onset_tr = nan(num_trials, 1);  % image onset, TRs since trigger
 
 % define key names (Assuming KbName('UnifyKeyNames') was called in main)
 old_key     = KbName({'1!','1'});      % OLD: top-row '1' and numpad '1' (button box)
@@ -63,7 +68,8 @@ if is_eyetracking
     Eyelink('Message', 'TRIAL_RESULT 0');
 end
 % --- Wait for the scanner trigger ("5") before starting the run ---
-wait_for_scanner(p, trigger_key, escape_key);
+% trigger_time is the run's t = 0: every onset below is measured from it.
+trigger_time = wait_for_scanner(p, trigger_key, escape_key);
 % Suppress keystrokes from reaching the MATLAB command window for the rest of
 % the run, so the scanner's per-TR 5s stop flooding it. KbQueue still captures
 % responses (it reads the device directly). Restored at the end of the run.
@@ -153,6 +159,8 @@ for i = 1:num_trials
     %------------------------------------------------------------------
     results_table.resp_key(i) = key_pressed;
     results_table.rt(i) = response_time;
+    results_table.fix_onset_tr(i)  = (fix_onset_time  - trigger_time) / TR;
+    results_table.stim_onset_tr(i) = (stim_onset_time - trigger_time) / TR;
 end % end of the trial loop
 
 % --- Tail fixation before the run ends (mirrors the lead-in) ---
@@ -180,19 +188,21 @@ end
 %% ========================================================================
 % LOCAL FUNCTIONS
 % =========================================================================
-function wait_for_scanner(p, trigger_key, escape_key)
+function trigger_time = wait_for_scanner(p, trigger_key, escape_key)
 % Hold after the experimenter starts the run until the scanner sends its first
-% trigger ("5"), then return so the run begins. Escape still aborts. Runs
-% before KbQueueStart, so KbCheck is safe here.
+% trigger ("5"), then return its timestamp (the run's t = 0). Escape still
+% aborts. Runs before KbQueueStart, so KbCheck is safe here.
 Screen('TextSize', p.window, p.text_size);
 Screen('TextFont', p.window, 'Helvetica');
 DrawFormattedText(p.window, 'Waiting for the scanner to start...', 'center', 'center', p.colors.black);
 Screen('Flip', p.window);
 KbReleaseWait(p.keys.device); % clear the experimenter's start key
+trigger_time = NaN;
 while true
-    [keyIsDown, ~, keyCode] = KbCheck(p.keys.device);
+    [keyIsDown, secs, keyCode] = KbCheck(p.keys.device);
     if keyIsDown
         if keyCode(trigger_key)
+            trigger_time = secs;   % timestamp of the first scanner trigger
             break;
         elseif keyCode(escape_key)
             error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
