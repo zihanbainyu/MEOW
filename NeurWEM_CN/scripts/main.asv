@@ -32,7 +32,7 @@ function main()
         p.backup_dir = fullfile(base_dir, 'data_backup', ...
             sprintf('sub%03d_%s', p.subj_id, datestr(now, 'yyyymmdd_HHMMSS')));
         if ~exist(p.backup_dir, 'dir'), mkdir(p.backup_dir); end
-        fprintf('Data folder:   %s\nBackup folde1121212111111111212111111f11555555f5r: %s\n', p.results_dir, p.backup_dir);
+        fprintf('Data folder:   %s\nBackup folde1121212111111111212111111f11r: %s\n', p.results_dir, p.backup_dir);
 536
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         load(setup_filename, 'subject_data');
