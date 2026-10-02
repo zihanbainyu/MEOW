@@ -12,10 +12,7 @@ min_rt   = 0.150;
 min_n_stat = 5;     % minimum N before paired tests / trend are drawn
 FS = struct('tick',20,'lab',20,'ttl',20,'anno',20);   % enlarged axes (readable from space); title eased so it fits the thinner panels
 
-% Fixed panel geometry (pixels). Every paired-plot panel is sized as
-% nCond*col wide by h tall, so a two-group panel is EXACTLY the same size in
-% every figure (and three-group panels match each other). Margins leave room
-% for the enlarged axis labels/ticks.
+
 GEO = struct('col',150, 'h',380, 'ml',110, 'mr',40, 'mb',72, 'mt',58, 'hg',105, 'vg',120);
 
 c_same = [97 125 184]/255; c_sim = [255 191 205]/255; c_new = [219 219 219]/255;
