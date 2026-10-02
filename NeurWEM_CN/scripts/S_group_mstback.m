@@ -147,10 +147,10 @@ clbl = {'resp. same','resp. similar','resp. new'};       % response  -> confusio
 [f, L] = panel_grid(GEO, [3 2]);   set(f,'Name','Figure 1: 1-back');
 mk_axes(f, L(1,:));
 paired_plot(one_acc, {'same','similar','new'}, {c_same,c_sim,c_new}, ...
-    'accuracy', '1-back accuracy', min_n_stat, {[1 2],[2 3],[1 3]}, FS); nice_yticks(4);
+    'accuracy', '1-back accuracy', min_n_stat, {[1 2],[2 3],[1 3]}, FS, subs); nice_yticks(4);
 mk_axes(f, L(2,:));
 paired_plot(one_rt, {'same','similar'}, {c_same,c_sim}, ...
-    'RT (s)', '1-back RT (correct)', min_n_stat, {[1 2]}, FS);
+    'RT (s)', '1-back RT (correct)', min_n_stat, {[1 2]}, FS, subs);
 nice_yticks(4);
 save_fig(f, fig_dir, 'group_mstback_fig1_1back');
 
@@ -165,11 +165,11 @@ cnd2 = {'compared','novel'}; col2 = {c_comp,c_nov}; pr2 = {[1 2]};
 [f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 3: 2-back similar discrimination');
 mk_axes(f, L(1,:));
 paired_plot(di, cnd2, col2, 'DI', ...
-    'similar discrimination index (DI)', min_n_stat, pr2, FS);
+    'similar discrimination index (DI)', min_n_stat, pr2, FS, subs);
 yline(0,'k-'); nice_yticks(4);
 mk_axes(f, L(2,:));
 paired_plot(rt_lure, cnd2, col2, 'RT (s)', ...
-    'RT: similar discrimination', min_n_stat, pr2, FS);
+    'RT: similar discrimination', min_n_stat, pr2, FS, subs);
 nice_yticks(4);
 save_fig(f, fig_dir, 'group_mstback_fig3_2back_similar');
 
@@ -177,11 +177,11 @@ save_fig(f, fig_dir, 'group_mstback_fig3_2back_similar');
 [f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 3b: 2-back same detection');
 mk_axes(f, L(1,:));
 paired_plot(dpr, cnd2, col2, 'd''', ...
-    'same detection (d'')', min_n_stat, pr2, FS);
+    'same detection (d'')', min_n_stat, pr2, FS, subs);
 yline(0,'k-'); nice_yticks(4);
 mk_axes(f, L(2,:));
 paired_plot(rt_targ, cnd2, col2, 'RT (s)', ...
-    'RT: same detection', min_n_stat, pr2, FS);
+    'RT: same detection', min_n_stat, pr2, FS, subs);
 nice_yticks(4);
 save_fig(f, fig_dir, 'group_mstback_fig3b_2back_same');
 
@@ -199,19 +199,15 @@ save_fig(f, fig_dir, 'group_mstback_fig4_2back_confusion');
 mst_rlbl = {'exp. old','exp. lure','exp. new'};
 mst_clbl = {'resp. old','resp. similar','resp. new'};
 if nMST >= 1
-    % FIGURE 5 -- MST indices: discrimination (2), response rates (3), RT (2)
-    [f, L] = panel_grid(GEO, [2 3 2]);   set(f,'Name','Figure 5: MST');
+    % FIGURE 5 -- MST indices: discrimination (2), RT (2)
+    [f, L] = panel_grid(GEO, [2 2]);   set(f,'Name','Figure 5: MST');
     mk_axes(f, L(1,:));
-    paired_plot([mst_ldi mst_rec], {'LDI','recognition'}, {c_sim,c_same}, 'index', ...
-        'MST discrimination', min_n_stat, {[1 2]}, FS);
+    paired_plot([mst_ldi(has_mst) mst_rec(has_mst)], {'LDI','recognition'}, {c_sim,c_same}, 'index', ...
+        'MST discrimination', min_n_stat, {[1 2]}, FS, subs(has_mst));
     yline(0,'k-'); nice_yticks(4);
     mk_axes(f, L(2,:));
-    paired_plot(mst_rate, {'hit (old)','lure\rightarrowsim','CR (new)'}, {c_same,c_sim,c_new}, ...
-        'proportion', 'MST response rates', min_n_stat, {[1 2],[2 3],[1 3]}, FS);
-    ylim([0 1.05]); nice_yticks(4);
-    mk_axes(f, L(3,:));
-    paired_plot(mst_rt, {'old','lure'}, {c_same,c_sim}, 'RT (s)', ...
-        'MST RT (correct)', min_n_stat, {[1 2]}, FS);
+    paired_plot(mst_rt(has_mst,:), {'old','lure'}, {c_same,c_sim}, 'RT (s)', ...
+        'MST RT (correct)', min_n_stat, {[1 2]}, FS, subs(has_mst));
     nice_yticks(4);
     save_fig(f, fig_dir, 'group_mstback_fig5_mst');
 
@@ -348,21 +344,30 @@ function paired_line(lbl, a, b, min_n)
         lbl, mean(a), mean(b), mean(b-a), p, stars(p));
 end
 
-function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
+function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS, subj)
 % M: [nS x nL] metric per subject per level. Paired-plot style.
+% subj: [nS x 1] subject IDs -> each subject gets its own line colour + marker
+% shape, listed in a legend.
     if nargin < 8 || isempty(FS), FS = struct('tick',16,'lab',18,'ttl',18,'anno',13); end
     [nS, nL] = size(M);
+    if nargin < 9 || isempty(subj), subj = 1:nS; end
     if nargin < 7 || isempty(pairs)
         pairs = arrayfun(@(k) [k k+1], 1:nL-1, 'UniformOutput', false);
     end
     hold on; jw = 0.07; bw = 0.34;
     dot_area = 90;   % per-subject dot size (scatter marker area, points^2)
     X = (1:nL) + (rand(nS,nL)-0.5)*2*jw;         % jittered x per subject/level
+    s_col = lines(nS);                           % per-subject line colour
+    mks = {'o','s','d','^','v','p','h','>','<'};
+    s_mk = mks(mod(0:nS-1, numel(mks)) + 1);     % per-subject marker shape
 
-    % gray lines connecting each subject across levels
+    % coloured line connecting each subject across levels (legend handles)
+    hs = gobjects(nS,1);
     for s = 1:nS
         y = M(s,:);
-        plot(X(s,:), y, '-', 'Color', [0.55 0.55 0.55 0.45], 'LineWidth', 0.6);
+        hs(s) = plot(X(s,:), y, '-', 'Color', [s_col(s,:) 0.8], 'LineWidth', 1.4, ...
+            'Marker', s_mk{s}, 'MarkerSize', 8, 'MarkerEdgeColor', [.2 .2 .2], ...
+            'MarkerFaceColor', 'none');
     end
     % box + whiskers per level, then coloured subject dots
     for L = 1:nL
@@ -378,8 +383,10 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
                 'EdgeColor','k','LineWidth',1.1,'FaceColor','none');
             plot(L+[-bw/2 bw/2],[q(2) q(2)],'k-','LineWidth',1.8);
         end
-        scatter(X(:,L), M(:,L), dot_area, cols{L}, 'filled', 'MarkerFaceAlpha',0.85, ...
-            'MarkerEdgeColor',[.2 .2 .2], 'LineWidth',0.3);
+        for s = 1:nS
+            scatter(X(s,L), M(s,L), dot_area, cols{L}, s_mk{s}, 'filled', ...
+                'MarkerFaceAlpha',0.85, 'MarkerEdgeColor',[.2 .2 .2], 'LineWidth',0.3);
+        end
     end
 
     all_v = M(~isnan(M));
@@ -419,6 +426,8 @@ function paired_plot(M, lvllbl, cols, ylbl, ttl, min_n, pairs, FS)
     if nS >= min_n && k > 0
         ylim([min(all_v)-0.06*yr, base + k*step + 0.05*yr]);
     end
+    legend(hs, compose('sub%03d', subj(:)), 'Location','best', 'Box','off', ...
+        'FontSize', max(FS.anno-8, 10), 'Interpreter','none', 'AutoUpdate','off');
     box off; hold off;
 end
 
