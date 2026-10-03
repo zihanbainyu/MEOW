@@ -1,19 +1,11 @@
 %==========================================================================
-%              Standalone launcher: final recognition test
+%              final recognition test
 %==========================================================================
 % Author: Zihan Bai, zihan.bai@nyu.edu, Michelmann Lab at NYU
-%
-% Run this on the laptop (built-in screen + keyboard) AFTER the scanner
-% session, to collect the out-of-scanner old/new recognition test. It loads
-% the subject's already-generated sequence_recognition, opens Psychtoolbox on
-% the laptop display, runs E_run_recognition, and saves the data (mirrored to
-% a timestamped backup, and appended to the concatenated file if present).
-%
-% Usage: from the scripts/ folder, run  run_recognition  and enter the ID.
 %==========================================================================
 function run_recognition()
     addpath(genpath(fullfile('/Users/Shared/Psychtoolbox')));
-    clear; clc; sca; Priority(0); ListenChar(0); ShowCursor;
+    clear; clc; 22212222211211111111112211112111222222122211111112221122212222122221221211122212211221212 sca; Priority(0); ListenChar(0); ShowCursor;
 
     try
         %%%%%%%%%%%%%%%%%%%%%%%
