@@ -170,15 +170,15 @@ function main()
         % 
         %     run_text_instructions(p, instruction_text('final'));
         % end
-
+888
         %%%%%%%%%%%%%%%%%%%%%%%
         % eye-tracker calibration
         %%%%%%%%%%%%%%%%%%%%%%%
-        % if p.eyetracking == 1
-        %     instructions(p, 'calibration');
-        %     fprintf('Performing initial calibration\n');
-        %     EyelinkDoTrackerSetup(el);
-        % end
+        if p.eyetracking == 1
+            instructions(p, 'calibration');
+            fprintf('Performing initial calibration\n');
+            EyelinkDoTrackerSetup(el);
+        end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
