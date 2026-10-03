@@ -154,22 +154,22 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % instructions & practice (run during the anatomical scan)
         %%%%%%%%%%%%%%%%%%%%%%%
-        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
-        if do_practice
-            % 1-back: intro -> practice -> post-practice recap (with example images)
-            run_text_instructions(p, instruction_text('oneback'));
-            fprintf('   Run 1-back practice\n');
-            C_run_1_back_practice(p);
-            run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
-
-            % 2-back: intro -> practice -> post-practice recap (with example images)
-            run_text_instructions(p, instruction_text('twoback'));
-            fprintf('   Run 2-back practice\n');
-            D_run_2_back_practice(p);
-            run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
-
-            run_text_instructions(p, instruction_text('final'));
-        end
+        % do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        % if do_practice
+        %     % 1-back: intro -> practice -> post-practice recap (with example images)
+        %     run_text_instructions(p, instruction_text('oneback'));
+        %     fprintf('   Run 1-back practice\n');
+        %     C_run_1_back_practice(p);
+        %     run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
+        % 
+        %     % 2-back: intro -> practice -> post-practice recap (with example images)
+        %     run_text_instructions(p, instruction_text('twoback'));
+        %     fprintf('   Run 2-back practice\n');
+        %     D_run_2_back_practice(p);
+        %     run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
+        % 
+        %     run_text_instructions(p, instruction_text('final'));
+        % end
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % eye-tracker calibration
@@ -342,7 +342,7 @@ function main()
         final_data_output.results_mst = results_mst;
         robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
         fprintf('All data saved to:\n%s\n', final_data_filename);
-
+        
         %%%%%%%%%%%%%%%%%%%%%%%
         % transfer all EDF files
         %%%%%%%%%%%%%%%%%%%%%%%
