@@ -183,180 +183,180 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
         %%%%%%%%%%%%%%%%%%%%%%%
-        b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
-        if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
-
-        edf_to_transfer = {};
-
-        for b = b_seq
-            fprintf('Block...%d\n\n', b);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % Part 1: 1-back
-            %%%%%%%%%%%%%%%%%%%%%%%
-            fprintf('   Run 1-back\n');
-            sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % eyetracking version
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if p.eyetracking == 1
-                edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
-                Eyelink('OpenFile', edf_filename);
-                fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-                Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
-
-                results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
-            else
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % behavior-only version
-            %%%%%%%%%%%%%%%%%%%%%%%
-                results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
-            end
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % save 1-back data
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if p.eyetracking == 1
-                Eyelink('CloseFile');
-                edf_to_transfer{end+1} = edf_filename;
-            end
-            block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
-            robust_save(block_filepath, 'results_1_back', results_1_back, p.backup_dir);
-            fprintf('1-back block %d data saved.\n', b);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % rest (experimenter-advanced; replaces the old fixed timer)
-            %%%%%%%%%%%%%%%%%%%%%%%
-            message = sprintf('Take a break.\n\nThe experimenter will continue when you are ready.');
-            fprintf('Rest: waiting for experimenter to advance (press f)...\n');
-            rest_break(p, message);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % optional recalibration
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if p.eyetracking == 1
-                fprintf('Checking Calibration\n');
-                ask_for_recalibration(p, el);
-            end
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % Part 1: 2-back
-            %%%%%%%%%%%%%%%%%%%%%%%
-            fprintf('   Running 2-back\n\n');
-            sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % eyetracking version
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if p.eyetracking == 1
-                edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
-                fprintf('EYELINK: opening edf file: %s\n', edf_filename);
-                Eyelink('OpenFile', edf_filename);
-                Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
-                results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
-            else
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % behavior-only version
-            %%%%%%%%%%%%%%%%%%%%%%%
-                results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
-            end
-
-            %%%%%%%%%%%%%%%%%%%%%%%
-            % rest
-            %%%%%%%%%%%%%%%%%%%%%%%
-            if b < p.nBlocks
-                %%%%%%%%%%%%%%%%%%%%%%%
-                % save 2-back data
-                %%%%%%%%%%%%%%%%%%%%%%%
-                if p.eyetracking == 1
-                    Eyelink('CloseFile');
-                    edf_to_transfer{end+1} = edf_filename;
-                end
-                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-                robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
-                fprintf('2-back block %d data saved.\n', b);
-
-                message = sprintf('You have completed this block.\n\nTake a break.\n\nThe experimenter will continue when you are ready.');
-                fprintf('Rest: waiting for experimenter to advance (press f)...\n');
-                rest_break(p, message);
-
-                %%%%%%%%%%%%%%%%%%%%%%%
-                % optional recalibration
-                %%%%%%%%%%%%%%%%%%%%%%%
-                if p.eyetracking == 1
-                    fprintf('Checking Calibration\n');
-                    ask_for_recalibration(p, el);
-                end
-            else
-
-                if p.eyetracking == 1
-                    Eyelink('CloseFile');
-                    edf_to_transfer{end+1} = edf_filename;
-                end
-                block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
-                robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
-                fprintf('2-back block %d data saved.\n', b);
-            end
-        end % block loop ends
-
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % save 1-back & 2-back data
-        %%%%%%%%%%%%%%%%%%%%%%%
-        results_1_back_all = consolidate_data(p, '1_back');
-        results_2_back_all = consolidate_data(p, '2_back');
-        final_data_output.subj_id = p.subj_id;
-        final_data_output.parameters = p;
-        final_data_output.results_1_back_all = results_1_back_all;
-        final_data_output.results_2_back_all = results_2_back_all;
-        robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
-        fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
-
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % Part 2: post-task MST (old / similar / new)
-        %%%%%%%%%%%%%%%%%%%%%%%
-        fprintf('\n   Running Part 2: MST\n\n');
-        sequence_mst = subject_data.sequence_mst;
-        if p.eyetracking == 1
-            fprintf('Calibration check before the MST\n');
-            ask_for_recalibration(p, el);
-        end
-        if p.eyetracking == 1
-            edf_filename = sprintf('%d_mst.edf', p.subj_id);
-            Eyelink('OpenFile', edf_filename);
-            fprintf('EYELINK: opened edf file: %s\n', edf_filename);
-            Eyelink('command', 'add_file_preamble_text ''Post-task MST''');
-            results_mst = F_run_mst(p, el, sequence_mst);
-            Eyelink('CloseFile');
-            edf_to_transfer{end+1} = edf_filename;
-        else
-            results_mst = F_run_mst(p, el, sequence_mst);
-        end
-        mst_filepath = fullfile(p.results_dir, sprintf('sub%03d_mst.mat', p.subj_id));
-        robust_save(mst_filepath, 'results_mst', results_mst, p.backup_dir);
-        fprintf('MST data saved.\n');
-
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % append the MST to the concatenated file
-        %%%%%%%%%%%%%%%%%%%%%%%
-        final_data_output.results_mst = results_mst;
-        robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
-        fprintf('All data saved to:\n%s\n', final_data_filename);
-
-        %%%%%%%%%%%%%%%%%%%%%%%
-        % transfer all EDF files
-        %%%%%%%%%%%%%%%%%%%%%%%
-        if p.eyetracking == 1 && ~isempty(edf_to_transfer)
-            fprintf('EYELINK: transferring %d EDF file(s) from Host PC...\n', numel(edf_to_transfer));
-            for k = 1:numel(edf_to_transfer)
-                try
-                    Eyelink('ReceiveFile', edf_to_transfer{k}, p.results_dir, 1);
-                    fprintf('  received %s\n', edf_to_transfer{k});
-                catch ME
-                    fprintf(2, '  Problem receiving %s: %s\n', edf_to_transfer{k}, ME.message);
-                end
-            end
-        end
+        % b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
+        % if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
+        % 
+        % edf_to_transfer = {};
+        % 
+        % for b = b_seq
+        %     fprintf('Block...%d\n\n', b);
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % Part 1: 1-back
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     fprintf('   Run 1-back\n');
+        %     sequence_1_back_block = subject_data.sequence_1_back(subject_data.sequence_1_back.block == b, :);
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % eyetracking version
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     if p.eyetracking == 1
+        %         edf_filename = sprintf('%d_1_%d.edf', p.subj_id, b);
+        %         Eyelink('OpenFile', edf_filename);
+        %         fprintf('EYELINK: opened edf file: %s\n', edf_filename);
+        %         Eyelink('command', 'add_file_preamble_text ''1_Back, Block %d''', b);
+        % 
+        %         results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
+        %     else
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % behavior-only version
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %         results_1_back = C_run_1_back(p, el, sequence_1_back_block, b);
+        %     end
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % save 1-back data
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     if p.eyetracking == 1
+        %         Eyelink('CloseFile');
+        %         edf_to_transfer{end+1} = edf_filename;
+        %     end
+        %     block_filepath = fullfile(p.results_dir, sprintf('sub%03d_1_back_b%d.mat', p.subj_id, b));
+        %     robust_save(block_filepath, 'results_1_back', results_1_back, p.backup_dir);
+        %     fprintf('1-back block %d data saved.\n', b);
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % rest (experimenter-advanced; replaces the old fixed timer)
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     message = sprintf('Take a break.\n\nThe experimenter will continue when you are ready.');
+        %     fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+        %     rest_break(p, message);
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % optional recalibration
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     if p.eyetracking == 1
+        %         fprintf('Checking Calibration\n');
+        %         ask_for_recalibration(p, el);
+        %     end
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % Part 1: 2-back
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     fprintf('   Running 2-back\n\n');
+        %     sequence_2_back_block = subject_data.sequence_2_back(subject_data.sequence_2_back.block == b, :);
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % eyetracking version
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     if p.eyetracking == 1
+        %         edf_filename = sprintf('%d_2_%d.edf', p.subj_id, b);
+        %         fprintf('EYELINK: opening edf file: %s\n', edf_filename);
+        %         Eyelink('OpenFile', edf_filename);
+        %         Eyelink('command', 'add_file_preamble_text ''2_Back, Block %d''', b);
+        %         results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
+        %     else
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % behavior-only version
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %         results_2_back = D_run_2_back(p, el, sequence_2_back_block, b);
+        %     end
+        % 
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     % rest
+        %     %%%%%%%%%%%%%%%%%%%%%%%
+        %     if b < p.nBlocks
+        %         %%%%%%%%%%%%%%%%%%%%%%%
+        %         % save 2-back data
+        %         %%%%%%%%%%%%%%%%%%%%%%%
+        %         if p.eyetracking == 1
+        %             Eyelink('CloseFile');
+        %             edf_to_transfer{end+1} = edf_filename;
+        %         end
+        %         block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+        %         robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
+        %         fprintf('2-back block %d data saved.\n', b);
+        % 
+        %         message = sprintf('You have completed this block.\n\nTake a break.\n\nThe experimenter will continue when you are ready.');
+        %         fprintf('Rest: waiting for experimenter to advance (press f)...\n');
+        %         rest_break(p, message);
+        % 
+        %         %%%%%%%%%%%%%%%%%%%%%%%
+        %         % optional recalibration
+        %         %%%%%%%%%%%%%%%%%%%%%%%
+        %         if p.eyetracking == 1
+        %             fprintf('Checking Calibration\n');
+        %             ask_for_recalibration(p, el);
+        %         end
+        %     else
+        % 
+        %         if p.eyetracking == 1
+        %             Eyelink('CloseFile');
+        %             edf_to_transfer{end+1} = edf_filename;
+        %         end
+        %         block_filepath = fullfile(p.results_dir, sprintf('sub%03d_2_back_b%d.mat', p.subj_id, b));
+        %         robust_save(block_filepath, 'results_2_back', results_2_back, p.backup_dir);
+        %         fprintf('2-back block %d data saved.\n', b);
+        %     end
+        % end % block loop ends
+        % 
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % % save 1-back & 2-back data
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % results_1_back_all = consolidate_data(p, '1_back');
+        % results_2_back_all = consolidate_data(p, '2_back');
+        % final_data_output.subj_id = p.subj_id;
+        % final_data_output.parameters = p;
+        % final_data_output.results_1_back_all = results_1_back_all;
+        % final_data_output.results_2_back_all = results_2_back_all;
+        % robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
+        % fprintf('Part 1 (1-back & 2-back) data saved to:\n%s\n', final_data_filename);
+        % 
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % % Part 2: post-task MST (old / similar / new)
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % fprintf('\n   Running Part 2: MST\n\n');
+        % sequence_mst = subject_data.sequence_mst;
+        % if p.eyetracking == 1
+        %     fprintf('Calibration check before the MST\n');
+        %     ask_for_recalibration(p, el);
+        % end
+        % if p.eyetracking == 1
+        %     edf_filename = sprintf('%d_mst.edf', p.subj_id);
+        %     Eyelink('OpenFile', edf_filename);
+        %     fprintf('EYELINK: opened edf file: %s\n', edf_filename);
+        %     Eyelink('command', 'add_file_preamble_text ''Post-task MST''');
+        %     results_mst = F_run_mst(p, el, sequence_mst);
+        %     Eyelink('CloseFile');
+        %     edf_to_transfer{end+1} = edf_filename;
+        % else
+        %     results_mst = F_run_mst(p, el, sequence_mst);
+        % end
+        % mst_filepath = fullfile(p.results_dir, sprintf('sub%03d_mst.mat', p.subj_id));
+        % robust_save(mst_filepath, 'results_mst', results_mst, p.backup_dir);
+        % fprintf('MST data saved.\n');
+        % 
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % % append the MST to the concatenated file
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % final_data_output.results_mst = results_mst;
+        % robust_save(final_data_filename, 'final_data_output', final_data_output, p.backup_dir);
+        % fprintf('All data saved to:\n%s\n', final_data_filename);
+        % 112122111
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % % transfer all EDF files
+        % %%%%%%%%%%%%%%%%%%%%%%%
+        % if p.eyetracking == 1 && ~isempty(edf_to_transfer)
+        %     fprintf('EYELINK: transferring %d EDF file(s) from Host PC...\n', numel(edf_to_transfer));
+        %     for k = 1:numel(edf_to_transfer)
+        %         try
+        %             Eyelink('ReceiveFile', edf_to_transfer{k}, p.results_dir, 1);
+        %             fprintf('  received %s\n', edf_to_transfer{k});
+        %         catch ME
+        %             fprintf(2, '  Problem receiving %s: %s\n', edf_to_transfer{k}, ME.message);
+        %         end
+        %     end
+        % end
     
     catch ME
         fprintf(2, '\n! AN ERROR OCCURRED: %s !\n', ME.message);
