@@ -32,7 +32,7 @@ function main()
         p.backup_dir = fullfile(base_dir, 'data_backup', ...
             sprintf('sub%03d_%s', p.subj_id, datestr(now, 'yyyymmdd_HHMMSS')));
         if ~exist(p.backup_dir, 'dir'), mkdir(p.backup_dir); end
-        fprintf('Data folder:   %s\nBackup folde112121211111155111212111111f11555555f5r: %s\n', p.results_dir, p.backup_dir);
+        fprintf('Data folder:   %s\nBackup folder: %s\n', p.results_dir, p.backup_dir);
         setup_filename = fullfile(base_dir, 'subj_setup', sprintf('sub%03d_setup.mat', p.subj_id));
         load(setup_filename, 'subject_data');
 
@@ -154,23 +154,23 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % instructions & practice (run during the anatomical scan)
         %%%%%%%%%%%%%%%%%%%%%%%
-        % do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
-        % if do_practice
-        %     % 1-back: intro -> practice -> post-practice recap (with example images)
-        %     run_text_instructions(p, instruction_text('oneback'));
-        %     fprintf('   Run 1-back practice\n');
-        %     C_run_1_back_practice(p);
-        %     run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
-        % 
-        %     % 2-back: intro -> practice -> post-practice recap (with example images)
-        %     run_text_instructions(p, instruction_text('twoback'));
-        %     fprintf('   Run 2-back practice\n');
-        %     D_run_2_back_practice(p);
-        %     run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
-        % 
-        %     run_text_instructions(p, instruction_text('final'));
-        % end
-888
+        do_practice = 1;   % set 0 to skip (e.g., if practised outside the scanner)
+        if do_practice
+            % 1-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('oneback'));
+            fprintf('   Run 1-back practice\n');
+            C_run_1_back_practice(p);
+            run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
+
+            % 2-back: intro -> practice -> post-practice recap (with example images)
+            run_text_instructions(p, instruction_text('twoback'));
+            fprintf('   Run 2-back practice\n');
+            D_run_2_back_practice(p);
+            run_text_instructions(p, instruction_text('twoback_pp'), [], prac_example_images(p, '2back'));
+
+            run_text_instructions(p, instruction_text('final'));
+        end
+        
         %%%%%%%%%%%%%%%%%%%%%%%
         % eye-tracker calibration
         %%%%%%%%%%%%%%%%%%%%%%%
