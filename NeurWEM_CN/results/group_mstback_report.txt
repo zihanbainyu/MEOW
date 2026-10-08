@@ -1,33 +1,33 @@
 ================================================================
- GROUP MST-BACK  --  N = 6   (2026-10-04 13:12)
+ GROUP MST-BACK  --  N = 7   (2026-10-08 15:07)
 ================================================================
-  1-back same            mean 0.840  SD 0.130  [range 0.675-0.988]  n=6
-  1-back similar         mean 0.836  SD 0.156  [range 0.558-0.967]  n=6
-  1-back new             mean 0.989  SD 0.009  [range 0.975-1.000]  n=6
-  2-back AB acc          mean 0.540  SD 0.090  [range 0.388-0.613]  n=6
-  2-back AA acc          mean 0.785  SD 0.287  [range 0.200-0.925]  n=6
-  2-back AN acc          mean 0.983  SD 0.013  [range 0.963-1.000]  n=6
-  DI compared            mean 0.562  SD 0.104  [range 0.425-0.674]  n=6
-  DI novel               mean 0.488  SD 0.098  [range 0.325-0.625]  n=6
-  d' compared            mean 3.093  SD 1.073  [range 0.942-3.866]  n=6
-  d' novel               mean 3.250  SD 0.846  [range 1.548-3.866]  n=6
+  1-back same            mean 0.854  SD 0.125  [range 0.675-0.988]  n=7
+  1-back similar         mean 0.836  SD 0.143  [range 0.558-0.967]  n=7
+  1-back new             mean 0.989  SD 0.008  [range 0.975-1.000]  n=7
+  2-back AB acc          mean 0.527  SD 0.089  [range 0.388-0.613]  n=7
+  2-back AA acc          mean 0.811  SD 0.271  [range 0.200-0.963]  n=7
+  2-back AN acc          mean 0.986  SD 0.013  [range 0.963-1.000]  n=7
+  DI compared            mean 0.564  SD 0.095  [range 0.425-0.674]  n=7
+  DI novel               mean 0.465  SD 0.109  [range 0.325-0.625]  n=7
+  d' compared            mean 3.244  SD 1.058  [range 0.942-4.149]  n=7
+  d' novel               mean 3.348  SD 0.814  [range 1.548-3.931]  n=7
 
 *** PRIMARY OUTCOME: 2-back discrimination (DI), by condition ***
-  DI compared vs novel           +0.562 vs +0.488, diff -0.074, signed-rank p=0.1562 
-    (per-subject compared - novel: +0.100, +0.080, -0.025, -0.009, +0.174, +0.124)
+  DI compared vs novel           +0.564 vs +0.465, diff -0.099, signed-rank p=0.0781 
+    (per-subject compared - novel: +0.100, +0.080, -0.025, -0.009, +0.174, +0.124, +0.250)
 
 -- secondary --
-  d'  compared vs novel          +3.093 vs +3.250, diff +0.157, signed-rank p=0.3438 
+  d'  compared vs novel          +3.244 vs +3.348, diff +0.104, signed-rank p=0.5000 
 
--- POST-TASK MST (old / lure / new; N with MST = 4) --
-  MST LDI                mean 0.181  SD 0.215  [range 0.025-0.500]  n=4
-  MST recognition        mean 0.487  SD 0.153  [range 0.300-0.675]  n=4
-  MST d' (old)           mean 1.808  SD 0.414  [range 1.260-2.243]  n=4
-  MST hit p(old|old)     mean 0.531  SD 0.155  [range 0.350-0.725]  n=4
-  MST lure p(sim|lure)   mean 0.319  SD 0.272  [range 0.100-0.700]  n=4
-  MST CR  p(new|new)     mean 0.819  SD 0.113  [range 0.725-0.975]  n=4
-  MST RT old (s)         mean 0.854  SD 0.144  [range 0.739-1.057]  n=4
-  MST RT lure (s)        mean 1.180  SD 0.113  [range 1.039-1.295]  n=4
+-- POST-TASK MST (old / lure / new; N with MST = 5) --
+  MST LDI                mean 0.175  SD 0.187  [range 0.025-0.500]  n=5
+  MST recognition        mean 0.505  SD 0.139  [range 0.300-0.675]  n=5
+  MST d' (old)           mean 1.811  SD 0.359  [range 1.260-2.243]  n=5
+  MST hit p(old|old)     mean 0.555  SD 0.144  [range 0.350-0.725]  n=5
+  MST lure p(sim|lure)   mean 0.305  SD 0.237  [range 0.100-0.700]  n=5
+  MST CR  p(new|new)     mean 0.820  SD 0.097  [range 0.725-0.975]  n=5
+  MST RT old (s)         mean 0.881  SD 0.138  [range 0.739-1.057]  n=5
+  MST RT lure (s)        mean 1.179  SD 0.098  [range 1.039-1.295]  n=5
 
 -- DATA QUALITY: non-response / dozing (per subject) --
   a "miss" is a withheld response on a trial that NEEDED a press (same/similar/old/lure).
@@ -38,3 +38,4 @@
   sub104         22%        68%          16   
   sub105          9%        60%          10   
   sub106          1%        61%           7   
+  sub107          9%        60%           7   
