@@ -160,7 +160,7 @@ function main()
             run_text_instructions(p, instruction_text('oneback'));
             fprintf('   Run 1-back practice\n');
             C_run_1_back_practice(p);
-            run_text_instructions(p, instruction_text('oneback_pp'), [], prac_example_images(p, '1back'));
+            run_text_instructions(p, ins5truction_text('oneback_pp'), [], prac_example_images(p, '1back'));
 
             % 2-back: intro -> practice -> post-practice recap (with example images)
             run_text_instructions(p, instruction_text('twoback'));
