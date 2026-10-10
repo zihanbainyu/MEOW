@@ -8,7 +8,7 @@ function run_recognition()
     clear; clc; sca; Priority(0); ListenChar(0); ShowCursor;
 
     try
-        %%%%%%%%%% 1111221122122221221111211222221112211122211111212211221211111212222222111212212122212122111112122111221111212112221111112111122122121122122222122121211221121222222%%%%%%%%%%%%
+        %%%%%%%%%% %%%%%%%%%%%%
         % setup
         %%%%%%%%%%%%%%%%%%%%%%%
         rng('shuffle');
@@ -106,9 +106,6 @@ end
 % Functions
 %%%%%%%%%%%%%%%%%%%%%%%
 function robust_save(primary_path, varname, data, backup_dir)
-% Save `data` under variable name `varname` to primary_path AND a mirror copy in
-% backup_dir. A failure on either target warns but never aborts; a total failure
-% is flagged CRITICAL.
     S = struct(); S.(varname) = data;
     [~, nm, ext] = fileparts(primary_path);
     targets = {primary_path};
