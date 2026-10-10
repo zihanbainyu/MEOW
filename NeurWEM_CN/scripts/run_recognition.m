@@ -89,7 +89,7 @@ function run_recognition()
 
     catch ME
         fprintf(2, '\n! AN ERROR OCCURRED: %s !\n', ME.message);
-        disp(getReport(ME, 'extended'));
+        disp(getReport(ME, 'extended')); 
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%
