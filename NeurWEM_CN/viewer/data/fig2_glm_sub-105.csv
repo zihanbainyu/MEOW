@@ -1,0 +1,9 @@
+subj,roi,condition,effect_pscb
+105,HC,compared,0.126603
+105,HC,novel,-0.009452
+105,Angular,compared,-0.030495
+105,Angular,novel,-0.033268
+105,DLPFC,compared,-0.097221
+105,DLPFC,novel,-0.096005
+105,IPS,compared,0.019098
+105,IPS,novel,-0.09145
