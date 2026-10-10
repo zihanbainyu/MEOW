@@ -121,7 +121,7 @@ function main()
             Eyelink('command', 'pupil_model = ELLIPSE');
             Eyelink('command', 'pupil_size_diameter = YES');
             [width, height] = Screen('WindowSize', screen_number);
-            Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
+            Eyelink('command','screen_pixel_1fcoords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('command', 'calibration_type = HV9');
             % Shrink the calibration/validation grid so every target lands inside

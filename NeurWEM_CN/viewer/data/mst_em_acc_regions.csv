@@ -1,0 +1,21 @@
+region,MNI,peak,size_vox
+"Supramarginal Gyrus, anterior division","[-60,-36,42]",0.06,53
+"Lateral Occipital Cortex, superior division","[46,-78,26]",0.06,276
+"Lateral Occipital Cortex, superior division","[26,-78,18]",0.059,
+white matter / unlabeled,"[56,24,34]",0.059,74
+"Lateral Occipital Cortex, superior division","[34,-78,26]",0.058,
+Frontal Pole,"[44,48,12]",0.058,77
+Angular Gyrus,"[56,-54,34]",0.058,44
+Angular Gyrus,"[46,-48,40]",0.056,49
+"Lateral Occipital Cortex, superior division","[38,-82,40]",0.055,
+Occipital Pole,"[-18,-90,38]",0.055,104
+"Middle Temporal Gyrus, temporooccipital part","[60,-52,-4]",0.055,61
+white matter / unlabeled,"[58,26,26]",0.053,
+"Lateral Occipital Cortex, superior division","[-28,-84,36]",0.053,
+"Lateral Occipital Cortex, superior division","[-18,-88,44]",0.05,
+white matter / unlabeled,"[-34,-74,-50]",0.05,46
+Angular Gyrus,"[64,-48,14]",0.049,
+"Supramarginal Gyrus, posterior division","[40,-42,38]",0.046,
+white matter / unlabeled,"[60,26,18]",0.046,
+"Middle Temporal Gyrus, temporooccipital part","[64,-52,6]",0.046,
+"Lateral Occipital Cortex, superior division","[-38,-84,38]",0.042,

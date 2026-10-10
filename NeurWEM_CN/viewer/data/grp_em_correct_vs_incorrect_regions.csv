@@ -1,0 +1,62 @@
+region,MNI,peak,size_vox
+Frontal Pole,"[44,46,12]",0.164,50626
+"Lateral Occipital Cortex, superior division","[36,-82,30]",0.157,
+Angular Gyrus,"[54,-48,40]",0.156,
+Postcentral Gyrus,"[-38,-36,60]",0.151,
+Middle Frontal Gyrus,"[-48,34,24]",0.12,1780
+white matter / unlabeled,"[44,50,-30]",0.112,269
+Frontal Opercular Cortex,"[-42,14,4]",0.092,
+white matter / unlabeled,"[-36,4,32]",0.09,
+white matter / unlabeled,"[-18,-34,-76]",0.09,139
+Angular Gyrus,"[64,-48,12]",0.088,329
+Occipital Pole,"[20,-96,6]",0.086,104
+white matter / unlabeled,"[2,64,-60]",0.085,336
+Frontal Pole,"[-28,38,-16]",0.084,100
+white matter / unlabeled,"[10,-64,-76]",0.082,146
+white matter / unlabeled,"[64,38,-48]",0.081,221
+Middle Frontal Gyrus,"[-38,14,32]",0.081,
+white matter / unlabeled,"[-42,10,-76]",0.08,56
+Precentral Gyrus,"[54,4,34]",0.08,71
+"Middle Temporal Gyrus, temporooccipital part","[58,-52,0]",0.079,
+white matter / unlabeled,"[18,40,2]",0.079,263
+Frontal Pole,"[30,58,20]",0.078,79
+white matter / unlabeled,"[-30,52,-26]",0.078,171
+white matter / unlabeled,"[8,-76,-76]",0.077,
+"Cingulate Gyrus, anterior division","[6,44,12]",0.077,
+white matter / unlabeled,"[8,68,-44]",0.076,
+Right Putamen,"[22,14,-2]",0.075,61
+white matter / unlabeled,"[54,52,-74]",0.073,61
+white matter / unlabeled,"[-2,-62,-76]",0.073,
+white matter / unlabeled,"[24,-34,-72]",0.072,45
+white matter / unlabeled,"[2,68,-76]",0.072,42
+white matter / unlabeled,"[32,-26,86]",0.072,48
+"Superior Temporal Gyrus, posterior division","[-54,-10,-12]",0.071,174
+white matter / unlabeled,"[54,52,-50]",0.07,
+Middle Frontal Gyrus,"[-28,12,50]",0.069,55
+white matter / unlabeled,"[26,28,-52]",0.069,52
+white matter / unlabeled,"[-62,2,-48]",0.069,48
+white matter / unlabeled,"[-40,2,-34]",0.066,157
+Right Thalamus,"[8,-26,4]",0.065,60
+white matter / unlabeled,"[-40,46,-48]",0.065,83
+white matter / unlabeled,"[-48,-42,-14]",0.065,88
+white matter / unlabeled,"[76,-40,12]",0.065,
+white matter / unlabeled,"[-28,58,-36]",0.065,
+white matter / unlabeled,"[-56,12,36]",0.065,41
+"Middle Temporal Gyrus, anterior division","[-56,-4,-32]",0.063,
+white matter / unlabeled,"[-56,-24,-62]",0.062,50
+white matter / unlabeled,"[2,76,-60]",0.061,
+white matter / unlabeled,"[-22,60,-72]",0.06,48
+white matter / unlabeled,"[38,6,-34]",0.059,54
+white matter / unlabeled,"[-66,30,-2]",0.058,55
+white matter / unlabeled,"[14,76,-50]",0.057,
+Insular Cortex,"[42,-10,-4]",0.055,49
+white matter / unlabeled,"[-4,60,-76]",0.055,
+"Middle Temporal Gyrus, posterior division","[-66,-24,-12]",0.055,
+"Superior Temporal Gyrus, posterior division","[52,-30,-2]",0.055,45
+white matter / unlabeled,"[-34,-34,-76]",0.053,
+white matter / unlabeled,"[46,4,-36]",0.052,
+white matter / unlabeled,"[-18,32,8]",0.052,42
+white matter / unlabeled,"[-26,30,6]",0.052,
+white matter / unlabeled,"[-68,30,6]",0.051,
+white matter / unlabeled,"[42,-18,-12]",0.05,
+white matter / unlabeled,"[48,-20,0]",0.047,
