@@ -18,6 +18,11 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         rng('shuffle');
         Screen('Preference', 'SkipSyncTests', 1);
+        % Apple Silicon: PTB auto-enables its Vulkan display backend for fullscreen
+        % windows, which times out in vkWaitForPresentKHR on every flip with this
+        % projector + second monitor setup. Opt out and use the OpenGL path; the
+        % photodiode gives the true stimulus onsets for the MEG.
+        Screen('Preference', 'ConserveVRAM', 8192);
         
         p.subj_id = input('Enter subject ID (e.g., 101): ');
         p.eyetracking = input('Eyetracking? (1=yes, 0=no): ');
@@ -49,7 +54,7 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         PsychDefaultSetup(2);
         screens = Screen('Screens');
-        screen_number = max(screens);
+        screen_number = min(screens);
         p.colors.white=WhiteIndex(screen_number);
         p.colors.black=BlackIndex(screen_number);
         p.colors.bgcolor=[124/255 124/255 124/255];
@@ -89,8 +94,8 @@ function main()
         p.trig.write = @(code) [];   % PLACEHOLDER: lab trigger interface
         p.trig.write(0);
         p.pd.on = 1;
-        p.pd.size = 40;              % px; match the photodiode housing
-        p.pd.rect = [0, p.screenY - p.pd.size, p.pd.size, p.screenY];   % bottom-left corner
+        p.pd.size = 40 *3;              % px; match the photodiode housing
+        p.pd.rect = [0, 0, p.pd.size, p.pd.size];   % bottom-left corner
 
         %%%%%%%%%%%%%%%%%%%%%%%
         % eyelink
@@ -124,12 +129,6 @@ function main()
             Eyelink('command','screen_pixel_1fcoords = %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);
             Eyelink('command', 'calibration_type = HV9');
-            % Shrink the calibration/validation grid so every target lands inside
-            % the region the subject can actually see through the bore (the bore
-            % clips the corners/edges, so the default ~0.88 x 0.83 grid pushes the
-            % outer points off-screen). Proportions of the full display: central
-            % ~50% wide x ~60% tall. Widen if calibration looks too central;
-            % shrink further if any edge point is still not visible.
             Eyelink('command', 'calibration_area_proportion 0.50 0.60');
             Eyelink('command', 'validation_area_proportion 0.50 0.60');
             Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT');
@@ -151,11 +150,6 @@ function main()
             el.backgroundcolour = p.colors.bgcolor;
             el.foregroundcolour = p.colors.black;
             el.calibrationtargetcolour = p.colors.black;
-            % Disable calibration beeps. On this Mac PortAudio cannot open the
-            % default audio device (device -1) with the requested params; the
-            % thrown error aborts PsychEyelinkDispatchCallback and leaves the
-            % PTB window invalid, cascading into "Invalid Window" errors on
-            % every later FillRect/TextSize. The beeps aren't needed in-scanner.
             el.targetbeep   = 0;
             el.feedbackbeep = 0;
             EyelinkUpdateDefaults(el);
@@ -221,7 +215,7 @@ function main()
             fprintf('1-back block %d data saved.\n', b);
 
             %%%%%%%%%%%%%%%%%%%%%%%
-            % rest (experimenter-advanced; replaces the old fixed timer)
+            % rest
             %%%%%%%%%%%%%%%%%%%%%%%
             message = sprintf('Take a break.\n\nThe experimenter will continue when you are ready.');
             fprintf('Rest: waiting for experimenter to advance (press f)...\n');
@@ -399,9 +393,6 @@ function ask_for_recalibration(p, el)
 end
 
 function rest_break(p, message)
-% Break screen advanced by the EXPERIMENTER pressing 'f' (same key as the
-% instruction / calibration pages). Escape aborts. Replaces the old fixed
-% 60 s rest timer, so breaks last as long as the experimenter wants.
     DrawFormattedText(p.window, message, 'center', 'center', p.colors.black);
     Screen('Flip', p.window);
 
@@ -448,9 +439,6 @@ function [full_data_table] = consolidate_data(p, task_name)
 end
 
 function robust_save(primary_path, varname, data, backup_dir)
-% Save `data` under variable name `varname` to primary_path AND a mirror copy in
-% backup_dir (the per-session timestamped folder). A failure on either target
-% warns loudly but never aborts the run; a total failure is flagged CRITICAL.
     S = struct(); S.(varname) = data;
     [~, nm, ext] = fileparts(primary_path);
     targets = {primary_path};
@@ -470,4 +458,3 @@ function robust_save(primary_path, varname, data, backup_dir)
         fprintf(2, '\n!! CRITICAL: %s could not be saved to ANY location !!\n\n', varname);
     end
 end
-

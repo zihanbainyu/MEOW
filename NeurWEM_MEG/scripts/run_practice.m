@@ -14,6 +14,11 @@ function run_practice()
         %%%%%%%%%%%%%%%%%%%%%%%
         rng('shuffle');
         Screen('Preference', 'SkipSyncTests', 1);
+        % Apple Silicon: PTB auto-enables its Vulkan display backend for fullscreen
+        % windows, which times out in vkWaitForPresentKHR on every flip with this
+        % projector + second monitor setup. Opt out and use the OpenGL path; the
+        % photodiode gives the true stimulus onsets for the MEG.
+        Screen('Preference', 'ConserveVRAM', 8192);
 
         base_dir = '..';
         p.stim_dir = fullfile(base_dir, 'stimulus/stim_pool/');
