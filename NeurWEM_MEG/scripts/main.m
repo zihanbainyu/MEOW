@@ -90,7 +90,7 @@ function main()
         % meg_trigger resets them to 0 after p.trig.pulse. With p.trig.on = 0,
         % nothing is sent to the MEG, but codes are still mirrored to the EyeLink.
         p.trig.on = 1;
-        p.trig.pulse = 0.010;
+        p.trig.pulse = 0.020;
         p.trig.port = '/dev/cu.usbserial-A900a2R9';
         if p.trig.on
             trig_h = IOPort('OpenSerialPort', p.trig.port, 'BaudRate=115200');
