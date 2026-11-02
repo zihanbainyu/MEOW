@@ -6,7 +6,7 @@
 function run_recognition()
     addpath(genpath(fullfile('/Users/Shared/Psychtoolbox')));
     clear; clc; sca; Priority(0); ListenChar(0); ShowCursor;
-
+ 
     try
         %%%%%%%%%% %%%%%%%%%%%%
         % setup

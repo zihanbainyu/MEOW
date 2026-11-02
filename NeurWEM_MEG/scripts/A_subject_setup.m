@@ -84,10 +84,12 @@ p.seq.period_thresh = 11;
 p.seq.n_perm = 500;      % permutations for the built-in validation
 p.seq.alpha = 0.05;      % a block fails if p < alpha
 
-% Fixation-only lead-in at the start of every MEG run (1-back, 2-back, MST).
-% Honoured by C_run_1_back.m, D_run_2_back.m and F_run_mst.m, which mark its
-% onset with the run-start trigger (= the run's t = 0).
+% Fixation-only lead-in and lead-out around every MEG run (1-back, 2-back,
+% MST). Honoured by C_run_1_back.m, D_run_2_back.m and F_run_mst.m, which mark
+% both onsets with the fixation trigger. The lead-in onset is the run's t = 0;
+% the lead-out onset is the last image's offset.
 p.timing.block_lead_in = 2;         % seconds before the first trial of a run
+p.timing.block_lead_out = 2;        % seconds after the last trial of a run
 
 %% P2: Load stimuli
 output_filename = fullfile(p.setup_dir, sprintf('sub%03d_setup.mat', subj_id));
@@ -769,52 +771,11 @@ sequence_mst.subj_id = repmat(subj_id, n_mst_trials, 1);
 %% ========================================================================
 %  P7B: MEG TRIGGER CODES
 %  ========================================================================
-% 8-bit codes sent at each stimulus onset (column `trig`), plus fixed codes
-% for run start / end, fixation onset and responses. Item identity is
-% recovered from the behavioural file by trial order within a run.
-%   1-back  11 compared A | 12 compared B | 13 repeat 1st | 14 repeat 2nd | 15 filler
-%   2-back  30s compared, 40s novel: +1/+2/+3 goal-start A (A-B/A-A/A-N),
-%           +4 A-A probe, +5 A-B probe | 49 padding/junk
-%   MST     71 old | 72 lure | 73 new
-p.trig_codes.fixation        = 1;
-p.trig_codes.resp_same       = 101;
-p.trig_codes.resp_similar    = 102;
-p.trig_codes.run_start_1back = 201;
-p.trig_codes.run_start_2back = 202;
-p.trig_codes.run_start_mst   = 203;
-p.trig_codes.run_end         = 255;
-
-t1 = varfun(@string, sequence_1_back(:, {'condition', 'identity', 'corr_resp'}));
-t1.Properties.VariableNames = {'condition', 'identity', 'corr_resp'};
-sequence_1_back.trig = zeros(n_1_back_trials, 1);
-sequence_1_back.trig(t1.condition == "compared" & t1.identity == "A") = 11;
-sequence_1_back.trig(t1.condition == "compared" & t1.identity == "B") = 12;
-sequence_1_back.trig(t1.condition == "repeat"   & t1.corr_resp == "none") = 13;
-sequence_1_back.trig(t1.condition == "repeat"   & t1.corr_resp == "1") = 14;
-sequence_1_back.trig(t1.condition == "filler") = 15;
-
-t2 = varfun(@string, sequence_2_back(:, {'condition', 'goal', 'corr_resp'}));
-t2.Properties.VariableNames = {'condition', 'goal', 'corr_resp'};
-base2 = zeros(n_2_back_trials, 1);
-base2(t2.condition == "compared") = 30;
-base2(t2.condition == "novel")    = 40;
-goal_off = zeros(n_2_back_trials, 1);
-goal_off(t2.goal == "A-B") = 1;
-goal_off(t2.goal == "A-A") = 2;
-goal_off(t2.goal == "A-N") = 3;
-goal_off(t2.corr_resp == "1") = 4;
-goal_off(t2.corr_resp == "2") = 5;
-sequence_2_back.trig = base2 + goal_off;
-sequence_2_back.trig(base2 == 0) = 49;
-
-sequence_mst.trig = zeros(n_mst_trials, 1);
-sequence_mst.trig(sequence_mst.trial_type == "old")  = 71;
-sequence_mst.trig(sequence_mst.trial_type == "lure") = 72;
-sequence_mst.trig(sequence_mst.trial_type == "new")  = 73;
-
-assert(all(sequence_1_back.trig > 0) && all(sequence_mst.trig > 0) && ...
-       all(ismember(sequence_2_back.trig, [31:35 41:45 49])), ...
-    'Unassigned or invalid trigger code in a schedule.');
+% Timing-only codes, one MEG channel each (1 = ch160, 2 = ch161). Trial
+% identity and condition are recovered from the behavioural file by trial
+% order within a run. An image's offset is the next fixation onset.
+p.trig_codes.fixation = 1;
+p.trig_codes.stim     = 2;
 
 
 subject_data.subj_id = subj_id;

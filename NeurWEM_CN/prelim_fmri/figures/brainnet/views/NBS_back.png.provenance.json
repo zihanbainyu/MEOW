@@ -1,0 +1,752 @@
+{
+  "schema_version": "1.0",
+  "kind": "brainnet-viewer-export-provenance",
+  "generated_at": "2026-10-28T14:08:46-04:00",
+  "matlab_release": "2023b",
+  "scene": {
+    "schema_version": "0.1",
+    "id": "APP_SCENE",
+    "name": "Interactive scene",
+    "loadfile": 7,
+    "map_mode": 0,
+    "coordinate_space": "mixed-or-unverified",
+    "redistribution_status": "project-owner-confirmed-redistributable-with-provider-credit",
+    "inputs": {
+      "surface": {
+        "role": "surface",
+        "relative_path": "Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv",
+        "sha256": "aff1920baef51956971b8c1de068e8eee2d1279f21fc90452bcd0dba2794fdc5",
+        "coordinate_space": "",
+        "source_uri": "",
+        "redistribution_status": "",
+        "metadata": {}
+      },
+      "node": {
+        "role": "node",
+        "relative_path": "Data/NeurWEM/Schaefer200_Yeo7.node",
+        "sha256": "3922f22c9560eb5c8b7db1482069b507c0a5ebd2ef2d28dd27ca67a7dfc3da2c",
+        "coordinate_space": "",
+        "source_uri": "",
+        "redistribution_status": "",
+        "metadata": {}
+      },
+      "edge": {
+        "role": "edge",
+        "relative_path": "Data/NeurWEM/NeurWEM_NBS.edge",
+        "sha256": "1db30fbd83477bff6f1c9db632972c09a771871061bcbd7ba24fe70f319f1905",
+        "coordinate_space": "",
+        "source_uri": "",
+        "redistribution_status": "",
+        "metadata": {}
+      }
+    },
+    "options": {
+      "layout": 1,
+      "view_direction": 7,
+      "mesh_alpha": 0.4,
+      "node_labels": 2,
+      "edge_draw_mode": 1,
+      "edge_threshold": 0,
+      "volume_display": false,
+      "volume_type": 1,
+      "map_algorithm": 5,
+      "roi_draw_all": true,
+      "positive_maximum": [],
+      "negative_minimum": [],
+      "visualization_settings": {
+        "schema_version": "1.22.0",
+        "layout": {
+          "preset": 1,
+          "view_direction": 7,
+          "custom_azimuth": [],
+          "custom_elevation": []
+        },
+        "global": {
+          "background_color": [
+            1,
+            1,
+            1
+          ],
+          "shading": "interp",
+          "lighting": "phong",
+          "light_direction": "right",
+          "show_orientation_labels": false,
+          "render_detail": "adaptive",
+          "material_profile": "dull",
+          "material_coefficients": [
+            0.5,
+            0.5,
+            0.5
+          ]
+        },
+        "surface": {
+          "double_brain": false,
+          "color_mode": "scalar",
+          "color": [
+            0.95,
+            0.95,
+            0.95
+          ],
+          "opacity": 0.4,
+          "colormap": "parula",
+          "color_limits": [],
+          "show_colorbar": true,
+          "boundary_mode": "none",
+          "boundary_color": [
+            0,
+            0,
+            0
+          ],
+          "boundary_threshold": 0,
+          "boundary_mask": [],
+          "boundary_mesh_sha256": "",
+          "boundary_mask_source": "",
+          "vertex_colors": [],
+          "vertex_colors_mesh_sha256": "",
+          "vertex_colors_source": ""
+        },
+        "node": {
+          "selection_mode": "all",
+          "selection_basis": "value",
+          "threshold": 0,
+          "label_mode": "none",
+          "label_basis": "value",
+          "label_threshold": 0,
+          "label_font_name": "Arial",
+          "label_font_size": 10,
+          "label_font_weight": "normal",
+          "label_font_angle": "normal",
+          "label_font_units": "points",
+          "label_color": [
+            0,
+            0,
+            0
+          ],
+          "label_in_front": false,
+          "size_mode": "mapped",
+          "size_basis": "value",
+          "size": 3,
+          "size_scale": 0.45,
+          "size_threshold": 0,
+          "color_mode": "modular",
+          "color": [
+            0.14509803921568629,
+            0.34901960784313724,
+            0.596078431372549
+          ],
+          "colormap": "jet",
+          "color_limits": [],
+          "color_threshold": 0,
+          "color_low": [
+            0.14509803921568629,
+            0.34901960784313724,
+            0.596078431372549
+          ],
+          "color_high": [
+            1,
+            0,
+            0
+          ],
+          "size_threshold_basis": "mapped"
+        },
+        "edge": {
+          "selection_mode": "all",
+          "threshold": 0,
+          "sparsity": 0.1,
+          "value_mode": "absolute",
+          "inter_hemisphere_only": false,
+          "directed": false,
+          "arrow_length_scale": 1,
+          "arrow_width_scale": 0.7,
+          "size_mode": "mapped",
+          "size": 1,
+          "size_scale": 0.45,
+          "size_threshold": 0,
+          "size_threshold_basis": "mapped",
+          "size_value_mode": "absolute",
+          "color_mode": "uniform",
+          "color": [
+            0.85,
+            0.12,
+            0.12
+          ],
+          "colormap": "jet",
+          "color_limits": [],
+          "color_threshold": 0,
+          "length_threshold": 0,
+          "color_low": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "color_high": [
+            1,
+            0.9,
+            0.73
+          ],
+          "threshold_value_mode": "absolute",
+          "mapped_value_mode": "absolute",
+          "inter_module_color": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "custom_color": {
+            "matrix": [],
+            "indices": [],
+            "node_sha256": "",
+            "source": ""
+          },
+          "opacity_mode": "uniform",
+          "opacity": 0.7,
+          "opacity_value_mode": "absolute",
+          "opacity_range": [
+            0.1,
+            0.9
+          ]
+        },
+        "volume": {
+          "display": false,
+          "type": "surface-map",
+          "map_algorithm": 5,
+          "threshold_mode": "p-value",
+          "statistical_threshold": 0,
+          "p_value": 0.001,
+          "cluster_size": 0,
+          "voxel_connectivity": 18,
+          "positive_minimum": [],
+          "positive_maximum": [],
+          "negative_minimum": [],
+          "negative_maximum": [],
+          "display_mode": "both",
+          "adjust_null": true,
+          "null_color": [
+            0.95,
+            0.95,
+            0.95
+          ],
+          "colormap": "bwr"
+        },
+        "roi": {
+          "draw_all": true,
+          "selection": [],
+          "color_mode": "index",
+          "color": [
+            0.8,
+            0.2,
+            0.2
+          ],
+          "custom_colors": [],
+          "palette": "hsv",
+          "show_legend": false,
+          "smoothing": "gaussian",
+          "smoothing_kernel": 3
+        },
+        "image": {
+          "width": 1200,
+          "height": 1200,
+          "dpi": 150,
+          "show_colorbar": false,
+          "colorbar_location": "eastoutside",
+          "colorbar_label": "",
+          "title": ""
+        },
+        "fiber": {
+          "visible": false,
+          "color_mode": "direction",
+          "color": [
+            0.7,
+            0.7,
+            0.7
+          ],
+          "colormap": "turbo",
+          "opacity": 0.8,
+          "radius": 0.25,
+          "sampling_stride": 1,
+          "tube_sides": 6
+        }
+      }
+    },
+    "metadata": {}
+  },
+  "prepared_scene": {
+    "scene_id": "APP_SCENE",
+    "algorithm_version": "render-plan-0.1",
+    "cache_key": "24bfbd68d42462c91d85c84ae7b5c4383979eb96180fea4e80b6dcd3c48d155a",
+    "vertex_count": 81924,
+    "face_count": 163840,
+    "node_count": 200,
+    "edge_count": 806,
+    "roi_count": 0,
+    "surface_value_count": 0,
+    "fingerprints": {
+      "surface_coordinates": "5360952604df814cfec8183b50f8e20a9e2c4f683a4a5e4d2e4cf9696b0fb8e3",
+      "surface_faces": "d2b43a0b1163678687fd5d5df97e06e73cc89bb1e20b0213b162cb1963e75c9a",
+      "node_coordinates": "d4bff3fcf812c2918788a4e176057d0534829a64befa0fb1490b5dc44e5eae1f",
+      "edge_pairs": "69547a1d8c0b5ea0664b69af37067dbcbde152ce39e702e3288e436da8bee8db",
+      "edge_values": "c06b3f73d10acaf71ae2fc649f68ef7c849ed48982c26c09502925d3459a4d46",
+      "surface_values": "9800c30aa1551d9d5f208f21dd5ad3807e89174b0cb6a3128fc80f12005c7437"
+    },
+    "timings_seconds": {
+      "surface_geometry": 3.5716E-5,
+      "node_geometry": 4.0202E-5,
+      "edge_geometry": 0.000611266,
+      "volume_mapping": 2.522E-6,
+      "roi_geometry": 0,
+      "total": 0.000689706
+    },
+    "acceleration": {
+      "volume_mapping": {
+        "requested": "auto",
+        "used": "not-applicable",
+        "reason": "scene-has-no-volume"
+      },
+      "volume_threshold": {
+        "mode": "none",
+        "reason": "scene-has-no-volume"
+      },
+      "roi_geometry": {
+        "generated_mesh_count": 0,
+        "reason": "scene-has-no-roi-volume"
+      }
+    }
+  },
+  "renderer": {
+    "renderer_version": "matlab-batch-0.2",
+    "scene_id": "APP_SCENE",
+    "view_count": 1,
+    "layout_policy": {
+      "mode": "fixed",
+      "reason": "selected-layout"
+    },
+    "surface_patch_count": 1,
+    "double_brain": {
+      "enabled": false,
+      "matrix": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "first_moved_node": 101
+    },
+    "node_patch_count": 1,
+    "edge_patch_count": 1,
+    "roi_patch_count": 0,
+    "patch_count": 3,
+    "legacy_object_estimate": 1007,
+    "geometry_seconds": 0.062920804,
+    "graphics_seconds": 0.105999469,
+    "draw_seconds": 3.118960904,
+    "total_seconds": 3.288184869,
+    "performance_policy": {
+      "requested_mode": "quality",
+      "effective_mode": "quality",
+      "high_load": false,
+      "node_detail": 12,
+      "edge_sides": 8,
+      "surface_face_fraction": 1,
+      "detail_level": "adaptive",
+      "legacy_detail_code": 0,
+      "compute_backend": "auto",
+      "capabilities": {
+        "logical_processor_count": 1,
+        "parallel_toolbox_installed": false,
+        "parallel_toolbox_licensed": 1,
+        "available_gpu_count": 0,
+        "cpu_vectorization_available": true,
+        "explicit_parallel_pool_required": false,
+        "mandatory_gpu_dependency": false
+      },
+      "rationale": "full-quality vectorized geometry"
+    },
+    "geometry_cache_hit": false,
+    "geometry_cache_key": "24bfbd68d42462c91d85c84ae7b5c4383979eb96180fea4e80b6dcd3c48d155a|n12|e8|s1.000000|cauto|vb541b3479b2a51713cdc78a93d96b0d789bf95f99352745413195b8b4d44bb30",
+    "window_mode": "hidden-fixed",
+    "initial_position": [
+      100,
+      100,
+      1600,
+      1200
+    ],
+    "window_state": "normal",
+    "embedded": false,
+    "global_settings": {
+      "background_color": [
+        1,
+        1,
+        1
+      ],
+      "shading": "interp",
+      "lighting": "phong",
+      "light_direction": "right",
+      "show_orientation_labels": false,
+      "render_detail": "adaptive",
+      "material_profile": "dull",
+      "material_coefficients": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "orientation_labels": {
+      "mode": "coordinate",
+      "negative_label": "X<=0",
+      "positive_label": "X>0",
+      "reason": "Anatomical orientation has not been confirmed for these inputs."
+    },
+    "surface_settings": {
+      "double_brain": false,
+      "color_mode": "scalar",
+      "color": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "opacity": 0.4,
+      "colormap": "parula",
+      "color_limits": [],
+      "show_colorbar": true,
+      "boundary_mode": "none",
+      "boundary_color": [
+        0,
+        0,
+        0
+      ],
+      "boundary_threshold": 0,
+      "boundary_mask": [],
+      "boundary_mesh_sha256": "",
+      "boundary_mask_source": "",
+      "vertex_colors": [],
+      "vertex_colors_mesh_sha256": "",
+      "vertex_colors_source": ""
+    },
+    "node_settings": {
+      "selection_mode": "all",
+      "selection_basis": "value",
+      "threshold": 0,
+      "label_mode": "none",
+      "label_basis": "value",
+      "label_threshold": 0,
+      "label_font_name": "Arial",
+      "label_font_size": 10,
+      "label_font_weight": "normal",
+      "label_font_angle": "normal",
+      "label_font_units": "points",
+      "label_color": [
+        0,
+        0,
+        0
+      ],
+      "label_in_front": false,
+      "size_mode": "mapped",
+      "size_basis": "value",
+      "size": 3,
+      "size_scale": 0.45,
+      "size_threshold": 0,
+      "color_mode": "modular",
+      "color": [
+        0.14509803921568629,
+        0.34901960784313724,
+        0.596078431372549
+      ],
+      "colormap": "jet",
+      "color_limits": [],
+      "color_threshold": 0,
+      "color_low": [
+        0.14509803921568629,
+        0.34901960784313724,
+        0.596078431372549
+      ],
+      "color_high": [
+        1,
+        0,
+        0
+      ],
+      "size_threshold_basis": "mapped"
+    },
+    "edge_settings": {
+      "selection_mode": "all",
+      "threshold": 0,
+      "sparsity": 0.1,
+      "value_mode": "absolute",
+      "inter_hemisphere_only": false,
+      "directed": false,
+      "arrow_length_scale": 1,
+      "arrow_width_scale": 0.7,
+      "size_mode": "mapped",
+      "size": 1,
+      "size_scale": 0.45,
+      "size_threshold": 0,
+      "size_threshold_basis": "mapped",
+      "size_value_mode": "absolute",
+      "color_mode": "uniform",
+      "color": [
+        0.85,
+        0.12,
+        0.12
+      ],
+      "colormap": "jet",
+      "color_limits": [],
+      "color_threshold": 0,
+      "length_threshold": 0,
+      "color_low": [
+        0.38,
+        0.38,
+        0.38
+      ],
+      "color_high": [
+        1,
+        0.9,
+        0.73
+      ],
+      "threshold_value_mode": "absolute",
+      "mapped_value_mode": "absolute",
+      "inter_module_color": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "custom_color": {
+        "matrix": [],
+        "indices": [],
+        "node_sha256": "",
+        "source": ""
+      },
+      "opacity_mode": "uniform",
+      "opacity": 0.7,
+      "opacity_value_mode": "absolute",
+      "opacity_range": [
+        0.1,
+        0.9
+      ]
+    },
+    "volume_settings": {
+      "display": false,
+      "type": "surface-map",
+      "map_algorithm": 5,
+      "threshold_mode": "p-value",
+      "statistical_threshold": 0,
+      "p_value": 0.001,
+      "cluster_size": 0,
+      "voxel_connectivity": 18,
+      "positive_minimum": [],
+      "positive_maximum": [],
+      "negative_minimum": [],
+      "negative_maximum": [],
+      "display_mode": "both",
+      "adjust_null": true,
+      "null_color": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "colormap": "bwr"
+    },
+    "roi_settings": {
+      "draw_all": true,
+      "selection": [],
+      "color_mode": "index",
+      "color": [
+        0.8,
+        0.2,
+        0.2
+      ],
+      "custom_colors": [],
+      "palette": "hsv",
+      "show_legend": false,
+      "smoothing": "gaussian",
+      "smoothing_kernel": 3
+    },
+    "node_detail": 12,
+    "edge_sides": 8,
+    "geometry": {
+      "full": {
+        "surface_vertex_count": 81924,
+        "surface_face_count": 163840,
+        "node_count": 200,
+        "node_vertex_count": 33800,
+        "node_face_count": 57600,
+        "edge_count": 806,
+        "edge_vertex_count": 12896,
+        "edge_face_count": 6448,
+        "roi_mesh_count": 0,
+        "roi_vertex_count": 0,
+        "roi_face_count": 0,
+        "arrow_vertex_count": 0,
+        "arrow_face_count": 0,
+        "node_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.000347193,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        },
+        "edge_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.000856622,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        }
+      },
+      "left": {
+        "surface_vertex_count": 40962,
+        "surface_face_count": 81920,
+        "node_count": 102,
+        "node_vertex_count": 17238,
+        "node_face_count": 29376,
+        "edge_count": 170,
+        "edge_vertex_count": 2720,
+        "edge_face_count": 1360,
+        "roi_mesh_count": 0,
+        "roi_vertex_count": 0,
+        "roi_face_count": 0,
+        "arrow_vertex_count": 0,
+        "arrow_face_count": 0,
+        "node_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.000931065,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        },
+        "edge_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.000415275,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        }
+      },
+      "right": {
+        "surface_vertex_count": 40962,
+        "surface_face_count": 81920,
+        "node_count": 98,
+        "node_vertex_count": 16562,
+        "node_face_count": 28224,
+        "edge_count": 206,
+        "edge_vertex_count": 3296,
+        "edge_face_count": 1648,
+        "roi_mesh_count": 0,
+        "roi_vertex_count": 0,
+        "roi_face_count": 0,
+        "arrow_vertex_count": 0,
+        "arrow_face_count": 0,
+        "node_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.00073133,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        },
+        "edge_acceleration": {
+          "requested": "auto",
+          "used": "cpu",
+          "reason": "auto-vectorized-cpu",
+          "seconds": 0.000371452,
+          "vectorized": true,
+          "explicit_parallel_pool": false
+        }
+      }
+    },
+    "preparation": {
+      "cache_key": "24bfbd68d42462c91d85c84ae7b5c4383979eb96180fea4e80b6dcd3c48d155a",
+      "cache_hit": false,
+      "request_seconds": 0.002796539,
+      "stage_timings_seconds": {
+        "surface_geometry": 3.5716E-5,
+        "node_geometry": 4.0202E-5,
+        "edge_geometry": 0.000611266,
+        "volume_mapping": 2.522E-6,
+        "roi_geometry": 0,
+        "total": 0.000689706
+      }
+    },
+    "camera_restore": "not-saved",
+    "camera_state": {
+      "layout": 1,
+      "views": {
+        "position": [
+          1.4149999999999991,
+          -460.54316130801,
+          15.595195499999999
+        ],
+        "target": [
+          1.4149999999999991,
+          -17.826589999999996,
+          15.595195499999999
+        ],
+        "up": [
+          0,
+          0,
+          1
+        ],
+        "view_angle": 16.476233149956002,
+        "projection": "orthographic",
+        "xlim": [
+          -69.376520183485226,
+          72.206520183485225
+        ],
+        "ylim": [
+          -109.7328077,
+          74.0796277
+        ],
+        "zlim": [
+          -49.688886550000007,
+          80.87927755
+        ]
+      }
+    }
+  },
+  "export": {
+    "relative_path": "NBS_back.png",
+    "format": "png",
+    "content_type_requested": "auto",
+    "content_type_used": "image",
+    "content_selection_reason": "png-image-only",
+    "estimated_graphics_primitives": 229536,
+    "resolution_dpi": 150,
+    "width": 1200,
+    "height": 1200,
+    "units": "pixels",
+    "effective_width": 1200,
+    "effective_height": 1200,
+    "effective_units": "pixels",
+    "preserve_aspect_ratio": true,
+    "background_color": "current",
+    "size_bytes": 1.396077E+6,
+    "sha256": "c61a0d63ea0b5f0f7dd398fc7dd43ae03681181e4a409ece4308fe5414be3c29",
+    "sidecar_relative_path": "NBS_back.png.provenance.json",
+    "actual_width_pixels": 1200,
+    "actual_height_pixels": 1200,
+    "background_color_resolved": [
+      1,
+      1,
+      1
+    ],
+    "transparency_method": "not-requested"
+  },
+  "export_root": "/Users/bai/Documents/GitHub/MEOW/NeurWEM_CN/prelim_fmri/figures/brainnet/views"
+}

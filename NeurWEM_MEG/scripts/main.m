@@ -85,14 +85,24 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % MEG triggers & photodiode
         %%%%%%%%%%%%%%%%%%%%%%%
-        % p.trig.write(code) puts `code` on the 8 trigger lines; meg_trigger
-        % resets them to 0 after p.trig.pulse. Replace the placeholder with the
-        % lab's port write before recording (with p.trig.on = 0, nothing is
-        % sent to the MEG, but codes are still mirrored to the EyeLink).
+        % StimTracker over USB serial: 'mh' + 2 bytes sets output lines 0-15
+        % (line 0 = ch160). p.trig.write(code) sets the lines to `code`;
+        % meg_trigger resets them to 0 after p.trig.pulse. With p.trig.on = 0,
+        % nothing is sent to the MEG, but codes are still mirrored to the EyeLink.
         p.trig.on = 1;
-        p.trig.pulse = 0.005;
-        p.trig.write = @(code) [];   % PLACEHOLDER: lab trigger interface
-        p.trig.write(0);
+        p.trig.pulse = 0.010;
+        p.trig.port = '/dev/cu.usbserial-A900a2R9';
+        if p.trig.on
+            trig_h = IOPort('OpenSerialPort', p.trig.port, 'BaudRate=115200');
+            p.trig.write = @(code) IOPort('Write', trig_h, uint8(['mh' code 0]));
+            p.trig.write(0);
+            WaitSecs(0.1);
+            % warm-up pulse: the first trigger after opening the port can be dropped
+            p.trig.write(p.trig_codes.fixation);
+            WaitSecs(p.trig.pulse);
+            p.trig.write(0);
+            WaitSecs(0.5);
+        end
         p.pd.on = 1;
         p.pd.size = 40 *3;              % px; match the photodiode housing
         p.pd.rect = [0, 0, p.pd.size, p.pd.size];   % bottom-left corner
@@ -361,6 +371,7 @@ function main()
             Eyelink('Shutdown');
         end
     end
+    IOPort('CloseAll');
     Priority(0);
     ListenChar(0);
     sca;

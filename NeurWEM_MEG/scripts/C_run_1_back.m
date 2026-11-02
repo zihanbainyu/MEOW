@@ -14,8 +14,8 @@ num_trials_in_block = height(results_table);
 results_table.resp_key = strings(num_trials_in_block, 1);
 results_table.resp_key(:) = "NA";
 results_table.rt = nan(num_trials_in_block, 1);
-% Per-trial fixation and stimulus onsets, in seconds since the run-start
-% trigger (= lead-in onset, so the 2 s lead-in is included).
+% Per-trial fixation and stimulus onsets, in seconds since the first
+% fixation trigger (= lead-in onset, so the 2 s lead-in is included).
 results_table.fix_onset  = nan(num_trials_in_block, 1);
 results_table.stim_onset = nan(num_trials_in_block, 1);
 % define key names (Assuming KbName('UnifyKeyNames') was called in main)
@@ -83,11 +83,11 @@ KbReleaseWait(p.keys.device);
 ListenChar(2);
 fprintf('1-back block %d starting.\n', current_block);
 % Lead-in fixation before the first trial of the block, held for
-% p.timing.block_lead_in. Its onset is the run's t = 0 (run-start trigger).
+% p.timing.block_lead_in. Its onset is the run's t = 0 (first fixation trigger).
 draw_fixation_target(p);
 draw_photodiode(p, false);
 lead_in_onset = Screen('Flip', p.window);
-meg_trigger(p, p.trig_codes.run_start_1back);
+meg_trigger(p, p.trig_codes.fixation);
 if is_eyetracking, Eyelink('Message', 'LEAD_IN_ONSET'); end
 run_start = lead_in_onset;
 WaitSecs('UntilTime', lead_in_onset + p.timing.block_lead_in);
@@ -125,7 +125,7 @@ for i = 1:height(results_table)
     KbQueueFlush(p.keys.device);
     % --- present image and collect response ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
-    meg_trigger(p, trial_info.trig);
+    meg_trigger(p, p.trig_codes.stim);
     % Eyelink: send messages exactly at stimulus onset
     if is_eyetracking
         Eyelink('Message', 'SYNCTIME');
@@ -149,10 +149,8 @@ for i = 1:height(results_table)
                 error('USER_ABORT:ExperimentAborted', 'Experiment aborted by user.');
             elseif any(response_key_code == same_key)
                 key_pressed = string(p.keys.same);
-                meg_trigger(p, p.trig_codes.resp_same);
             elseif any(response_key_code == similar_key)
                 key_pressed = string(p.keys.diff);
-                meg_trigger(p, p.trig_codes.resp_similar);
             else
                 key_pressed = "invalid";
             end
@@ -194,11 +192,19 @@ for i = 1:height(results_table)
     results_table.stim_onset(i) = stim_onset_time - run_start;
 end % end of the trial loop
 
+% Lead-out fixation after the last trial, held for p.timing.block_lead_out.
+% Its onset marks the last image's offset.
+draw_fixation_target(p);
+draw_photodiode(p, false);
+lead_out_onset = Screen('Flip', p.window);
+meg_trigger(p, p.trig_codes.fixation);
+if is_eyetracking, Eyelink('Message', 'LEAD_OUT_ONSET'); end
+WaitSecs('UntilTime', lead_out_onset + p.timing.block_lead_out);
+
 % --- Clear screen before stopping recording ---
 Screen('FillRect', p.window, p.colors.bgcolor);
 draw_photodiode(p, false);
 Screen('Flip', p.window);
-meg_trigger(p, p.trig_codes.run_end);
 WaitSecs(0.05);
 
 if is_eyetracking
