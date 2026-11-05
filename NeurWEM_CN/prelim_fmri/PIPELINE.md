@@ -23,3 +23,28 @@ viz_interaction.py / viz_inter_match.py / interaction_loc.py -> maps + localizat
 Result: 0 voxels survive FWE; uncorrected map is noise -> not reportable.
 
 archive/ holds superseded scripts (old searchlight group, surface renders, dlpfc/hc_glm/b2 iterations).
+
+---
+
+# Local layout & reproduction
+
+Directory (type -> phase; analysis type is in the filename: fig_2x2_*, fig_rsa_*, fig_behav_*, fig_mem_*):
+
+    scripts/mstback/   scripts/mst/     analysis + figure scripts
+    data/mstback/      data/mst/        inputs (.csv/.mat/.npz); + mstback/fc, mstback/brainnet
+    figures/mstback/   figures/mst/     outputs (.pdf/.png); + backup/
+    maps/              maps/hires/      whole-brain group t-maps + bg_MNI2009cAsym_T1 + tpl (hires = source maps + geom)
+    icons/                              ROI icons
+    scripts/archive/                    legacy scripts (external /Users/bai/Downloads data; not repo-reproducible)
+
+Reproduce (run from prelim_fmri/):
+
+    bash sync_from_cluster.sh                 # pull group summaries + icons into data/ and icons/
+    matlab -batch "run('scripts/mstback/make_prelim_panels.m')"   # 2-back 2x2 + RSA + MST-mem + behaviour panels
+    matlab -batch "run('scripts/mstback/make_contrasts.m')"       # whole-brain task-contrast montages (reads maps/hires)
+    matlab -batch "run('scripts/mstback/coupling_brain.m')"       # 3D HC->cortex coupling (reads data/mstback/coupling_meshes.mat)
+    matlab -batch "run('scripts/mstback/{connectogram,heatmap,matrix,compose_brain}.m')"  # FC figures
+    matlab -batch "run('scripts/mst/make_mst_{idx,m3,behav,sep,combined}.m')"             # MST figures
+
+All script paths are relative to the script location, so any of the above runs from prelim_fmri/ without edits.
+Whole-brain interaction/MST t-maps for eyeballing: maps/grp_interaction_discrim_t, grp_interaction_samedetect_t, grp_mst_emlure_acc_t (overlay on maps/bg_MNI2009cAsym_T1).

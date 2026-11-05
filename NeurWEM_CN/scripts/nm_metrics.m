@@ -37,6 +37,17 @@ for c=1:2
     rt=two.rt; good = cm & two.correct & (cr=="1"|cr=="2") & rt>0.15;
     M.rt(c)   = median(rt(good),'omitnan');
 end
+% one-back (encoding phase): similar-discrimination + same-detection (single condition)
+%   lure = B (corr '2') ; foil = F (filler) ; repeat = A identical (corr '1')
+if isfield(Dc,'one') && ~isempty(Dc.one)
+    o=Dc.one; oid=string(o.identity); ocr=string(o.corr_resp); ork=string(o.resp_key);
+    lur=oid=="B"&ocr=="2"; foi=oid=="F"; rep=oid=="A"&ocr=="1";
+    M.di_one   = pk(ork,lur,'2') - pk(ork,foi,'2');
+    M.dSim_one = zc(pk(ork,lur,'2'),sum(lur)) - zc(pk(ork,foi,'2'),sum(foi));
+    M.dSame_one= zc(pk(ork,rep,'1'),sum(rep)) - zc(pk(ork,foi,'1'),sum(foi));
+else
+    M.di_one=NaN; M.dSim_one=NaN; M.dSame_one=NaN;
+end
 end
 function p=pk(rk,mask,key), if sum(mask)==0, p=NaN; else, p=mean(rk(mask)==key); end, end
 function z=zc(p,n), if isnan(p)||n==0, z=NaN; return; end, z=norminv(max(1/(2*n),min(1-1/(2*n),p))); end
