@@ -115,7 +115,8 @@ function main()
             dummymode = 0; % set to 1 for debugging without a tracker
             % Point at this Host PC's IP (default is 100.1.1.2). Must be set
             % before EyelinkInit.
-            Eyelink('SetAddress', '192.168.1.5');
+            Eyelink('SetAddress', '100.1.1.2');
+            % Eyelink('SetAddress', '192.168.1.5');
             el=EyelinkInitDefaults(p.window);
             % PLACEHOLDER FIX: force the imaging-pipeline callback that draws the
             % camera image + calibration targets INTO the PTB window. Without this
@@ -182,7 +183,7 @@ function main()
         %%%%%%%%%%%%%%%%%%%%%%%
         % which blocks to run
         %%%%%%%%%%%%%%%%%%%%%%%
-        b_to_run = 0; % 0 = all; [x] = specific block numbers [2 3 4]
+        b_to_run = [3 4]; % 0 = all; [x] = specific block numbers [2 3 4]
         if b_to_run == 0, b_seq = 1:p.nBlocks; else, b_seq = b_to_run; end
 
         edf_to_transfer = {};
