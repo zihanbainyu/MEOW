@@ -1,0 +1,35 @@
+================================================================
+ GROUP MST-BACK  --  N = 1   (2026-11-05 12:40)
+================================================================
+  1-back same            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  1-back similar         mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  1-back new             mean 1.000  SD 0.000  [range 1.000-1.000]  n=1
+  2-back AB acc          mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  2-back AA acc          mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  2-back AN acc          mean 1.000  SD 0.000  [range 1.000-1.000]  n=1
+  DI compared            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  DI novel               mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  d' compared            mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  d' novel               mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+
+*** PRIMARY OUTCOME: 2-back discrimination (DI), by condition ***
+  DI compared vs novel           diff +0.000 (n=1, too few for a test)
+    (per-subject compared - novel: +0.000)
+
+-- secondary --
+  d'  compared vs novel          diff +0.000 (n=1, too few for a test)
+
+-- POST-TASK MST (old / lure / new; N with MST = 1) --
+  MST LDI                mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  MST recognition        mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  MST d' (old)           mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  MST hit p(old|old)     mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  MST lure p(sim|lure)   mean 0.000  SD 0.000  [range 0.000-0.000]  n=1
+  MST CR  p(new|new)     mean 1.000  SD 0.000  [range 1.000-1.000]  n=1
+  MST RT old (s)         (no data)
+  MST RT lure (s)        (no data)
+
+-- DATA QUALITY: non-response / dozing (per subject) --
+  a "miss" is a withheld response on a trial that NEEDED a press (same/similar/old/lure).
+  subj     miss%(req)   NA%(all)  max NA run   flag
+  sub301        100%       100%         520   << high miss -- likely drowsy
