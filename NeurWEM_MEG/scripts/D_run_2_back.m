@@ -37,7 +37,7 @@ Screen('TextFont', p.window, 'Helvetica'); % Set font style
 % Initialize KbQueue for fast, buffered responses during the trial loop
 respKeys = zeros(1, 256);
 respKeys([same_key, similar_key, escape_key]) = 1;
-KbQueueCreate(p.keys.device, respKeys); % Create queue for the target device
+resp_queue('create', p, respKeys); % Create queue for the target device
 
 % Clear any initial key presses before the experiment begins
 KbCheck(p.keys.device);
@@ -102,7 +102,7 @@ run_start = lead_in_onset;
 WaitSecs('UntilTime', lead_in_onset + p.timing.block_lead_in);
 
 % Start the KbQueue to collect responses during the trial loop
-KbQueueStart(p.keys.device);
+resp_queue('start', p);
 
 %------------------------------------------------------------------
 % 2B: Trial loop for the current block
@@ -135,7 +135,7 @@ for i = 1:height(results_table)
     draw_photodiode(p, true);
 
     % Clear any events that occurred during fixation before presenting stimulus
-    KbQueueFlush(p.keys.device);
+    resp_queue('flush', p);
 
     % --- present image and collect response ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
@@ -154,7 +154,7 @@ for i = 1:height(results_table)
 
     % Use KbQueueCheck for efficient and accurate response collection
     while GetSecs < stim_onset_time + p.timing.image_dur
-        [pressed, firstPress] = KbQueueCheck(p.keys.device);
+        [pressed, firstPress] = resp_queue('check', p);
 
         if pressed && ~responded
             responded = true;
@@ -235,7 +235,7 @@ if is_eyetracking
 end
 
 % Release the KbQueue resources after the trial loop
-KbQueueRelease(p.keys.device);
+resp_queue('release', p);
 ListenChar(0);   % restore keystrokes to MATLAB between runs
 
 end

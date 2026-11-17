@@ -6,7 +6,7 @@ function roi_2x2_lme()
 % Prints journal-format stats: b [95% CI], t(df), p  (residual df; fitlme default).
 here=fileparts(mfilename('fullpath')); root=fullfile(here,'..','..');
 T=readtable(fullfile(root,'data','mstback','roi_2x2_cells.csv'));
-rois={'HC_ant','HC_post','Angular','DLPFC','IPS','Visual','VentralTemporal'};
+rois={'HC_whole','HC_ant','Perirhinal','Angular','Precuneus','IPS','DLPFC','sPCS_FEF','IFG','preSMA','ACC','mPFC','VentralTemporal','LOC','EarlyVisual','Visual'};
 pres={'sim','same'}; prl={'similar-discrimination','same-detection'};
 for pp=1:2
   pre=pres{pp};
@@ -27,19 +27,23 @@ for pp=1:2
     report(C,'cond',     '  condition (compared-novel)  ');
     report(C,'cond:acc', '  condition x accuracy        ');
     % post-hoc simple effects of accuracy within each condition (coef order: Intercept, cond, acc, cond:acc)
-    report_ph(lme,[0 0 1 +0.5],'    post-hoc  accuracy | compared');
-    report_ph(lme,[0 0 1 -0.5],'    post-hoc  accuracy | novel   ');
+    report_ph(lme,[0 0 1 +0.5],'    post-hoc  accuracy | compared',1);
+    report_ph(lme,[0 0 1 -0.5],'    post-hoc  accuracy | novel   ',1);
   end
 end
 end
 
-function report_ph(lme,H,lab)
+function report_ph(lme,H,lab,tail)
+if nargin<4, tail=1; end
 b=lme.Coefficients.Estimate; V=lme.CoefficientCovariance;
 est=H*b; se=sqrt(H*V*H'); t=est/se;
 [p2,~,~,df]=coefTest(lme,H);
-if est>0, p=p2/2; else, p=1-p2/2; end           % one-tailed: correct > incorrect
+if tail==1                                        % one-tailed: correct > incorrect
+    if est>0, p=p2/2; else, p=1-p2/2; end; ts='1-tailed';
+else, p=p2; ts='2-tailed';                        % no directional prediction (novel)
+end
 tc=tinv(0.975,df);
-fprintf('%s:  b = %+.3f [%+.3f, %+.3f], t(%d) = %+.2f, %s (1-tailed)\n',lab,est,est-tc*se,est+tc*se,df,t,pstr(p));
+fprintf('%s:  b = %+.3f [%+.3f, %+.3f], t(%d) = %+.2f, %s (%s)\n',lab,est,est-tc*se,est+tc*se,df,t,pstr(p),ts);
 end
 
 function report(C,name,lab)

@@ -42,7 +42,7 @@ Screen('TextFont', p.window, 'Helvetica');
 % Initialize KbQueue for fast, buffered responses during the trial loop
 respKeys = zeros(1, 256);
 respKeys([old_key, new_key, escape_key]) = 1;
-KbQueueCreate(p.keys.device, respKeys);
+resp_queue('create', p, respKeys);
 KbCheck(p.keys.device);
 
 %% ========================================================================
@@ -74,7 +74,7 @@ while true
     WaitSecs(0.001);
 end
 
-KbQueueStart(p.keys.device);
+resp_queue('start', p);
 
 for i = 1:num_trials
     trial_info = results_table(i,:);
@@ -91,14 +91,14 @@ for i = 1:num_trials
     img_texture = Screen('MakeTexture', p.window, img_data);
     Screen('DrawTexture', p.window, img_texture, [], [], 0);
     % Clear any events that occurred during fixation before presenting stimulus
-    KbQueueFlush(p.keys.device);
+    resp_queue('flush', p);
     % --- present image; it stays on screen until a response (or timeout) ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
 
     key_pressed = "NA";
     response_time = NaN;
     while GetSecs < stim_onset_time + max_resp
-        [pressed, firstPress] = KbQueueCheck(p.keys.device);
+        [pressed, firstPress] = resp_queue('check', p);
         if pressed
             response_key_code = find(firstPress, 1);
             response_time = firstPress(response_key_code) - stim_onset_time;
@@ -135,7 +135,7 @@ Screen('Flip', p.window);
 WaitSecs(2);
 
 % Release the KbQueue resources after the trial loop
-KbQueueRelease(p.keys.device);
+resp_queue('release', p);
 
 end
 

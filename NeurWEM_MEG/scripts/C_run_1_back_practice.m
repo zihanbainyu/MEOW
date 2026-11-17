@@ -15,7 +15,7 @@ function C_run_1_back_practice(p)
     % Setup KbQueue
     respKeys = zeros(1, 256);
     respKeys([same_key, similar_key, escape_key]) = 1;
-    KbQueueCreate(p.keys.device, respKeys);
+    resp_queue('create', p, respKeys);
     
     %% Initial fixation
     draw_fixation_target(p);
@@ -23,12 +23,12 @@ function C_run_1_back_practice(p)
     WaitSecs(2);
     
     %% Trial loop with feedback
-    KbQueueStart(p.keys.device);
+    resp_queue('start', p);
     n_correct = 0;
     
     for i = 1:nTrials
         
-        KbQueueFlush(p.keys.device);
+        resp_queue('flush', p);
         
         % Load image
         img_path = fullfile(p.stim_dir, sequence_1_back_practice.stim_id{i});
@@ -52,7 +52,7 @@ function C_run_1_back_practice(p)
         response_key = '';
         
         while GetSecs < stim_onset + p.timing.image_dur && ~responded
-            [pressed, firstPress] = KbQueueCheck(p.keys.device);
+            [pressed, firstPress] = resp_queue('check', p);
             
             if pressed && ~responded
                 key_code = find(firstPress, 1);
@@ -104,7 +104,7 @@ function C_run_1_back_practice(p)
         Screen('Close', img_tex);
     end
     
-    KbQueueRelease(p.keys.device);
+    resp_queue('release', p);
     
     %% Performance summary
     accuracy = (n_correct / nTrials) * 100;

@@ -29,6 +29,7 @@ for c=1:2
     % same-detection d' (as in group script): p(old|target) vs p(old|foil)
     pHo=pk(rk,aa&cm,'1'); pFo=pk(rk,an&cm,'1');
     M.dSame(c)= zc(pHo,sum(aa&cm)) - zc(pFo,sum(an&cm));
+    M.hitSame(c)=pHo; M.faSame(c)=pFo;   % p(old|repeat) ; p(old|foil)
     % NA / miss by condition
     req = cm & (cr=="1"|cr=="2");
     M.miss(c) = mean(rk(req)=="none");
@@ -42,11 +43,14 @@ end
 if isfield(Dc,'one') && ~isempty(Dc.one)
     o=Dc.one; oid=string(o.identity); ocr=string(o.corr_resp); ork=string(o.resp_key);
     lur=oid=="B"&ocr=="2"; foi=oid=="F"; rep=oid=="A"&ocr=="1";
-    M.di_one   = pk(ork,lur,'2') - pk(ork,foi,'2');
-    M.dSim_one = zc(pk(ork,lur,'2'),sum(lur)) - zc(pk(ork,foi,'2'),sum(foi));
-    M.dSame_one= zc(pk(ork,rep,'1'),sum(rep)) - zc(pk(ork,foi,'1'),sum(foi));
+    M.hitSim_one=pk(ork,lur,'2'); M.faSim_one=pk(ork,foi,'2');     % p(sim|lure) ; p(sim|foil)
+    M.hitSame_one=pk(ork,rep,'1'); M.faSame_one=pk(ork,foi,'1');   % p(old|repeat) ; p(old|foil)
+    M.di_one   = M.hitSim_one - M.faSim_one;
+    M.dSim_one = zc(M.hitSim_one,sum(lur)) - zc(M.faSim_one,sum(foi));
+    M.dSame_one= zc(M.hitSame_one,sum(rep)) - zc(M.faSame_one,sum(foi));
 else
     M.di_one=NaN; M.dSim_one=NaN; M.dSame_one=NaN;
+    M.hitSim_one=NaN; M.faSim_one=NaN; M.hitSame_one=NaN; M.faSame_one=NaN;
 end
 end
 function p=pk(rk,mask,key), if sum(mask)==0, p=NaN; else, p=mean(rk(mask)==key); end, end

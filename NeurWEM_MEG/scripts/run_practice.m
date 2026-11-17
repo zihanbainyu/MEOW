@@ -52,6 +52,7 @@ function run_practice()
         p.fix_dot_color = p.colors.black;
         KbName('UnifyKeyNames');
         p.keys.device = -3;               % listen to all keyboards
+        p.keys.queue_devices = unique([GetKeyboardIndices, GetKeypadIndices]);
         KbReleaseWait(p.keys.device);
         % Block keystrokes from reaching MATLAB (editor / command window) for the
         % whole session; KbQueue/KbCheck still read the keyboard. Restored by

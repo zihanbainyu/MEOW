@@ -78,6 +78,7 @@ function main()
         p.fix_dot_color = p.colors.black;  % disc + central dot colour
         KbName('UnifyKeyNames');
         p.keys.device = -3; % listen to all keyboard (experimenter room + test room)
+        p.keys.queue_devices = unique([GetKeyboardIndices, GetKeypadIndices]);
         fprintf('Listening to all keyboards\n');
         disp(' ');
         KbReleaseWait(p.keys.device);

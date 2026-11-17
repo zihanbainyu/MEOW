@@ -36,7 +36,7 @@ Screen('TextFont', p.window, 'Helvetica');
 % Initialize KbQueue for fast, buffered responses during the trial loop
 respKeys = zeros(1, 256);
 respKeys([old_key, similar_key, escape_key]) = 1;
-KbQueueCreate(p.keys.device, respKeys);
+resp_queue('create', p, respKeys);
 KbCheck(p.keys.device);
 
 %% ========================================================================
@@ -77,7 +77,7 @@ if is_eyetracking, Eyelink('Message', 'LEAD_IN_ONSET'); end
 run_start = lead_in_onset;
 WaitSecs('UntilTime', lead_in_onset + p.timing.block_lead_in);
 
-KbQueueStart(p.keys.device);
+resp_queue('start', p);
 
 for i = 1:num_trials
     trial_info = results_table(i,:);
@@ -102,7 +102,7 @@ for i = 1:num_trials
     Screen('DrawTexture', p.window, img_texture, [], [], 0);
     draw_photodiode(p, true);
     % Clear any events that occurred during fixation before presenting stimulus
-    KbQueueFlush(p.keys.device);
+    resp_queue('flush', p);
     % --- present image for exactly mst_image_dur (responses collected during it) ---
     stim_onset_time = Screen('Flip', p.window, fix_onset_time + trial_info.fix_duration - 0.5 * p.ifi);
     meg_trigger(p, p.trig_codes.stim);
@@ -119,7 +119,7 @@ for i = 1:num_trials
     % on screen throughout and is replaced by the next trial's fixation (or, for
     % the last trial, the tail fixation). No post-image blank.
     while GetSecs < stim_onset_time + p.timing.mst_image_dur
-        [pressed, firstPress] = KbQueueCheck(p.keys.device);
+        [pressed, firstPress] = resp_queue('check', p);
         if pressed && ~responded
             responded = true;
             response_key_code = find(firstPress, 1);
@@ -182,7 +182,7 @@ if is_eyetracking
     Eyelink('StopRecording');
 end
 % Release the KbQueue resources after the trial loop
-KbQueueRelease(p.keys.device);
+resp_queue('release', p);
 ListenChar(0);   % restore keystrokes to MATLAB between runs
 
 end
